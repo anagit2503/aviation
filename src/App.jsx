@@ -362,6 +362,11 @@ function LandingPage({ setAuthMode }) {
                 ended up figuring most of it out on my own.
               </p>
               <p>
+                I went on to score 90+ in every subject. Some papers took me more than one attempt, and each retake taught me
+                exactly where students lose marks. I have built all of that into these lessons so you can clear every paper
+                on your first attempt.
+              </p>
+              <p>
                 SkyMaster is what I wish I had then. The notes are the ones I built and refined while studying, and the
                 lessons draw on what I have learned flying, not just what is in the textbook. My job is to get you into your
                 dream flying school and the life that comes after it.
@@ -370,6 +375,9 @@ function LandingPage({ setAuthMode }) {
             <ul className="mt-8 flex flex-wrap gap-3">
               <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
                 <GraduationCap className="h-4 w-4 text-brand" /> CPL, SkyDuo Aviation Academy, Miami
+              </li>
+              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
+                <BarChart3 className="h-4 w-4 text-brand" /> 90+ in all DGCA subjects
               </li>
               <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
                 <NotebookPen className="h-4 w-4 text-brand" /> Notes built from real flying
