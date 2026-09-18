@@ -104,19 +104,40 @@ export default function AviationGroundSchool() {
 // ============= LANDING PAGE =============
 const SUBJECTS = [
   {
-    name: 'Air Law & Procedure',
-    blurb: 'Rules of the air, airspace, licensing and ATC procedures, taught with the exam wording you will actually see.',
-    topics: ['Rules of the air', 'Airspace classification', 'Licensing & medicals', 'ATC clearances'],
+    name: 'Air Navigation',
+    tab: 'Air Navigation',
+    blurb: 'Map reading, flight planning, compass use and radio aids. Every calculation worked through step by step, the way the paper sets it.',
+    topics: ['Maps & charts', 'Flight planning', 'Compass & magnetism', 'Radio navigation aids'],
   },
   {
-    name: 'Navigation & Meteorology',
-    blurb: 'Plot a route, read a TAF, and understand why the weather does what it does, one worked problem at a time.',
-    topics: ['Charts & plotting', 'Computer & wind triangle', 'Weather systems', 'METARs & TAFs'],
+    name: 'Aviation Meteorology',
+    tab: 'Meteorology',
+    blurb: 'Weather systems, clouds and pressure explained from the cockpit, plus plenty of practice decoding METARs and TAFs.',
+    topics: ['Weather systems & fronts', 'Clouds & precipitation', 'Atmospheric pressure', 'METARs & TAFs'],
   },
   {
-    name: 'Aircraft Technical Knowledge',
-    blurb: 'Engines, systems, instruments and principles of flight, explained from the cockpit rather than the textbook.',
-    topics: ['Principles of flight', 'Piston & turbine engines', 'Flight instruments', 'Aircraft systems'],
+    name: 'Air Regulations',
+    tab: 'Air Regulations',
+    blurb: 'Aviation law, air traffic rules and safety procedures, taught with the exact wording the exam uses.',
+    topics: ['Rules of the air', 'Airspace & ATC services', 'Licensing & medicals', 'Safety procedures'],
+  },
+  {
+    name: 'Technical General',
+    tab: 'Technical General',
+    blurb: 'Aircraft structures, principles of flight, engines and general systems, explained so they stick.',
+    topics: ['Principles of flight', 'Aircraft structures', 'Piston & turbine engines', 'Systems & instruments'],
+  },
+  {
+    name: 'Technical Specific',
+    tab: 'Technical Specific',
+    blurb: 'In-depth knowledge of the aircraft type you will fly: its limits, systems and performance figures.',
+    topics: ['Type limitations', 'Aircraft systems', 'Performance & loading', 'Emergency procedures'],
+  },
+  {
+    name: 'Radio Telephony (RTR)',
+    tab: 'RTR',
+    blurb: 'Standard phraseology and communication procedures for talking to air traffic control, with practice for the oral exam.',
+    topics: ['Standard phraseology', 'Radio procedures', 'Emergency calls', 'Practice exchanges'],
   },
 ];
 
@@ -133,12 +154,12 @@ const REASONS = [
   { icon: BarChart3, title: 'See your progress', text: 'Marks and completion for each subject update as you finish quizzes.' },
   { icon: Clock, title: 'Study on your schedule', text: 'Watch lectures between shifts, on the train, or the night before a paper.' },
   { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once and keep every lesson, including updates when the syllabus changes.' },
-  { icon: Wallet, title: 'Fairly priced', text: 'One flat fee for all three subjects. No add-ons, no monthly bill.' },
+  { icon: Wallet, title: 'Fairly priced', text: 'One flat fee for all six subjects. No add-ons, no monthly bill.' },
 ];
 
 const FAQS = [
-  { q: 'Which exams does this prepare me for?', a: 'The CPL ground subjects: Air Law & Procedure, Navigation & Meteorology, and Aircraft Technical Knowledge.' },
-  { q: 'How long does it take to finish?', a: 'Most students complete all three subjects in 8 to 12 weeks studying an hour or two a day. You can go faster or slower.' },
+  { q: 'Which exams does this prepare me for?', a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.' },
+  { q: 'How long does it take to finish?', a: 'Most students complete all six subjects in 3 to 5 months studying an hour or two a day. You can go faster or slower.' },
   { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to every lesson, note and mock exam, plus future updates.' },
   { q: 'What if it is not right for me?', a: 'Ask for a refund within 7 days of joining and you get your money back in full.' },
 ];
@@ -220,7 +241,7 @@ function LandingPage({ setAuthMode }) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-muted">Your study plan</p>
-                  <p className="text-lg font-bold text-ink">Navigation & Meteorology</p>
+                  <p className="text-lg font-bold text-ink">Aviation Meteorology</p>
                 </div>
                 <span className="rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">Day 12 of 30</span>
               </div>
@@ -267,11 +288,11 @@ function LandingPage({ setAuthMode }) {
       <section id="subjects" className="scroll-mt-20 py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Three subjects, one clear path</h2>
-            <p className="mt-4 text-lg text-muted">Everything the CPL ground papers cover, split into short lessons you can finish in a sitting.</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Six DGCA subjects, one clear path</h2>
+            <p className="mt-4 text-lg text-muted">Everything the DGCA CPL ground papers cover, split into short lessons you can finish in a sitting. You need 70% in each paper to pass.</p>
           </div>
 
-          <div className="mt-10 inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5">
+          <div className="mt-10 flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5 lg:inline-flex">
             {SUBJECTS.map((s, i) => (
               <button
                 key={s.name}
@@ -280,7 +301,7 @@ function LandingPage({ setAuthMode }) {
                   activeSubject === i ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'
                 }`}
               >
-                {s.name}
+                {s.tab}
               </button>
             ))}
           </div>
@@ -362,7 +383,7 @@ function LandingPage({ setAuthMode }) {
             <p className="mt-6 text-5xl font-extrabold tracking-tight text-ink">₹4,999</p>
             <p className="mt-2 text-muted">Lifetime access, including future updates</p>
             <ul className="mt-8 space-y-3">
-              {['All three CPL subjects', 'Every video lesson and note', 'Topic quizzes and full mock exams', 'Progress and marks tracking'].map((f) => (
+              {['All six DGCA CPL subjects', 'Every video lesson and note', 'Topic quizzes and full mock exams', 'Progress and marks tracking'].map((f) => (
                 <li key={f} className="flex items-center gap-3 text-ink">
                   <Check className="h-5 w-5 text-go" strokeWidth={2.5} /> {f}
                 </li>
@@ -601,18 +622,23 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
 function StudentDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [subjects] = useState([
-    { id: 1, name: 'Air Law & Procedure', progress: 75, quizzes: 8, totalMarks: 650, outOf: 800 },
-    { id: 2, name: 'Navigation & Meteorology', progress: 60, quizzes: 6, totalMarks: 480, outOf: 800 },
-    { id: 3, name: 'Aircraft Technical', progress: 85, quizzes: 10, totalMarks: 720, outOf: 800 },
+    { id: 1, name: 'Air Navigation', progress: 75, quizzes: 8, totalMarks: 82, outOf: 100 },
+    { id: 2, name: 'Aviation Meteorology', progress: 60, quizzes: 6, totalMarks: 74, outOf: 100 },
+    { id: 3, name: 'Air Regulations', progress: 85, quizzes: 10, totalMarks: 88, outOf: 100 },
+    { id: 4, name: 'Technical General', progress: 50, quizzes: 5, totalMarks: 71, outOf: 100 },
+    { id: 5, name: 'Technical Specific', progress: 30, quizzes: 3, totalMarks: 65, outOf: 100 },
+    { id: 6, name: 'Radio Telephony (RTR)', progress: 90, quizzes: 7, totalMarks: 91, outOf: 100 },
   ]);
 
   const [videos] = useState([
-    { id: 1, title: 'Introduction to Air Law', subject: 'Air Law & Procedure', duration: '45 mins', watched: true },
-    { id: 2, title: 'Flight Rules and Procedures', subject: 'Air Law & Procedure', duration: '38 mins', watched: true },
-    { id: 3, title: 'Weather Systems', subject: 'Navigation & Meteorology', duration: '52 mins', watched: false },
+    { id: 1, title: 'Introduction to Air Law', subject: 'Air Regulations', duration: '45 mins', watched: true },
+    { id: 2, title: 'Flight Rules and Procedures', subject: 'Air Regulations', duration: '38 mins', watched: true },
+    { id: 3, title: 'Weather Systems', subject: 'Aviation Meteorology', duration: '52 mins', watched: false },
   ]);
 
-  const overallPercentage = Math.round((1850 / 2400) * 100);
+  const marksObtained = subjects.reduce((sum, s) => sum + s.totalMarks, 0);
+  const marksTotal = subjects.reduce((sum, s) => sum + s.outOf, 0);
+  const overallPercentage = Math.round((marksObtained / marksTotal) * 100);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -633,7 +659,7 @@ function StudentDashboard({ user, onLogout }) {
             </div>
             <div>
               <ProgressBar value={overallPercentage} height="h-3" />
-              <p className="mt-2 text-sm text-muted">1850 of 2400 marks across all subjects</p>
+              <p className="mt-2 text-sm text-muted">{marksObtained} of {marksTotal} marks across all six subjects</p>
             </div>
           </div>
 
@@ -743,8 +769,8 @@ function StudentDashboard({ user, onLogout }) {
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [uploads, setUploads] = useState([
-    { id: 1, name: 'Introduction to Air Law.mp4', size: '2.4 GB', subject: 'Air Law & Procedure', date: '2024-01-15', type: 'video' },
-    { id: 2, name: 'Navigation Notes.pdf', size: '5.2 MB', subject: 'Navigation & Meteorology', date: '2024-01-10', type: 'pdf' },
+    { id: 1, name: 'Introduction to Air Law.mp4', size: '2.4 GB', subject: 'Air Regulations', date: '2024-01-15', type: 'video' },
+    { id: 2, name: 'Navigation Notes.pdf', size: '5.2 MB', subject: 'Air Navigation', date: '2024-01-10', type: 'pdf' },
   ]);
 
   const [students] = useState([
@@ -811,9 +837,7 @@ function AdminPortal({ user, onLogout }) {
                   <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
                   <select className={input}>
                     <option>Select a subject</option>
-                    <option>Air Law & Procedure</option>
-                    <option>Navigation & Meteorology</option>
-                    <option>Aircraft Technical Knowledge</option>
+                    {SUBJECTS.map((s) => <option key={s.name}>{s.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -918,7 +942,7 @@ function AdminPortal({ user, onLogout }) {
           <div className={`${card} p-6`}>
             <h2 className="mb-4 font-bold text-ink">Average marks by subject</h2>
             <div className="space-y-5">
-              {['Air Law & Procedure', 'Navigation & Meteorology', 'Aircraft Technical'].map((subject, i) => (
+              {SUBJECTS.map(({ name: subject }, i) => (
                 <div key={subject}>
                   <div className="mb-1.5 flex justify-between text-sm">
                     <span className="text-ink">{subject}</span>
