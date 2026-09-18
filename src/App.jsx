@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown,
-  LayoutDashboard, Video, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+  LayoutDashboard, Video, ArrowLeft, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -40,22 +40,41 @@ function Logo({ light = false, compact = false }) {
   );
 }
 
+const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup' };
+const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup' };
+
 // ============= MAIN APP =============
 export default function AviationGroundSchool() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [authMode, setAuthMode] = useState('landing'); // landing, login, signup
+  const [authMode, setAuthModeState] = useState(() => PATH_TO_MODE[window.location.pathname] || 'landing'); // landing, login, signup
+
+  // Each public page gets its own URL so the browser's back/forward buttons work
+  const setAuthMode = (mode) => {
+    setAuthModeState(mode);
+    const path = MODE_TO_PATH[mode] || '/';
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    const onPopState = () => setAuthModeState(PATH_TO_MODE[window.location.pathname] || 'landing');
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Simulated login for demo
   const handleLogin = (email, password, isAdminLogin) => {
     if (isAdminLogin && email === 'admin@groundschool.com' && password === 'admin123') {
       setUser({ email, role: 'admin' });
       setIsAdmin(true);
-      setAuthMode('admin');
+      setAuthModeState('admin');
+      window.history.replaceState(null, '', '/');
     } else if (!isAdminLogin && email && password) {
       setUser({ email, role: 'student' });
       setIsAdmin(false);
-      setAuthMode('dashboard');
+      setAuthModeState('dashboard');
+      window.history.replaceState(null, '', '/');
     }
   };
 
@@ -428,7 +447,9 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
       </div>
       <div className="flex items-center justify-center bg-white px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <button onClick={() => setAuthMode('landing')} className="mb-10 lg:hidden"><Logo /></button>
+          <button onClick={() => setAuthMode('landing')} className="mb-8 inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
+            <ArrowLeft className="h-4 w-4" /> Back to home
+          </button>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
           <p className="mt-2 text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
