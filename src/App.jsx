@@ -149,7 +149,7 @@ const FEATURES = [
 ];
 
 const REASONS = [
-  { icon: GraduationCap, title: 'Taught by a working pilot', text: 'Every lesson comes from someone who has sat these papers and flies for a living.' },
+  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Every lesson comes from someone who has sat these papers and trained in the cockpit.' },
   { icon: Compass, title: 'Always know what is next', text: 'Subjects are broken into short lessons in a set order, so you never wonder where to start.' },
   { icon: BarChart3, title: 'See your progress', text: 'Marks and completion for each subject update as you finish quizzes.' },
   { icon: Clock, title: 'Study on your schedule', text: 'Watch lectures between shifts, on the train, or the night before a paper.' },
@@ -178,6 +178,7 @@ function LandingPage({ setAuthMode }) {
           <Logo />
           <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
             <a href="#subjects" className="transition hover:text-ink">Subjects</a>
+            <a href="#about" className="transition hover:text-ink">About</a>
             <a href="#why" className="transition hover:text-ink">Why SkyMaster</a>
             <a href="#pricing" className="transition hover:text-ink">Pricing</a>
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
@@ -196,7 +197,7 @@ function LandingPage({ setAuthMode }) {
         </div>
         {mobileMenuOpen && (
           <div className="space-y-1 border-t border-line bg-white px-4 py-4 md:hidden">
-            {[['#subjects', 'Subjects'], ['#why', 'Why SkyMaster'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why SkyMaster'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
                 {label}
               </a>
@@ -335,23 +336,59 @@ function LandingPage({ setAuthMode }) {
         </div>
       </section>
 
+      {/* About */}
+      <section id="about" className="scroll-mt-20 py-20 sm:py-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-20">
+          <div className="relative mx-auto w-full max-w-md pb-16 pr-16 sm:pr-24 lg:max-w-none">
+            <img
+              src="/about/cockpit.jpg"
+              alt="At the controls of a Cessna over the ocean off Miami"
+              className="aspect-[4/5] w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(15,23,51,0.35)]"
+            />
+            <img
+              src="/about/ramp.jpg"
+              alt="On the ramp in uniform next to a training aircraft"
+              className="absolute bottom-0 right-0 aspect-[3/4] w-[45%] rounded-2xl border-[6px] border-white object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
+            />
+          </div>
+          <div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">I was exactly where you are now.</h2>
+            <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
+              <p>
+                I earned my Commercial Pilot Licence at SkyDuo Aviation Academy in Miami. Before that, I was facing the same
+                six DGCA papers you are, trying to work out who to learn from.
+              </p>
+              <p>
+                I struggled to find the right coaching and the right mentor. Even after paying for very expensive classes, I
+                ended up figuring most of it out on my own.
+              </p>
+              <p>
+                SkyMaster is what I wish I had then. The notes are the ones I built and refined while studying, and the
+                lessons draw on what I have learned flying, not just what is in the textbook. My job is to get you into your
+                dream flying school and the life that comes after it.
+              </p>
+            </div>
+            <ul className="mt-8 flex flex-wrap gap-3">
+              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
+                <GraduationCap className="h-4 w-4 text-brand" /> CPL, SkyDuo Aviation Academy, Miami
+              </li>
+              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
+                <NotebookPen className="h-4 w-4 text-brand" /> Notes built from real flying
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Why */}
       <section id="why" className="scroll-mt-20 bg-mist py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Built by a pilot who remembers studying for these</h2>
-              <p className="mt-5 leading-relaxed text-muted">
-                I hold a Commercial Pilot License and built SkyMaster after watching students overpay for coaching that read
-                the textbook aloud. Every lesson here comes from real exam questions and time spent in the cockpit.
+              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose SkyMaster</h2>
+              <p className="mt-5 text-lg leading-relaxed text-muted">
+                Good coaching should not cost a fortune or leave you piecing things together alone. Here is what you get instead.
               </p>
-              <div className="mt-8 flex items-center gap-4 rounded-2xl bg-white p-4 ring-1 ring-line">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sky text-2xl">👨‍✈️</div>
-                <div>
-                  <p className="font-bold text-ink">Your instructor</p>
-                  <p className="text-sm text-muted">CPL holder · hundreds of students taught</p>
-                </div>
-              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {REASONS.map(({ icon: Icon, title, text }) => (
