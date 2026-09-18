@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, LogOut, Upload, Trash2, Eye, BarChart3, BookOpen, Users, FileText } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
+  PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown,
+  LayoutDashboard, Video, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+} from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
 // Replace these with your Firebase project details
@@ -12,11 +16,34 @@ const FIREBASE_CONFIG = {
   appId: "YOUR_APP_ID"
 };
 
+// ============= SHARED UI =============
+const btnPrimary =
+  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-white shadow-[0_6px_20px_-6px_rgba(47,91,224,0.55)] transition hover:bg-brand-dark';
+const btnGhost =
+  'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand';
+const input =
+  'w-full rounded-xl border border-line bg-white px-4 py-3 text-ink placeholder-slate-400 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10';
+const card = 'rounded-2xl border border-line bg-white';
+
+function Logo({ light = false, compact = false }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white">
+        <Plane className="h-5 w-5 -rotate-45" />
+      </div>
+      {!compact && (
+        <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
+          SkyMaster
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ============= MAIN APP =============
 export default function AviationGroundSchool() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [authMode, setAuthMode] = useState('landing'); // landing, login, signup
 
   // Simulated login for demo
@@ -56,87 +83,160 @@ export default function AviationGroundSchool() {
 }
 
 // ============= LANDING PAGE =============
+const SUBJECTS = [
+  {
+    name: 'Air Law & Procedure',
+    blurb: 'Rules of the air, airspace, licensing and ATC procedures, taught with the exam wording you will actually see.',
+    topics: ['Rules of the air', 'Airspace classification', 'Licensing & medicals', 'ATC clearances'],
+  },
+  {
+    name: 'Navigation & Meteorology',
+    blurb: 'Plot a route, read a TAF, and understand why the weather does what it does, one worked problem at a time.',
+    topics: ['Charts & plotting', 'Computer & wind triangle', 'Weather systems', 'METARs & TAFs'],
+  },
+  {
+    name: 'Aircraft Technical Knowledge',
+    blurb: 'Engines, systems, instruments and principles of flight, explained from the cockpit rather than the textbook.',
+    topics: ['Principles of flight', 'Piston & turbine engines', 'Flight instruments', 'Aircraft systems'],
+  },
+];
+
+const FEATURES = [
+  { icon: PlayCircle, title: 'Video lessons', text: 'Recorded lectures for every topic. Pause, rewind and rewatch before the exam.' },
+  { icon: NotebookPen, title: 'Study notes', text: 'Concise notes that follow the syllabus, so you revise what gets asked.' },
+  { icon: ListChecks, title: 'Topic quizzes', text: 'Ten-question quizzes after each lesson show what stuck and what to revisit.' },
+  { icon: ClipboardCheck, title: 'Mock exams', text: 'Full papers under exam timing, marked instantly with explanations.' },
+];
+
+const REASONS = [
+  { icon: GraduationCap, title: 'Taught by a working pilot', text: 'Every lesson comes from someone who has sat these papers and flies for a living.' },
+  { icon: Compass, title: 'Always know what is next', text: 'Subjects are broken into short lessons in a set order, so you never wonder where to start.' },
+  { icon: BarChart3, title: 'See your progress', text: 'Marks and completion for each subject update as you finish quizzes.' },
+  { icon: Clock, title: 'Study on your schedule', text: 'Watch lectures between shifts, on the train, or the night before a paper.' },
+  { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once and keep every lesson, including updates when the syllabus changes.' },
+  { icon: Wallet, title: 'Fairly priced', text: 'One flat fee for all three subjects. No add-ons, no monthly bill.' },
+];
+
+const FAQS = [
+  { q: 'Which exams does this prepare me for?', a: 'The CPL ground subjects: Air Law & Procedure, Navigation & Meteorology, and Aircraft Technical Knowledge.' },
+  { q: 'How long does it take to finish?', a: 'Most students complete all three subjects in 8 to 12 weeks studying an hour or two a day. You can go faster or slower.' },
+  { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to every lesson, note and mock exam, plus future updates.' },
+  { q: 'What if it is not right for me?', a: 'Ask for a refund within 7 days of joining and you get your money back in full.' },
+];
+
 function LandingPage({ setAuthMode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSubject, setActiveSubject] = useState(0);
+  const [openFaq, setOpenFaq] = useState(0);
+  const subject = SUBJECTS[activeSubject];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-blue-900 to-slate-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-blue-800/30 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-amber-400 rounded-lg flex items-center justify-center font-bold text-slate-900">
-                ✈
-              </div>
-              <h1 className="text-xl font-bold text-white hidden sm:inline">SkyMaster Ground School</h1>
-              <h1 className="text-lg font-bold text-white sm:hidden">SkyMaster</h1>
-            </div>
-            <div className="hidden md:flex gap-6">
-              <a href="#about" className="text-blue-200 hover:text-white transition">About</a>
-              <a href="#courses" className="text-blue-200 hover:text-white transition">Courses</a>
-              <a href="#why" className="text-blue-200 hover:text-white transition">Why Us</a>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setAuthMode('login')}
-                className="px-4 py-2 text-blue-200 hover:text-white transition"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setAuthMode('signup')}
-                className="px-4 py-2 bg-amber-400 text-slate-900 rounded-lg font-semibold hover:bg-amber-300 transition"
-              >
-                Join Now
-              </button>
+      <header className="sticky top-0 z-50 border-b border-line/70 bg-white/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <Logo />
+          <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
+            <a href="#subjects" className="transition hover:text-ink">Subjects</a>
+            <a href="#why" className="transition hover:text-ink">Why SkyMaster</a>
+            <a href="#pricing" className="transition hover:text-ink">Pricing</a>
+            <a href="#faq" className="transition hover:text-ink">FAQ</a>
+          </nav>
+          <div className="hidden items-center gap-2 md:flex">
+            <button onClick={() => setAuthMode('login')} className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist">
+              Log in
+            </button>
+            <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
+              Start learning
+            </button>
+          </div>
+          <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+        {mobileMenuOpen && (
+          <div className="space-y-1 border-t border-line bg-white px-4 py-4 md:hidden">
+            {[['#subjects', 'Subjects'], ['#why', 'Why SkyMaster'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+              <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
+                {label}
+              </a>
+            ))}
+            <div className="flex gap-2 pt-3">
+              <button onClick={() => setAuthMode('login')} className={`${btnGhost} flex-1 py-2.5`}>Log in</button>
+              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} flex-1 py-2.5`}>Start learning</button>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center">
-          <h2 className="text-5xl sm:text-6xl font-bold text-white mb-6 leading-tight">
-            Master Your Ground School <span className="text-amber-400">with Confidence</span>
-          </h2>
-          <p className="text-xl text-blue-200 mb-8 max-w-2xl mx-auto">
-            Comprehensive CPL ground school preparation from an experienced instructor. Structured lessons, practice quizzes, and real exam questions to get you ready.
-          </p>
-          <button
-            onClick={() => setAuthMode('signup')}
-            className="px-8 py-4 bg-amber-400 text-slate-900 rounded-lg font-bold text-lg hover:bg-amber-300 transition inline-block"
-          >
-            Start Learning Today
-          </button>
-        </div>
-      </section>
-
-      {/* About Founder */}
-      <section id="about" className="bg-slate-800/50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-4xl font-bold text-white mb-12 text-center">About Your Instructor</h3>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg h-80 flex items-center justify-center text-8xl">
-              👨‍✈️
+      <section className="relative overflow-hidden bg-gradient-to-b from-sky to-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
+          <div>
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-brand shadow-sm ring-1 ring-line">
+              <Plane className="h-4 w-4 -rotate-45" /> CPL ground school, online
+            </p>
+            <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-[3.6rem]">
+              Pass your CPL ground exams without the guesswork.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
+              Short video lessons, clear notes and real exam-style questions from an instructor who has flown the line.
+              Follow the plan, track your marks, and walk into the exam ready.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <button onClick={() => setAuthMode('signup')} className={btnPrimary}>Start learning today</button>
+              <a href="#subjects" className={btnGhost}>See what you'll study</a>
             </div>
-            <div>
-              <h4 className="text-2xl font-bold text-white mb-4">Commercial Pilot License Holder</h4>
-              <p className="text-blue-200 mb-4 leading-relaxed">
-                With years of flying experience and a passion for education, I've created the most comprehensive ground school program available. Every lesson is designed from real exam questions and practical knowledge.
-              </p>
-              <p className="text-blue-200 mb-4 leading-relaxed">
-                I know exactly what you need to pass—because I've been there myself, and I've helped hundreds of students achieve their aviation dreams.
-              </p>
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                <div className="bg-blue-900/50 p-4 rounded-lg border border-blue-700">
-                  <p className="text-amber-400 font-bold text-2xl">500+</p>
-                  <p className="text-blue-200 text-sm">Students Trained</p>
+            <div className="mt-10 flex items-center gap-8 text-sm text-muted">
+              <div><span className="block text-2xl font-extrabold text-ink">500+</span>students trained</div>
+              <div className="h-10 w-px bg-line" />
+              <div><span className="block text-2xl font-extrabold text-ink">95%</span>pass rate</div>
+            </div>
+          </div>
+
+          {/* Flight-plan preview */}
+          <div className="relative">
+            <div className="absolute -inset-6 -z-0 rounded-[2rem] bg-brand/5 blur-2xl" aria-hidden />
+            <div className={`${card} relative p-6 shadow-[0_24px_60px_-20px_rgba(15,23,51,0.25)] sm:p-7`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted">Your study plan</p>
+                  <p className="text-lg font-bold text-ink">Navigation & Meteorology</p>
                 </div>
-                <div className="bg-blue-900/50 p-4 rounded-lg border border-blue-700">
-                  <p className="text-amber-400 font-bold text-2xl">95%</p>
-                  <p className="text-blue-200 text-sm">Pass Rate</p>
+                <span className="rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">Day 12 of 30</span>
+              </div>
+              <ol className="relative mt-6 space-y-5">
+                <span className="absolute left-[11px] top-3 bottom-3 w-0.5 border-l-2 border-dashed border-line" aria-hidden />
+                {[
+                  { t: 'Wind triangle basics', s: 'Video · 24 min', done: true },
+                  { t: 'Using the flight computer', s: 'Notes · 12 pages', done: true },
+                  { t: 'Frontal weather systems', s: 'Video · 38 min', now: true },
+                  { t: 'Quiz: weather systems', s: '10 questions', done: false },
+                ].map((leg) => (
+                  <li key={leg.t} className="relative flex items-start gap-4">
+                    <span
+                      className={`relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                        leg.done ? 'bg-go text-white' : leg.now ? 'bg-brand text-white ring-4 ring-brand/15' : 'border-2 border-line bg-white'
+                      }`}
+                    >
+                      {leg.done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                      {leg.now && <Plane className="h-3 w-3 rotate-45" />}
+                    </span>
+                    <div className="flex-1">
+                      <p className={`font-semibold ${leg.done ? 'text-muted line-through decoration-line' : 'text-ink'}`}>{leg.t}</p>
+                      <p className="text-sm text-muted">{leg.s}</p>
+                    </div>
+                    {leg.now && <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white">Up next</span>}
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-6 rounded-xl bg-mist p-4">
+                <div className="mb-2 flex justify-between text-sm">
+                  <span className="font-medium text-muted">Subject progress</span>
+                  <span className="font-bold text-ink">60%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-line">
+                  <div className="h-full w-[60%] rounded-full bg-brand" />
                 </div>
               </div>
             </div>
@@ -144,118 +244,196 @@ function LandingPage({ setAuthMode }) {
         </div>
       </section>
 
-      {/* Courses */}
-      <section id="courses" className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-4xl font-bold text-white mb-12 text-center">What You'll Learn</h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            {['Air Law & Procedure', 'Navigation & Meteorology', 'Aircraft Technical Knowledge'].map((course) => (
-              <div key={course} className="bg-blue-900/30 border border-blue-700 p-8 rounded-lg hover:border-amber-400 transition">
-                <BookOpen className="w-12 h-12 text-amber-400 mb-4" />
-                <h4 className="text-xl font-bold text-white mb-3">{course}</h4>
-                <p className="text-blue-200 mb-4">Comprehensive modules with video lessons, detailed notes, and practice questions.</p>
-                <ul className="text-blue-300 text-sm space-y-2">
-                  <li>✓ Video lectures</li>
-                  <li>✓ Study notes</li>
-                  <li>✓ Quiz questions</li>
-                  <li>✓ Mock exams</li>
-                </ul>
-              </div>
+      {/* Subjects */}
+      <section id="subjects" className="scroll-mt-20 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Three subjects, one clear path</h2>
+            <p className="mt-4 text-lg text-muted">Everything the CPL ground papers cover, split into short lessons you can finish in a sitting.</p>
+          </div>
+
+          <div className="mt-10 inline-flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5">
+            {SUBJECTS.map((s, i) => (
+              <button
+                key={s.name}
+                onClick={() => setActiveSubject(i)}
+                className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                  activeSubject === i ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'
+                }`}
+              >
+                {s.name}
+              </button>
             ))}
           </div>
+
+          <div className="mt-6 grid gap-6 rounded-3xl bg-sky p-6 sm:p-10 lg:grid-cols-2 lg:gap-12">
+            <div>
+              <h3 className="text-2xl font-bold text-ink">{subject.name}</h3>
+              <p className="mt-3 text-muted leading-relaxed">{subject.blurb}</p>
+              <ul className="mt-6 grid grid-cols-2 gap-3">
+                {subject.topics.map((t) => (
+                  <li key={t} className="flex items-center gap-2 text-[15px] font-medium text-ink">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-brand">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-8`}>Start this subject</button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {FEATURES.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="rounded-2xl bg-white p-5">
+                  <Icon className="h-6 w-6 text-brand" />
+                  <p className="mt-3 font-bold text-ink">{title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Why Us */}
-      <section id="why" className="bg-slate-800/50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-4xl font-bold text-white mb-12 text-center">Why Choose Us</h3>
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
-                </div>
+      {/* Why */}
+      <section id="why" className="scroll-mt-20 bg-mist py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Built by a pilot who remembers studying for these</h2>
+              <p className="mt-5 leading-relaxed text-muted">
+                I hold a Commercial Pilot License and built SkyMaster after watching students overpay for coaching that read
+                the textbook aloud. Every lesson here comes from real exam questions and time spent in the cockpit.
+              </p>
+              <div className="mt-8 flex items-center gap-4 rounded-2xl bg-white p-4 ring-1 ring-line">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sky text-2xl">👨‍✈️</div>
                 <div>
-                  <h4 className="text-white font-bold text-lg">From a Real Pilot</h4>
-                  <p className="text-blue-200">Taught by someone who's actually flown commercial aircraft</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="text-white font-bold text-lg">Track Your Progress</h4>
-                  <p className="text-blue-200">Real-time marks and performance analytics</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="text-white font-bold text-lg">Learn at Your Pace</h4>
-                  <p className="text-blue-200">Access recorded lectures anytime, anywhere</p>
+                  <p className="font-bold text-ink">Your instructor</p>
+                  <p className="text-sm text-muted">CPL holder · hundreds of students taught</p>
                 </div>
               </div>
             </div>
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {REASONS.map(({ icon: Icon, title, text }) => (
+                <div key={title} className="rounded-2xl bg-white p-6 ring-1 ring-line">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="mt-4 font-bold text-ink">{title}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
                 </div>
-                <div>
-                  <h4 className="text-white font-bold text-lg">Practice Like You'll Test</h4>
-                  <p className="text-blue-200">Real exam questions and full mock papers</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="text-white font-bold text-lg">Lifetime Access</h4>
-                  <p className="text-blue-200">Once you join, all materials are yours forever</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="w-12 h-12 bg-amber-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="text-white font-bold text-lg">Affordable Pricing</h4>
-                  <p className="text-blue-200">Best value ground school program in India</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-4xl font-bold text-white mb-12 text-center">Simple, Transparent Pricing</h3>
-          <div className="max-w-2xl mx-auto bg-blue-900/40 border border-blue-700 rounded-lg p-12 text-center">
-            <p className="text-blue-300 mb-2">One-time payment</p>
-            <p className="text-6xl font-bold text-amber-400 mb-4">₹4,999</p>
-            <p className="text-blue-200 mb-8">Lifetime access to all materials and future updates</p>
-            <button
-              onClick={() => setAuthMode('signup')}
-              className="px-8 py-4 bg-amber-400 text-slate-900 rounded-lg font-bold text-lg hover:bg-amber-300 transition inline-block"
-            >
-              Enroll Now
-            </button>
-            <p className="text-blue-300 text-sm mt-6">No credit card required • Money-back guarantee within 7 days</p>
+      <section id="pricing" className="scroll-mt-20 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">One price. Every subject. For good.</h2>
+            <p className="mt-4 text-lg text-muted">No subscriptions and no paid add-ons.</p>
+          </div>
+          <div className="mx-auto mt-12 max-w-lg rounded-3xl bg-white p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(47,91,224,0.35)] sm:p-10">
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-bold text-ink">Full ground school</p>
+              <span className="rounded-full bg-sky px-3 py-1 text-sm font-semibold text-brand">One-time</span>
+            </div>
+            <p className="mt-6 text-5xl font-extrabold tracking-tight text-ink">₹4,999</p>
+            <p className="mt-2 text-muted">Lifetime access, including future updates</p>
+            <ul className="mt-8 space-y-3">
+              {['All three CPL subjects', 'Every video lesson and note', 'Topic quizzes and full mock exams', 'Progress and marks tracking'].map((f) => (
+                <li key={f} className="flex items-center gap-3 text-ink">
+                  <Check className="h-5 w-5 text-go" strokeWidth={2.5} /> {f}
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-9 w-full py-3.5`}>Enroll now</button>
+            <p className="mt-4 text-center text-sm text-muted">Full refund if you ask within 7 days</p>
           </div>
         </div>
       </section>
 
+      {/* FAQ */}
+      <section id="faq" className="scroll-mt-20 bg-mist py-20 sm:py-24">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1.6fr]">
+          <div>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Questions students ask</h2>
+            <p className="mt-4 text-muted">Something else on your mind? Log in and message the instructor from your dashboard.</p>
+          </div>
+          <div className="space-y-3">
+            {FAQS.map((f, i) => (
+              <div key={f.q} className="rounded-2xl bg-white ring-1 ring-line">
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
+                  className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-semibold text-ink"
+                  aria-expanded={openFaq === i}
+                >
+                  {f.q}
+                  <ChevronDown className={`h-5 w-5 shrink-0 text-muted transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
+                </button>
+                <div className={`grid transition-all duration-300 ${openFaq === i ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <p className="overflow-hidden px-6 text-muted leading-relaxed">
+                    <span className="block pb-5">{f.a}</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="px-4 py-20 sm:px-6">
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-night px-6 py-16 text-center sm:px-12">
+          <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-30" aria-hidden preserveAspectRatio="none" viewBox="0 0 800 300">
+            <path d="M-20 250 C 200 60, 520 320, 820 40" fill="none" stroke="#6f8ff0" strokeWidth="2" strokeDasharray="6 10" />
+          </svg>
+          <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Your licence starts on the ground.</h2>
+          <p className="relative mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
+            Join 500+ students who studied with a clear plan and passed.
+          </p>
+          <button onClick={() => setAuthMode('signup')} className="relative mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
+            Create your account
+          </button>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="border-t border-blue-800/30 bg-slate-900 py-8 text-center text-blue-300">
-        <p>&copy; 2024 SkyMaster Ground School. All rights reserved.</p>
+      <footer className="border-t border-line py-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row sm:px-6">
+          <Logo />
+          <p>&copy; {new Date().getFullYear()} SkyMaster Ground School. All rights reserved.</p>
+        </div>
       </footer>
+    </div>
+  );
+}
+
+// ============= AUTH LAYOUT =============
+function AuthLayout({ title, subtitle, children, setAuthMode }) {
+  return (
+    <div className="grid min-h-screen lg:grid-cols-2">
+      <div className="relative hidden overflow-hidden bg-night p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-25" aria-hidden preserveAspectRatio="none" viewBox="0 0 400 600">
+          <path d="M-10 520 C 120 380, 260 520, 420 120" fill="none" stroke="#6f8ff0" strokeWidth="2" strokeDasharray="6 10" />
+        </svg>
+        <button onClick={() => setAuthMode('landing')} className="relative w-fit"><Logo light /></button>
+        <div className="relative max-w-md">
+          <p className="text-3xl font-extrabold leading-tight">Every lesson you need for the CPL ground papers, in the order you need them.</p>
+          <p className="mt-4 text-blue-100/70">Video lessons, notes, quizzes and mock exams in one place.</p>
+        </div>
+        <p className="relative text-sm text-blue-100/50">Trusted by 500+ student pilots</p>
+      </div>
+      <div className="flex items-center justify-center bg-white px-4 py-12 sm:px-6">
+        <div className="w-full max-w-sm">
+          <button onClick={() => setAuthMode('landing')} className="mb-10 lg:hidden"><Logo /></button>
+          <h1 className="text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
+          <p className="mt-2 text-muted">{subtitle}</p>
+          <div className="mt-8">{children}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -270,85 +448,43 @@ function LoginPage({ setAuthMode, onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError('Enter your email and password to log in.');
       return;
     }
     onLogin(email, password, isAdminLogin);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-blue-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-slate-800 border border-blue-700 rounded-lg p-8">
-          <div className="text-center mb-8">
-            <div className="inline-block w-16 h-16 bg-amber-400 rounded-lg flex items-center justify-center font-bold text-2xl text-slate-900 mb-4">
-              ✈
-            </div>
-            <h2 className="text-2xl font-bold text-white">SkyMaster Ground School</h2>
-            <p className="text-blue-300 mt-2">{isAdminLogin ? 'Instructor Login' : 'Student Login'}</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-amber-400 focus:outline-none"
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-amber-400 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              className="w-full py-2 bg-amber-400 text-slate-900 rounded-lg font-bold hover:bg-amber-300 transition"
-            >
-              Sign In
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-slate-700">
-            <button
-              onClick={() => setIsAdminLogin(!isAdminLogin)}
-              className="text-blue-300 text-sm hover:text-blue-200 transition w-full text-center"
-            >
-              {isAdminLogin ? 'Student login?' : 'Instructor login?'}
-            </button>
-            {isAdminLogin && (
-              <p className="text-blue-300 text-xs mt-2 text-center">
-                Demo: admin@groundschool.com / admin123
-              </p>
-            )}
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-blue-300 text-sm">
-              Don't have an account?{' '}
-              <button
-                onClick={() => setAuthMode('signup')}
-                className="text-amber-400 hover:text-amber-300 font-semibold transition"
-              >
-                Sign up
-              </button>
-            </p>
-          </div>
+    <AuthLayout
+      setAuthMode={setAuthMode}
+      title={isAdminLogin ? 'Instructor log in' : 'Welcome back'}
+      subtitle={isAdminLogin ? 'Manage lessons, uploads and students.' : 'Log in to pick up where you left off.'}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@email.com" />
         </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Password</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} placeholder="••••••••" />
+        </div>
+        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+        <button type="submit" className={`${btnPrimary} w-full`}>Log in</button>
+      </form>
+
+      <div className="mt-6 rounded-xl bg-mist p-4 text-center">
+        <button onClick={() => setIsAdminLogin(!isAdminLogin)} className="text-sm font-semibold text-brand hover:text-brand-dark">
+          {isAdminLogin ? 'Log in as a student instead' : 'Log in as the instructor'}
+        </button>
+        {isAdminLogin && <p className="mt-2 text-xs text-muted">Demo: admin@groundschool.com / admin123</p>}
       </div>
-    </div>
+
+      <p className="mt-8 text-center text-sm text-muted">
+        New here?{' '}
+        <button onClick={() => setAuthMode('signup')} className="font-semibold text-brand hover:text-brand-dark">Create an account</button>
+      </p>
+    </AuthLayout>
   );
 }
 
@@ -362,81 +498,80 @@ function SignupPage({ setAuthMode, onSignup }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !email || !password) {
-      setError('Please fill in all fields');
+      setError('Fill in your name, email and password to continue.');
       return;
     }
     onSignup(email, password, false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-blue-900 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-slate-800 border border-blue-700 rounded-lg p-8">
-          <div className="text-center mb-8">
-            <div className="inline-block w-16 h-16 bg-amber-400 rounded-lg flex items-center justify-center font-bold text-2xl text-slate-900 mb-4">
-              ✈
+    <AuthLayout setAuthMode={setAuthMode} title="Create your account" subtitle="Start your ground school prep in under a minute.">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Full name</label>
+          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={input} placeholder="Your name" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@email.com" />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Password</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} placeholder="••••••••" />
+        </div>
+        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+        <button type="submit" className={`${btnPrimary} w-full`}>Create account</button>
+      </form>
+      <p className="mt-8 text-center text-sm text-muted">
+        Already have an account?{' '}
+        <button onClick={() => setAuthMode('login')} className="font-semibold text-brand hover:text-brand-dark">Log in</button>
+      </p>
+    </AuthLayout>
+  );
+}
+
+// ============= APP SHELL (dashboards) =============
+function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, children }) {
+  return (
+    <div className="min-h-screen bg-mist">
+      <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <Logo />
+          <div className="flex items-center gap-3">
+            <div className="hidden text-right sm:block">
+              <p className="text-xs text-muted">{subtitle}</p>
+              <p className="text-sm font-semibold text-ink">{title}</p>
             </div>
-            <h2 className="text-2xl font-bold text-white">Join SkyMaster</h2>
-            <p className="text-blue-300 mt-2">Start your ground school journey</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Full Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-amber-400 focus:outline-none"
-                placeholder="John Doe"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-amber-400 focus:outline-none"
-                placeholder="your@email.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-white text-sm font-medium mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-amber-400 focus:outline-none"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              className="w-full py-2 bg-amber-400 text-slate-900 rounded-lg font-bold hover:bg-amber-300 transition"
-            >
-              Create Account
+            <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+              <LogOut className="h-4 w-4" /> Log out
             </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-blue-300 text-sm">
-              Already have an account?{' '}
-              <button
-                onClick={() => setAuthMode('login')}
-                className="text-amber-400 hover:text-amber-300 font-semibold transition"
-              >
-                Sign in
-              </button>
-            </p>
           </div>
         </div>
-      </div>
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <nav className="-mb-px flex gap-1 overflow-x-auto">
+            {tabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition ${
+                  activeTab === id ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink'
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+    </div>
+  );
+}
+
+function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
+  return (
+    <div className={`${height} overflow-hidden rounded-full bg-line`}>
+      <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${value}%` }} />
     </div>
   );
 }
@@ -458,190 +593,128 @@ function StudentDashboard({ user, onLogout }) {
 
   const overallPercentage = Math.round((1850 / 2400) * 100);
 
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'courses', label: 'Courses', icon: BookOpen },
+    { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
+    { id: 'videos', label: 'Videos', icon: Video },
+    { id: 'marks', label: 'Marks', icon: BarChart3 },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-400 rounded-lg flex items-center justify-center font-bold text-slate-900">
-              ✈
+    <AppShell title={user.email} subtitle="Welcome back" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+      {activeTab === 'overview' && (
+        <div className="space-y-8">
+          <div className={`${card} grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center md:gap-10`}>
+            <div>
+              <p className="text-sm font-medium text-muted">Overall marks</p>
+              <p className="text-5xl font-extrabold tracking-tight text-ink">{overallPercentage}%</p>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">SkyMaster</h1>
+            <div>
+              <ProgressBar value={overallPercentage} height="h-3" />
+              <p className="mt-2 text-sm text-muted">1850 of 2400 marks across all subjects</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-slate-600">Welcome back</p>
-              <p className="font-semibold text-slate-900">{user.email}</p>
+
+          <div>
+            <h2 className="mb-4 text-lg font-bold text-ink">Your subjects</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              {subjects.map((subject) => (
+                <div key={subject.id} className={`${card} p-6`}>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <p className="mt-4 font-bold text-ink">{subject.name}</p>
+                  <div className="mt-4 mb-1.5 flex justify-between text-sm">
+                    <span className="text-muted">Progress</span>
+                    <span className="font-semibold text-ink">{subject.progress}%</span>
+                  </div>
+                  <ProgressBar value={subject.progress} />
+                  <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm text-muted">
+                    <span>{subject.quizzes} quizzes done</span>
+                    <span className="font-semibold text-ink">{subject.totalMarks}/{subject.outOf}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-slate-200 overflow-x-auto pb-4">
-          {[
-            { id: 'overview', label: 'Overview', icon: '📊' },
-            { id: 'courses', label: 'Courses', icon: '📚' },
-            { id: 'quizzes', label: 'Quizzes', icon: '✏️' },
-            { id: 'videos', label: 'Videos', icon: '🎥' },
-            { id: 'marks', label: 'Marks', icon: '📈' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 font-medium whitespace-nowrap transition ${
-                activeTab === tab.id
-                  ? 'text-amber-600 border-b-2 border-amber-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
+      {activeTab === 'videos' && (
+        <div className="space-y-3">
+          <h2 className="mb-4 text-lg font-bold text-ink">Video lessons</h2>
+          {videos.map((video) => (
+            <div key={video.id} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky text-brand">
+                <PlayCircle className="h-6 w-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-ink">{video.title}</p>
+                <p className="text-sm text-muted">{video.subject} · {video.duration}</p>
+              </div>
+              {video.watched && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">
+                  <Check className="h-4 w-4" /> Watched
+                </span>
+              )}
+              <button className={`${video.watched ? btnGhost : btnPrimary} px-5 py-2 text-sm`}>
+                {video.watched ? 'Rewatch' : 'Watch'}
+              </button>
+            </div>
           ))}
         </div>
+      )}
 
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-8">
-            {/* Overall Progress */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg p-8 text-white">
-              <h2 className="text-2xl font-bold mb-4">Your Progress</h2>
-              <div className="flex items-center gap-8">
-                <div>
-                  <p className="text-6xl font-bold text-amber-400">{overallPercentage}%</p>
-                  <p className="text-blue-200 text-lg">Overall Completion</p>
-                </div>
-                <div className="flex-1">
-                  <div className="bg-blue-900/50 rounded-full h-4 overflow-hidden">
-                    <div
-                      className="bg-amber-400 h-full transition-all"
-                      style={{ width: `${overallPercentage}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-blue-200 text-sm mt-2">1850 / 2400 marks obtained</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Subject Cards */}
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 mb-4">Your Subjects</h3>
-              <div className="grid md:grid-cols-3 gap-6">
-                {subjects.map(subject => (
-                  <div key={subject.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:shadow-lg transition">
-                    <h4 className="font-bold text-slate-900 mb-4">{subject.name}</h4>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-slate-600 mb-2">
-                        <span>Progress</span>
-                        <span>{subject.progress}%</span>
-                      </div>
-                      <div className="bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-blue-600 h-full transition-all"
-                          style={{ width: `${subject.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    <div className="space-y-2 text-sm text-slate-600">
-                      <p>📝 {subject.quizzes} quizzes attempted</p>
-                      <p>✓ {subject.totalMarks}/{subject.outOf} marks</p>
-                    </div>
-                  </div>
+      {activeTab === 'quizzes' && (
+        <div className="space-y-4">
+          <h2 className="mb-4 text-lg font-bold text-ink">Quizzes</h2>
+          {subjects.map((subject) => (
+            <div key={subject.id} className={`${card} p-6`}>
+              <p className="mb-4 font-bold text-ink">{subject.name}</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[1, 2, 3, 4].map((quiz) => (
+                  <button key={quiz} className="rounded-xl border border-line p-4 text-left transition hover:border-brand hover:bg-sky">
+                    <p className="font-bold text-ink">Quiz {quiz}</p>
+                    <p className="text-sm text-muted">10 questions</p>
+                  </button>
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
 
-        {/* Videos Tab */}
-        {activeTab === 'videos' && (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Video Lectures</h3>
-            {videos.map(video => (
-              <div key={video.id} className="bg-white rounded-lg border border-slate-200 p-6 flex items-center justify-between hover:shadow-lg transition">
+      {activeTab === 'marks' && (
+        <div className="space-y-4">
+          <h2 className="mb-4 text-lg font-bold text-ink">Your marks</h2>
+          {subjects.map((subject) => {
+            const pct = Math.round((subject.totalMarks / subject.outOf) * 100);
+            return (
+              <div key={subject.id} className={`${card} flex items-center gap-6 p-6`}>
                 <div className="flex-1">
-                  <h4 className="font-bold text-slate-900">{video.title}</h4>
-                  <p className="text-slate-600 text-sm">{video.subject} • {video.duration}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  {video.watched && <span className="text-green-600 font-semibold">✓ Watched</span>}
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    Watch
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Quizzes Tab */}
-        {activeTab === 'quizzes' && (
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Available Quizzes</h3>
-            {subjects.map(subject => (
-              <div key={subject.id} className="bg-white rounded-lg border border-slate-200 p-6">
-                <h4 className="font-bold text-slate-900 mb-4">{subject.name}</h4>
-                <div className="grid sm:grid-cols-4 gap-3">
-                  {[1, 2, 3, 4].map(quiz => (
-                    <button
-                      key={quiz}
-                      className="p-4 border border-slate-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition text-center"
-                    >
-                      <p className="font-bold text-slate-900">Quiz {quiz}</p>
-                      <p className="text-sm text-slate-600">10 questions</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Marks Tab */}
-        {activeTab === 'marks' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-4">Your Marks</h3>
-            {subjects.map(subject => (
-              <div key={subject.id} className="bg-white rounded-lg border border-slate-200 p-6">
-                <h4 className="font-bold text-slate-900 mb-4">{subject.name}</h4>
-                <div className="flex items-end gap-4">
-                  <div className="flex-1">
-                    <div className="flex justify-between text-sm text-slate-600 mb-2">
-                      <span>Score</span>
-                      <span className="font-bold text-slate-900">{subject.totalMarks}/{subject.outOf}</span>
-                    </div>
-                    <div className="bg-slate-200 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-green-600 h-full transition-all"
-                        style={{ width: `${(subject.totalMarks / subject.outOf) * 100}%` }}
-                      ></div>
-                    </div>
+                  <div className="mb-2 flex justify-between text-sm">
+                    <span className="font-bold text-ink">{subject.name}</span>
+                    <span className="text-muted">{subject.totalMarks}/{subject.outOf}</span>
                   </div>
-                  <p className="text-2xl font-bold text-slate-900">{Math.round((subject.totalMarks / subject.outOf) * 100)}%</p>
+                  <ProgressBar value={pct} color="bg-go" height="h-2.5" />
                 </div>
+                <p className="w-16 text-right text-2xl font-extrabold text-ink">{pct}%</p>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
+      )}
 
-        {/* Courses & Practice Papers Tabs */}
-        {['courses', 'marks'].includes(activeTab) === false && !['overview', 'videos', 'quizzes', 'marks'].includes(activeTab) && (
-          <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
-            <p className="text-slate-600">Content coming soon</p>
-          </div>
-        )}
-      </main>
-    </div>
+      {activeTab === 'courses' && (
+        <div className={`${card} p-12 text-center`}>
+          <BookOpen className="mx-auto h-10 w-10 text-brand" />
+          <p className="mt-4 font-bold text-ink">Course materials are on their way</p>
+          <p className="mt-1 text-muted">Meanwhile, start with the video lessons or a quiz.</p>
+          <button onClick={() => setActiveTab('videos')} className={`${btnPrimary} mt-6`}>Go to video lessons</button>
+        </div>
+      )}
+    </AppShell>
   );
 }
 
@@ -663,112 +736,68 @@ function AdminPortal({ user, onLogout }) {
     setUploads(uploads.filter(upload => upload.id !== id));
   };
 
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'upload', label: 'Upload content', icon: Upload },
+    { id: 'students', label: 'Students', icon: Users },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-400 rounded-lg flex items-center justify-center font-bold text-slate-900">
-              ✈
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">SkyMaster Admin</h1>
-              <p className="text-xs text-slate-500">Instructor Portal</p>
-            </div>
+    <AppShell title="Instructor portal" subtitle={user.email} onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[
+              { label: 'Total students', value: '247' },
+              { label: 'Total uploads', value: '48' },
+              { label: 'Average progress', value: '72%' },
+              { label: 'New this month', value: '23' },
+            ].map((stat) => (
+              <div key={stat.label} className={`${card} p-5`}>
+                <p className="text-sm text-muted">{stat.label}</p>
+                <p className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{stat.value}</p>
+              </div>
+            ))}
           </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-slate-200 overflow-x-auto pb-4">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-            { id: 'upload', label: 'Upload Content', icon: '📤' },
-            { id: 'students', label: 'Students', icon: '👥' },
-            { id: 'analytics', label: 'Analytics', icon: '📈' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 font-medium whitespace-nowrap transition ${
-                activeTab === tab.id
-                  ? 'text-amber-600 border-b-2 border-amber-600'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-8">
-            <div className="grid md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Students', value: '247', icon: '👥' },
-                { label: 'Total Uploads', value: '48', icon: '📁' },
-                { label: 'Avg. Progress', value: '72%', icon: '📈' },
-                { label: 'This Month', value: '23 new', icon: '📊' }
-              ].map((stat, i) => (
-                <div key={i} className="bg-white rounded-lg border border-slate-200 p-6">
-                  <p className="text-slate-600 text-sm mb-2">{stat.label}</p>
-                  <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+          <div className={`${card} p-6`}>
+            <h2 className="mb-4 flex items-center gap-2 font-bold text-ink">
+              <FileText className="h-5 w-5 text-brand" /> Recent uploads
+            </h2>
+            <div className="divide-y divide-line">
+              {uploads.slice(0, 3).map((upload) => (
+                <div key={upload.id} className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="font-semibold text-ink">{upload.name}</p>
+                    <p className="text-sm text-muted">{upload.subject} · {upload.size}</p>
+                  </div>
+                  <p className="text-sm text-muted">{upload.date}</p>
                 </div>
               ))}
             </div>
-
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5" /> Recent Uploads
-              </h3>
-              <div className="space-y-3">
-                {uploads.slice(0, 3).map(upload => (
-                  <div key={upload.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{upload.name}</p>
-                      <p className="text-sm text-slate-600">{upload.subject} • {upload.size}</p>
-                    </div>
-                    <p className="text-xs text-slate-500">{upload.date}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Upload Tab */}
-        {activeTab === 'upload' && (
-          <div className="space-y-8">
-            <div className="bg-white rounded-lg border border-slate-200 p-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Upload className="w-6 h-6" /> Upload Course Content
-              </h3>
-
-              <form className="space-y-6">
+      {activeTab === 'upload' && (
+        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+          <div className={`${card} p-6 sm:p-8`}>
+            <h2 className="mb-6 text-lg font-bold text-ink">Upload course content</h2>
+            <form className="space-y-5">
+              <div className="grid gap-5 sm:grid-cols-2">
                 <div>
-                  <label className="block text-slate-900 font-medium mb-2">Subject</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                  <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+                  <select className={input}>
                     <option>Select a subject</option>
                     <option>Air Law & Procedure</option>
                     <option>Navigation & Meteorology</option>
                     <option>Aircraft Technical Knowledge</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-slate-900 font-medium mb-2">Content Type</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none">
+                  <label className="mb-1.5 block text-sm font-semibold text-ink">Content type</label>
+                  <select className={input}>
                     <option>Select type</option>
                     <option>Video Lecture</option>
                     <option>Study Notes</option>
@@ -776,147 +805,111 @@ function AdminPortal({ user, onLogout }) {
                     <option>Mock Paper</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-slate-900 font-medium mb-2">Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Introduction to Air Law"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-900 font-medium mb-2">File Upload</label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-600 transition cursor-pointer">
-                    <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                    <p className="text-slate-900 font-medium">Click to upload or drag and drop</p>
-                    <p className="text-sm text-slate-500">MP4, PDF, ZIP or other files</p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-900 font-medium mb-2">Description (Optional)</label>
-                  <textarea
-                    rows="4"
-                    placeholder="Add any additional notes or description"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none"
-                  ></textarea>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                >
-                  <Upload className="w-4 h-4" /> Upload Content
-                </button>
-              </form>
-            </div>
-
-            {/* Uploaded Content */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6">
-              <h3 className="font-bold text-slate-900 mb-4">Your Uploads</h3>
-              <div className="space-y-3">
-                {uploads.map(upload => (
-                  <div key={upload.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition">
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{upload.name}</p>
-                      <p className="text-sm text-slate-600">{upload.subject} • {upload.size} • {upload.date}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(upload.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
               </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">Title</label>
+                <input type="text" placeholder="e.g. Introduction to Air Law" className={input} />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">File</label>
+                <div className="cursor-pointer rounded-2xl border-2 border-dashed border-line bg-mist p-8 text-center transition hover:border-brand hover:bg-sky">
+                  <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
+                  <p className="font-semibold text-ink">Click to upload or drag a file here</p>
+                  <p className="text-sm text-muted">MP4, PDF, ZIP and other files</p>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">Description (optional)</label>
+                <textarea rows="3" placeholder="Anything students should know about this file" className={input}></textarea>
+              </div>
+              <button type="submit" className={`${btnPrimary} w-full`}>
+                <Upload className="h-4 w-4" /> Upload content
+              </button>
+            </form>
+          </div>
+
+          <div className={`${card} h-fit p-6`}>
+            <h2 className="mb-4 font-bold text-ink">Your uploads</h2>
+            <div className="space-y-2">
+              {uploads.map((upload) => (
+                <div key={upload.id} className="flex items-center gap-3 rounded-xl bg-mist p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-ink">{upload.name}</p>
+                    <p className="text-sm text-muted">{upload.size} · {upload.date}</p>
+                  </div>
+                  <button className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-brand" aria-label="View">
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDelete(upload.id)} className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-red-600" aria-label="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {uploads.length === 0 && <p className="text-sm text-muted">No uploads yet. Add your first file with the form.</p>}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Students Tab */}
-        {activeTab === 'students' && (
-          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-200">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <Users className="w-5 h-5" /> Enrolled Students ({students.length})
-              </h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Joined</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Progress</th>
+      {activeTab === 'students' && (
+        <div className={`${card} overflow-hidden`}>
+          <div className="border-b border-line p-6">
+            <h2 className="font-bold text-ink">Enrolled students ({students.length})</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-mist text-left text-muted">
+                <tr>
+                  <th className="px-6 py-3 font-semibold">Name</th>
+                  <th className="px-6 py-3 font-semibold">Email</th>
+                  <th className="px-6 py-3 font-semibold">Joined</th>
+                  <th className="px-6 py-3 font-semibold">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {students.map((student) => (
+                  <tr key={student.id} className="transition hover:bg-mist/60">
+                    <td className="px-6 py-4 font-semibold text-ink">{student.name}</td>
+                    <td className="px-6 py-4 text-muted">{student.email}</td>
+                    <td className="px-6 py-4 text-muted">{student.joinDate}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-28"><ProgressBar value={student.progress} color="bg-go" /></div>
+                        <span className="font-semibold text-ink">{student.progress}%</span>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {students.map(student => (
-                    <tr key={student.id} className="hover:bg-slate-50 transition">
-                      <td className="px-6 py-4 font-medium text-slate-900">{student.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{student.email}</td>
-                      <td className="px-6 py-4 text-slate-600">{student.joinDate}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div
-                              className="bg-green-600 h-full"
-                              style={{ width: `${student.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium text-slate-900">{student.progress}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-900 mb-4">Student Enrollment Trend</h3>
-                <div className="h-64 bg-slate-50 rounded-lg flex items-center justify-center text-slate-500">
-                  Chart placeholder - integrate with chart library
-                </div>
-              </div>
-              <div className="bg-white rounded-lg border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-900 mb-4">Subject Performance</h3>
-                <div className="space-y-4">
-                  {['Air Law & Procedure', 'Navigation & Meteorology', 'Aircraft Technical'].map((subject, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-slate-900">{subject}</span>
-                        <span className="font-medium text-slate-900">{70 + i * 5}%</span>
-                      </div>
-                      <div className="bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-blue-600 h-full"
-                          style={{ width: `${70 + i * 5}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+      {activeTab === 'analytics' && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className={`${card} p-6`}>
+            <h2 className="mb-4 font-bold text-ink">Enrollment over time</h2>
+            <div className="flex h-64 items-center justify-center rounded-xl bg-mist text-sm text-muted">
+              Enrollment chart appears here once real data is connected
             </div>
           </div>
-        )}
-      </main>
-    </div>
+          <div className={`${card} p-6`}>
+            <h2 className="mb-4 font-bold text-ink">Average marks by subject</h2>
+            <div className="space-y-5">
+              {['Air Law & Procedure', 'Navigation & Meteorology', 'Aircraft Technical'].map((subject, i) => (
+                <div key={subject}>
+                  <div className="mb-1.5 flex justify-between text-sm">
+                    <span className="text-ink">{subject}</span>
+                    <span className="font-semibold text-ink">{70 + i * 5}%</span>
+                  </div>
+                  <ProgressBar value={70 + i * 5} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </AppShell>
   );
 }
