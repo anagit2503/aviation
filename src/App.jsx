@@ -161,7 +161,6 @@ const FAQS = [
   { q: 'Which exams does this prepare me for?', a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.' },
   { q: 'How long does it take to finish?', a: 'Most students complete all six subjects in 3 to 5 months studying an hour or two a day. You can go faster or slower.' },
   { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to every lesson, note and mock exam, plus future updates.' },
-  { q: 'What if it is not right for me?', a: 'Ask for a refund within 7 days of joining and you get your money back in full.' },
 ];
 
 function LandingPage({ setAuthMode }) {
@@ -427,7 +426,6 @@ function LandingPage({ setAuthMode }) {
               ))}
             </ul>
             <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-9 w-full py-3.5`}>Enroll now</button>
-            <p className="mt-4 text-center text-sm text-muted">Full refund if you ask within 7 days</p>
           </div>
         </div>
       </section>
