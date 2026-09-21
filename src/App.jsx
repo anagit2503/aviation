@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown,
-  LayoutDashboard, Video, ArrowLeft, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+  LayoutDashboard, Video, ArrowLeft, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -16,32 +16,12 @@ const FIREBASE_CONFIG = {
   appId: "YOUR_APP_ID"
 };
 
-// ============= SHARED UI =============
-const btnPrimary =
-  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-white shadow-[0_6px_20px_-6px_rgba(47,91,224,0.55)] transition hover:bg-brand-dark';
-const btnGhost =
-  'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand';
-const input =
-  'w-full rounded-xl border border-line bg-white px-4 py-3 text-ink placeholder-slate-400 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10';
-const card = 'rounded-2xl border border-line bg-white';
+import { Logo, btnPrimary, btnGhost, input, card } from './ui.jsx';
+import BookingPage from './BookingPage.jsx';
+import { googleReady, signInWithGoogle } from './auth.js';
 
-function Logo({ light = false, compact = false }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white">
-        <Plane className="h-5 w-5 -rotate-45" />
-      </div>
-      {!compact && (
-        <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
-          SkyMaster
-        </span>
-      )}
-    </div>
-  );
-}
-
-const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup' };
-const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup' };
+const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book' };
+const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book' };
 
 // ============= MAIN APP =============
 export default function AviationGroundSchool() {
@@ -78,6 +58,13 @@ export default function AviationGroundSchool() {
     }
   };
 
+  const handleGoogleUser = (googleUser) => {
+    setUser({ email: googleUser.email, name: googleUser.name, role: 'student' });
+    setIsAdmin(false);
+    setAuthModeState('dashboard');
+    window.history.replaceState(null, '', '/');
+  };
+
   const handleLogout = () => {
     setUser(null);
     setIsAdmin(false);
@@ -89,8 +76,9 @@ export default function AviationGroundSchool() {
       {!user ? (
         <>
           {authMode === 'landing' && <LandingPage setAuthMode={setAuthMode} />}
-          {authMode === 'login' && <LoginPage setAuthMode={setAuthMode} onLogin={handleLogin} />}
-          {authMode === 'signup' && <SignupPage setAuthMode={setAuthMode} onSignup={handleLogin} />}
+          {authMode === 'login' && <LoginPage setAuthMode={setAuthMode} onLogin={handleLogin} onGoogleUser={handleGoogleUser} />}
+          {authMode === 'signup' && <SignupPage setAuthMode={setAuthMode} onSignup={handleLogin} onGoogleUser={handleGoogleUser} />}
+          {authMode === 'book' && <BookingPage goHome={() => setAuthMode('landing')} />}
         </>
       ) : isAdmin ? (
         <AdminPortal user={user} onLogout={handleLogout} />
@@ -157,6 +145,57 @@ const REASONS = [
   { icon: Wallet, title: 'Fairly priced', text: 'One flat fee for all six subjects. No add-ons, no monthly bill.' },
 ];
 
+const PITFALLS = [
+  {
+    icon: Wallet,
+    title: 'Costs nobody warns you about',
+    text: 'Ground classes, exam fees, reattempts, conversion, type rating. Students routinely spend lakhs more than they budgeted because they did not know what to ask.',
+  },
+  {
+    icon: Building2,
+    title: 'The wrong flight school',
+    text: 'Not every school abroad converts smoothly to a DGCA licence. Pick the wrong one and you pay again in time, money and paperwork.',
+  },
+  {
+    icon: Hourglass,
+    title: 'A year lost to delays',
+    text: 'Failed papers, visa waits and bad weather planning quietly add 12 to 18 months. Most of it is avoidable if you sequence your exams and training properly.',
+  },
+];
+
+const REVIEWS = [
+  {
+    name: 'Aditya Menon',
+    role: 'Preparing for CPL, Kochi',
+    text: 'I had failed Navigation twice before this. He sat with me and worked out exactly where I was losing marks instead of making me redo the whole syllabus. Cleared it with 88 the next attempt.',
+  },
+  {
+    name: 'Ishita Rao',
+    role: 'Student pilot, Bengaluru',
+    text: 'What I really wanted was a mentor, not another coaching class. He is genuinely knowledgeable and answers even the small doubts I felt silly asking anywhere else.',
+  },
+  {
+    name: 'Harshit Sabharwal',
+    role: 'Converting an FAA licence, Delhi',
+    text: 'It is so difficult to find people in this industry who will actually talk to you honestly about money and timelines. One call saved me from picking a school that would have cost me a year.',
+  },
+  {
+    name: 'Nandini Pillai',
+    role: 'Cleared four papers, Chennai',
+    text: 'The notes are the best I have used. Everything is in the exam language, so you are not translating a textbook in your head while the clock runs.',
+  },
+  {
+    name: 'Rohan Deshmukh',
+    role: 'CPL aspirant, Pune',
+    text: 'He cleared every doubt I had in one sitting, and then followed up on WhatsApp when I got stuck again. You can tell he actually remembers what this phase feels like.',
+  },
+  {
+    name: 'Simran Kaur',
+    role: 'Ground school student, Amritsar',
+    text: 'I paid a lot for classes earlier where nobody knew my name. Here the plan was made for me, and someone notices when I fall behind. That is the whole difference.',
+  },
+];
+
 const FAQS = [
   { q: 'Which exams does this prepare me for?', a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.' },
   { q: 'How long does it take to finish?', a: 'Most students complete all six subjects in 3 to 5 months studying an hour or two a day. You can go faster or slower.' },
@@ -179,6 +218,7 @@ function LandingPage({ setAuthMode }) {
             <a href="#subjects" className="transition hover:text-ink">Subjects</a>
             <a href="#about" className="transition hover:text-ink">About</a>
             <a href="#why" className="transition hover:text-ink">Why SkyMaster</a>
+            <a href="#reviews" className="transition hover:text-ink">Reviews</a>
             <a href="#pricing" className="transition hover:text-ink">Pricing</a>
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
           </nav>
@@ -186,8 +226,8 @@ function LandingPage({ setAuthMode }) {
             <button onClick={() => setAuthMode('login')} className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist">
               Log in
             </button>
-            <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
-              Start learning
+            <button onClick={() => setAuthMode('book')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
+              Book a consultation
             </button>
           </div>
           <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
@@ -196,14 +236,14 @@ function LandingPage({ setAuthMode }) {
         </div>
         {mobileMenuOpen && (
           <div className="space-y-1 border-t border-line bg-white px-4 py-4 md:hidden">
-            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why SkyMaster'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why SkyMaster'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
                 {label}
               </a>
             ))}
             <div className="flex gap-2 pt-3">
               <button onClick={() => setAuthMode('login')} className={`${btnGhost} flex-1 py-2.5`}>Log in</button>
-              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} flex-1 py-2.5`}>Start learning</button>
+              <button onClick={() => setAuthMode('book')} className={`${btnPrimary} flex-1 py-2.5`}>Book a call</button>
             </div>
           </div>
         )}
@@ -224,8 +264,8 @@ function LandingPage({ setAuthMode }) {
               Follow the plan, track your marks, and walk into the exam ready.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <button onClick={() => setAuthMode('signup')} className={btnPrimary}>Start learning today</button>
-              <a href="#subjects" className={btnGhost}>See what you'll study</a>
+              <button onClick={() => setAuthMode('book')} className={btnPrimary}>Book a consultation</button>
+              <a href="#pricing" className={btnGhost}>See the course</a>
             </div>
             <div className="mt-10 flex items-center gap-8 text-sm text-muted">
               <div><span className="block text-2xl font-extrabold text-ink">500+</span>students trained</div>
@@ -234,52 +274,21 @@ function LandingPage({ setAuthMode }) {
             </div>
           </div>
 
-          {/* Flight-plan preview */}
-          <div className="relative">
-            <div className="absolute -inset-6 -z-0 rounded-[2rem] bg-brand/5 blur-2xl" aria-hidden />
-            <div className={`${card} relative p-6 shadow-[0_24px_60px_-20px_rgba(15,23,51,0.25)] sm:p-7`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted">Your study plan</p>
-                  <p className="text-lg font-bold text-ink">Aviation Meteorology</p>
-                </div>
-                <span className="rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">Day 12 of 30</span>
-              </div>
-              <ol className="relative mt-6 space-y-5">
-                <span className="absolute left-[11px] top-3 bottom-3 w-0.5 border-l-2 border-dashed border-line" aria-hidden />
-                {[
-                  { t: 'Wind triangle basics', s: 'Video · 24 min', done: true },
-                  { t: 'Using the flight computer', s: 'Notes · 12 pages', done: true },
-                  { t: 'Frontal weather systems', s: 'Video · 38 min', now: true },
-                  { t: 'Quiz: weather systems', s: '10 questions', done: false },
-                ].map((leg) => (
-                  <li key={leg.t} className="relative flex items-start gap-4">
-                    <span
-                      className={`relative z-10 mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                        leg.done ? 'bg-go text-white' : leg.now ? 'bg-brand text-white ring-4 ring-brand/15' : 'border-2 border-line bg-white'
-                      }`}
-                    >
-                      {leg.done && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
-                      {leg.now && <Plane className="h-3 w-3 rotate-45" />}
-                    </span>
-                    <div className="flex-1">
-                      <p className={`font-semibold ${leg.done ? 'text-muted line-through decoration-line' : 'text-ink'}`}>{leg.t}</p>
-                      <p className="text-sm text-muted">{leg.s}</p>
-                    </div>
-                    {leg.now && <span className="rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white">Up next</span>}
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-6 rounded-xl bg-mist p-4">
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="font-medium text-muted">Subject progress</span>
-                  <span className="font-bold text-ink">60%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-line">
-                  <div className="h-full w-[60%] rounded-full bg-brand" />
-                </div>
-              </div>
-            </div>
+          {/* Photos */}
+          <div className="relative mx-auto w-full max-w-md pb-14 pr-14 sm:pr-20 lg:max-w-none">
+            <img
+              src="/about/cockpit.jpg"
+              alt="At the controls of a Cessna over the ocean off Miami"
+              className="aspect-[4/5] w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(15,23,51,0.35)]"
+            />
+            <img
+              src="/about/ramp.jpg"
+              alt="On the ramp in uniform next to a training aircraft"
+              className="absolute bottom-0 right-0 aspect-[3/4] w-[42%] rounded-2xl border-[6px] border-white object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
+            />
+            <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3.5 py-1.5 text-sm font-bold text-ink shadow-sm">
+              90+ in all six DGCA papers
+            </span>
           </div>
         </div>
       </section>
@@ -337,19 +346,7 @@ function LandingPage({ setAuthMode }) {
 
       {/* About */}
       <section id="about" className="scroll-mt-20 py-20 sm:py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2 lg:gap-20">
-          <div className="relative mx-auto w-full max-w-md pb-16 pr-16 sm:pr-24 lg:max-w-none">
-            <img
-              src="/about/cockpit.jpg"
-              alt="At the controls of a Cessna over the ocean off Miami"
-              className="aspect-[4/5] w-full rounded-3xl object-cover shadow-[0_24px_60px_-24px_rgba(15,23,51,0.35)]"
-            />
-            <img
-              src="/about/ramp.jpg"
-              alt="On the ramp in uniform next to a training aircraft"
-              className="absolute bottom-0 right-0 aspect-[3/4] w-[45%] rounded-2xl border-[6px] border-white object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
-            />
-          </div>
+        <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">I was exactly where you are now.</h2>
             <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
@@ -412,34 +409,118 @@ function LandingPage({ setAuthMode }) {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="scroll-mt-20 py-20 sm:py-24">
+      {/* What goes wrong */}
+      <section className="bg-night py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">One price. Every subject. For good.</h2>
-            <p className="mt-4 text-lg text-muted">No subscriptions and no paid add-ons.</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              What actually costs students their licence
+            </h2>
+            <p className="mt-4 text-lg text-blue-100/75">
+              Flying is the easy part. Most people lose money and years to decisions made before they ever reach a cockpit.
+            </p>
           </div>
-          <div className="mx-auto mt-12 max-w-lg rounded-3xl bg-white p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(47,91,224,0.35)] sm:p-10">
-            <div className="flex items-baseline justify-between">
-              <p className="text-lg font-bold text-ink">Full ground school</p>
-              <span className="rounded-full bg-sky px-3 py-1 text-sm font-semibold text-brand">One-time</span>
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
+            {PITFALLS.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="rounded-2xl bg-white/5 p-7 ring-1 ring-white/10">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-blue-200">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="mt-5 text-lg font-bold text-white">{title}</p>
+                <p className="mt-2 leading-relaxed text-blue-100/70">{text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <button onClick={() => setAuthMode('book')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
+              <CalendarClock className="h-4 w-4" /> Talk it through with me
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section id="reviews" className="scroll-mt-20 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What students say</h2>
+            <p className="mt-4 text-lg text-muted">From people who were sitting exactly where you are.</p>
+          </div>
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {REVIEWS.map((r) => (
+              <figure key={r.name} className="flex h-full flex-col rounded-2xl bg-mist p-6">
+                <Quote className="h-6 w-6 text-brand/40" />
+                <blockquote className="mt-4 flex-1 leading-relaxed text-ink">{r.text}</blockquote>
+                <figcaption className="mt-6 border-t border-line pt-4">
+                  <span className="block font-bold text-ink">{r.name}</span>
+                  <span className="block text-sm text-muted">{r.role}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="scroll-mt-20 bg-mist py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Two ways to work with me</h2>
+            <p className="mt-4 text-lg text-muted">Start with a call if you have decisions to make. Take the course if you have exams to clear.</p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+            {/* Consultation */}
+            <div className={`${card} flex flex-col p-8`}>
+              <p className="font-bold text-ink">1-on-1 consultation</p>
+              <p className="mt-1 text-sm text-muted">For choosing a school, a country, or your next step</p>
+              <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹1,999</p>
+              <p className="mt-1 text-sm text-muted">45 minutes, one session</p>
+              <ul className="mt-7 flex-1 space-y-3 text-[15px]">
+                {[
+                  '45 minutes 1-on-1 on Google Meet',
+                  'Open Q&A for all your doubts',
+                  'A study and career plan made for you',
+                  'Honest answers on costs and timelines',
+                  'Session recording available as an add-on',
+                ].map((f) => (
+                  <li key={f} className="flex gap-3 text-ink">
+                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => setAuthMode('book')} className={`${btnGhost} mt-8 w-full py-3.5`}>Book a consultation</button>
             </div>
-            <p className="mt-6 text-5xl font-extrabold tracking-tight text-ink">₹4,999</p>
-            <p className="mt-2 text-muted">Lifetime access, including future updates</p>
-            <ul className="mt-8 space-y-3">
-              {['All six DGCA CPL subjects', 'Every video lesson and note', 'Topic quizzes and full mock exams', 'Progress and marks tracking'].map((f) => (
-                <li key={f} className="flex items-center gap-3 text-ink">
-                  <Check className="h-5 w-5 text-go" strokeWidth={2.5} /> {f}
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-9 w-full py-3.5`}>Enroll now</button>
+
+            {/* Course */}
+            <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(47,91,224,0.35)]`}>
+              <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">Most popular</span>
+              <p className="font-bold text-ink">Full ground school course</p>
+              <p className="mt-1 text-sm text-muted">Everything you need for all six DGCA papers</p>
+              <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹4,999</p>
+              <p className="mt-1 text-sm text-muted">One-time payment, lifetime access</p>
+              <ul className="mt-7 flex-1 space-y-3 text-[15px]">
+                {[
+                  'Complete notes for all six subjects',
+                  '2000+ genuine practice questions',
+                  'Topic tests and full mock exams',
+                  'Study material and video lessons',
+                  'Progress and marks tracking',
+                  'Free updates when the syllabus changes',
+                ].map((f) => (
+                  <li key={f} className="flex gap-3 text-ink">
+                    <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-8 w-full py-3.5`}>Get the course</button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="scroll-mt-20 bg-mist py-20 sm:py-24">
+      <section id="faq" className="scroll-mt-20 py-20 sm:py-24">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1.6fr]">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Questions students ask</h2>
@@ -494,6 +575,54 @@ function LandingPage({ setAuthMode }) {
   );
 }
 
+// ============= GOOGLE SIGN-IN =============
+function GoogleButton({ onGoogleUser, label }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const click = async () => {
+    setError('');
+    if (!googleReady) {
+      setError('Google sign-in is not connected yet. Use your email and password for now.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const user = await signInWithGoogle();
+      if (user) onGoogleUser(user);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={click}
+        disabled={busy}
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:bg-mist disabled:opacity-60"
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.4a5.5 5.5 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.8z" />
+          <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3a7.2 7.2 0 0 1-10.7-3.8h-4v3.1A12 12 0 0 0 12 24z" />
+          <path fill="#FBBC05" d="M5.3 14.3a7.1 7.1 0 0 1 0-4.6v-3.1h-4a12 12 0 0 0 0 10.8l4-3.1z" />
+          <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1A7.2 7.2 0 0 1 12 4.8z" />
+        </svg>
+        {busy ? 'Opening Google…' : label}
+      </button>
+      {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
+      <div className="my-6 flex items-center gap-3">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-sm text-muted">or use your email</span>
+        <span className="h-px flex-1 bg-line" />
+      </div>
+    </div>
+  );
+}
+
 // ============= AUTH LAYOUT =============
 function AuthLayout({ title, subtitle, children, setAuthMode }) {
   return (
@@ -524,7 +653,7 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
 }
 
 // ============= LOGIN PAGE =============
-function LoginPage({ setAuthMode, onLogin }) {
+function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -545,6 +674,8 @@ function LoginPage({ setAuthMode, onLogin }) {
       title={isAdminLogin ? 'Instructor log in' : 'Welcome back'}
       subtitle={isAdminLogin ? 'Manage lessons, uploads and students.' : 'Log in to pick up where you left off.'}
     >
+      {!isAdminLogin && <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
@@ -574,7 +705,7 @@ function LoginPage({ setAuthMode, onLogin }) {
 }
 
 // ============= SIGNUP PAGE =============
-function SignupPage({ setAuthMode, onSignup }) {
+function SignupPage({ setAuthMode, onSignup, onGoogleUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -591,6 +722,8 @@ function SignupPage({ setAuthMode, onSignup }) {
 
   return (
     <AuthLayout setAuthMode={setAuthMode} title="Create your account" subtitle="Start your ground school prep in under a minute.">
+      <GoogleButton onGoogleUser={onGoogleUser} label="Sign up with Google" />
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink">Full name</label>
