@@ -167,32 +167,32 @@ const REVIEWS = [
   {
     name: 'Aditya Menon',
     role: 'Preparing for CPL, Kochi',
-    text: 'I had failed Navigation twice before this. He sat with me and worked out exactly where I was losing marks instead of making me redo the whole syllabus. Cleared it with 88 the next attempt.',
+    text: 'I had failed Navigation twice. He looked at my papers and showed me where I was losing marks. I did not have to study the whole subject again. I got 88 in the next attempt.',
   },
   {
     name: 'Ishita Rao',
     role: 'Student pilot, Bengaluru',
-    text: 'What I really wanted was a mentor, not another coaching class. He is genuinely knowledgeable and answers even the small doubts I felt silly asking anywhere else.',
+    text: 'I wanted a mentor, not one more class. He really knows his stuff, and he answers even the small doubts I felt shy to ask anywhere else.',
   },
   {
     name: 'Harshit Sabharwal',
     role: 'Converting an FAA licence, Delhi',
-    text: 'It is so difficult to find people in this industry who will actually talk to you honestly about money and timelines. One call saved me from picking a school that would have cost me a year.',
+    text: 'It is hard to find someone in this field who will talk to you honestly about money and time. One call stopped me from joining a school that would have cost me a year.',
   },
   {
     name: 'Nandini Pillai',
     role: 'Cleared four papers, Chennai',
-    text: 'The notes are the best I have used. Everything is in the exam language, so you are not translating a textbook in your head while the clock runs.',
+    text: 'The notes are the best I have used. They are written the same way the questions are asked, so nothing feels new in the exam.',
   },
   {
     name: 'Rohan Deshmukh',
     role: 'CPL aspirant, Pune',
-    text: 'He cleared every doubt I had in one sitting, and then followed up on WhatsApp when I got stuck again. You can tell he actually remembers what this phase feels like.',
+    text: 'He cleared all my doubts in one call. Later I got stuck again and he replied on WhatsApp. He still remembers how hard this time is.',
   },
   {
     name: 'Simran Kaur',
     role: 'Ground school student, Amritsar',
-    text: 'I paid a lot for classes earlier where nobody knew my name. Here the plan was made for me, and someone notices when I fall behind. That is the whole difference.',
+    text: 'I paid a lot for classes before and nobody there knew my name. Here my plan is made for me, and someone checks on me if I fall behind.',
   },
 ];
 
