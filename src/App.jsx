@@ -409,6 +409,28 @@ function LandingPage({ setAuthMode }) {
         </div>
       </section>
 
+      {/* Reviews */}
+      <section id="reviews" className="scroll-mt-20 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What students say</h2>
+            <p className="mt-4 text-lg text-muted">From people who were sitting exactly where you are.</p>
+          </div>
+          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {REVIEWS.map((r) => (
+              <figure key={r.name} className="flex h-full flex-col rounded-2xl bg-mist p-6">
+                <Quote className="h-6 w-6 text-brand/40" />
+                <blockquote className="mt-4 flex-1 leading-relaxed text-ink">{r.text}</blockquote>
+                <figcaption className="mt-6 border-t border-line pt-4">
+                  <span className="block font-bold text-ink">{r.name}</span>
+                  <span className="block text-sm text-muted">{r.role}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* What goes wrong */}
       <section className="bg-night py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -435,28 +457,6 @@ function LandingPage({ setAuthMode }) {
             <button onClick={() => setAuthMode('book')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
               <CalendarClock className="h-4 w-4" /> Talk it through with me
             </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section id="reviews" className="scroll-mt-20 py-20 sm:py-24">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What students say</h2>
-            <p className="mt-4 text-lg text-muted">From people who were sitting exactly where you are.</p>
-          </div>
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {REVIEWS.map((r) => (
-              <figure key={r.name} className="flex h-full flex-col rounded-2xl bg-mist p-6">
-                <Quote className="h-6 w-6 text-brand/40" />
-                <blockquote className="mt-4 flex-1 leading-relaxed text-ink">{r.text}</blockquote>
-                <figcaption className="mt-6 border-t border-line pt-4">
-                  <span className="block font-bold text-ink">{r.name}</span>
-                  <span className="block text-sm text-muted">{r.role}</span>
-                </figcaption>
-              </figure>
-            ))}
           </div>
         </div>
       </section>
