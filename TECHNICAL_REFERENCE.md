@@ -7,7 +7,7 @@ This guide is for whoever helps deploy and maintain the website.
 
 ## Project Overview
 
-**Project:** SkyMaster Ground School  
+**Project:** flywithsam Ground School  
 **Tech Stack:** React 18 + Vite + Firebase + Vercel  
 **Location:** India (asia-south1 region)  
 **Users:** CPL ground school students + instructor

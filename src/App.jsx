@@ -217,7 +217,7 @@ function LandingPage({ setAuthMode }) {
           <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
             <a href="#subjects" className="transition hover:text-ink">Subjects</a>
             <a href="#about" className="transition hover:text-ink">About</a>
-            <a href="#why" className="transition hover:text-ink">Why SkyMaster</a>
+            <a href="#why" className="transition hover:text-ink">Why flywithsam</a>
             <a href="#reviews" className="transition hover:text-ink">Reviews</a>
             <a href="#pricing" className="transition hover:text-ink">Pricing</a>
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
@@ -236,7 +236,7 @@ function LandingPage({ setAuthMode }) {
         </div>
         {mobileMenuOpen && (
           <div className="space-y-1 border-t border-line bg-white px-4 py-4 md:hidden">
-            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why SkyMaster'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why flywithsam'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
                 {label}
               </a>
@@ -364,7 +364,7 @@ function LandingPage({ setAuthMode }) {
                 on your first attempt.
               </p>
               <p>
-                SkyMaster is what I wish I had then. The notes are the ones I built and refined while studying, and the
+                flywithsam is what I wish I had then. The notes are the ones I built and refined while studying, and the
                 lessons draw on what I have learned flying, not just what is in the textbook. My job is to get you into your
                 dream flying school and the life that comes after it.
               </p>
@@ -389,7 +389,7 @@ function LandingPage({ setAuthMode }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose SkyMaster</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose flywithsam</h2>
               <p className="mt-5 text-lg leading-relaxed text-muted">
                 Good coaching should not cost a fortune or leave you piecing things together alone. Here is what you get instead.
               </p>
@@ -568,7 +568,7 @@ function LandingPage({ setAuthMode }) {
       <footer className="border-t border-line py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row sm:px-6">
           <Logo />
-          <p>&copy; {new Date().getFullYear()} SkyMaster Ground School. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} flywithsam Ground School. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -23,7 +23,7 @@ export function Logo({ light = false, compact = false }) {
       </div>
       {!compact && (
         <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
-          SkyMaster
+          flywithsam
         </span>
       )}
     </div>

@@ -1,4 +1,4 @@
-# SkyMaster Admin Manual
+# flywithsam Admin Manual
 ## Your Daily Operations Guide (For Non-Technical Users)
 
 Hello! This manual explains exactly how to run your ground school website. No technical jargon, just simple steps.
