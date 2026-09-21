@@ -48,6 +48,7 @@ export default function BookingPage({ goHome }) {
   const [payment, setPayment] = useState({ enabled: false });
   const [status, setStatus] = useState('idle'); // idle, saving, done
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [confirmed, setConfirmed] = useState(null);
 
   const day = days[dayIndex];
@@ -72,13 +73,54 @@ export default function BookingPage({ goHome }) {
     return () => { live = false; };
   }, [day.key]);
 
+  const validate = () => {
+    const errors = {};
+    if (form.name.trim().length < 2) errors.name = 'Please enter your name.';
+    if (!form.email.trim()) {
+      errors.email = 'We need an email to send you the meeting link.';
+    } else if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email.trim())) {
+      errors.email = 'That email address is missing something. Example: you@gmail.com';
+    }
+    const digits = form.phone.replace(/\D/g, '');
+    if (form.phone.trim() && (digits.length < 10 || digits.length > 13)) {
+      errors.phone = 'Enter a 10-digit mobile number, or leave this empty.';
+    }
+    return errors;
+  };
+
+  const field = (name, placeholder, type = 'text') => (
+    <div>
+      <input
+        className={`${input} ${fieldErrors[name] ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
+        type={type}
+        placeholder={placeholder}
+        value={form[name]}
+        onChange={(e) => {
+          setForm({ ...form, [name]: e.target.value });
+          if (fieldErrors[name]) setFieldErrors({ ...fieldErrors, [name]: undefined });
+        }}
+        onBlur={() => {
+          const errors = validate();
+          setFieldErrors((prev) => ({ ...prev, [name]: errors[name] }));
+        }}
+        aria-invalid={Boolean(fieldErrors[name])}
+      />
+      {fieldErrors[name] && <p className="mt-1.5 text-sm font-medium text-red-600">{fieldErrors[name]}</p>}
+    </div>
+  );
+
   const isPast = (slot) => new Date(`${day.key}T${slot}:00+05:30`).getTime() < Date.now();
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
     if (!time) { setError('Pick a time for your session.'); return; }
-    if (!form.name.trim() || !form.email.trim()) { setError('Add your name and email so we can send the meeting link.'); return; }
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError('Please fix the highlighted fields.');
+      return;
+    }
 
     setStatus('saving');
     try {
@@ -229,15 +271,11 @@ export default function BookingPage({ goHome }) {
           )}
 
           <h2 className="mt-7 font-bold text-ink">Your details</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <input className={input} placeholder="Full name" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input className={input} type="email" placeholder="Email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            <input className={input} placeholder="Phone (optional)" value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            <input className={input} placeholder="Where are you in your training?" value={form.goal}
-              onChange={(e) => setForm({ ...form, goal: e.target.value })} />
+          <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
+            {field('name', 'Full name')}
+            {field('email', 'Email', 'email')}
+            {field('phone', 'Phone (optional)', 'tel')}
+            {field('goal', 'Where are you in your training?')}
           </div>
 
           <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">

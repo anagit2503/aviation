@@ -575,6 +575,8 @@ function LandingPage({ setAuthMode }) {
   );
 }
 
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
+
 // ============= GOOGLE SIGN-IN =============
 function GoogleButton({ onGoogleUser, label }) {
   const [busy, setBusy] = useState(false);
@@ -665,6 +667,10 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
       setError('Enter your email and password to log in.');
       return;
     }
+    if (!EMAIL_RE.test(email.trim())) {
+      setError('That email address is missing something. Example: you@gmail.com');
+      return;
+    }
     onLogin(email, password, isAdminLogin);
   };
 
@@ -715,6 +721,14 @@ function SignupPage({ setAuthMode, onSignup, onGoogleUser }) {
     e.preventDefault();
     if (!name || !email || !password) {
       setError('Fill in your name, email and password to continue.');
+      return;
+    }
+    if (!EMAIL_RE.test(email.trim())) {
+      setError('That email address is missing something. Example: you@gmail.com');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Use a password of at least 6 characters.');
       return;
     }
     onSignup(email, password, false);
