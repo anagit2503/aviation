@@ -1,17 +1,20 @@
 // Google sign-in through Firebase Authentication.
 //
-// The Firebase keys come from environment variables so they can be set in Vercel
-// without touching the code. Until they are set, googleReady is false and the
-// login pages explain that Google sign-in is not connected yet.
+// The project's own Firebase config is below; Vercel environment variables can
+// override it without a code change.
 const env = import.meta.env;
 
+// Firebase web config is public by design: it ships inside the page either way.
+// What actually protects the project is the Authorized domains list and the
+// sign-in providers you switch on in the Firebase console.
+// Setting the VITE_FIREBASE_* variables in Vercel overrides anything here.
 const config = {
-  apiKey: env.VITE_FIREBASE_API_KEY,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: env.VITE_FIREBASE_APP_ID,
+  apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyCoajtzxGIQdvx1zWPZY-cPtQ7LVhFjYT0',
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'flywithsam-46790.firebaseapp.com',
+  projectId: env.VITE_FIREBASE_PROJECT_ID || 'flywithsam-46790',
+  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'flywithsam-46790.firebasestorage.app',
+  messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '387256125481',
+  appId: env.VITE_FIREBASE_APP_ID || '1:387256125481:web:93abff13d01b8afe517438',
 };
 
 export const googleReady = Boolean(config.apiKey && config.authDomain && config.appId);
