@@ -94,72 +94,72 @@ const SUBJECTS = [
   {
     name: 'Air Navigation',
     tab: 'Air Navigation',
-    blurb: 'Map reading, flight planning, compass use and radio aids. Every calculation worked through step by step, the way the paper sets it.',
+    blurb: 'Map reading, flight planning and radio aids, worked out step by step.',
     topics: ['Maps & charts', 'Flight planning', 'Compass & magnetism', 'Radio navigation aids'],
   },
   {
     name: 'Aviation Meteorology',
     tab: 'Meteorology',
-    blurb: 'Weather systems, clouds and pressure explained from the cockpit, plus plenty of practice decoding METARs and TAFs.',
+    blurb: 'Weather, clouds and pressure, plus lots of practice reading METARs and TAFs.',
     topics: ['Weather systems & fronts', 'Clouds & precipitation', 'Atmospheric pressure', 'METARs & TAFs'],
   },
   {
     name: 'Air Regulations',
     tab: 'Air Regulations',
-    blurb: 'Aviation law, air traffic rules and safety procedures, taught with the exact wording the exam uses.',
+    blurb: 'Air law, traffic rules and safety, in the exact words the exam uses.',
     topics: ['Rules of the air', 'Airspace & ATC services', 'Licensing & medicals', 'Safety procedures'],
   },
   {
     name: 'Technical General',
     tab: 'Technical General',
-    blurb: 'Aircraft structures, principles of flight, engines and general systems, explained so they stick.',
+    blurb: 'Structures, principles of flight, engines and systems, explained simply.',
     topics: ['Principles of flight', 'Aircraft structures', 'Piston & turbine engines', 'Systems & instruments'],
   },
   {
     name: 'Technical Specific',
     tab: 'Technical Specific',
-    blurb: 'In-depth knowledge of the aircraft type you will fly: its limits, systems and performance figures.',
+    blurb: 'Everything about the aircraft you will fly: limits, systems and performance.',
     topics: ['Type limitations', 'Aircraft systems', 'Performance & loading', 'Emergency procedures'],
   },
   {
     name: 'Radio Telephony (RTR)',
     tab: 'RTR',
-    blurb: 'Standard phraseology and communication procedures for talking to air traffic control, with practice for the oral exam.',
+    blurb: 'How to talk to ATC, with practice for the oral exam.',
     topics: ['Standard phraseology', 'Radio procedures', 'Emergency calls', 'Practice exchanges'],
   },
 ];
 
 const FEATURES = [
-  { icon: PlayCircle, title: 'Video lessons', text: 'Recorded lectures for every topic. Pause, rewind and rewatch before the exam.' },
-  { icon: NotebookPen, title: 'Study notes', text: 'Concise notes that follow the syllabus, so you revise what gets asked.' },
-  { icon: ListChecks, title: 'Topic quizzes', text: 'Ten-question quizzes after each lesson show what stuck and what to revisit.' },
-  { icon: ClipboardCheck, title: 'Mock exams', text: 'Full papers under exam timing, marked instantly with explanations.' },
+  { icon: PlayCircle, title: 'Video lessons', text: 'Watch any topic again before the exam.' },
+  { icon: NotebookPen, title: 'Study notes', text: 'Short notes that follow the syllabus.' },
+  { icon: ListChecks, title: 'Topic quizzes', text: 'Ten questions after each lesson.' },
+  { icon: ClipboardCheck, title: 'Mock exams', text: 'Full papers with timing, marked at once.' },
 ];
 
 const REASONS = [
-  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Every lesson comes from someone who has sat these papers and trained in the cockpit.' },
-  { icon: Compass, title: 'Always know what is next', text: 'Subjects are broken into short lessons in a set order, so you never wonder where to start.' },
-  { icon: BarChart3, title: 'See your progress', text: 'Marks and completion for each subject update as you finish quizzes.' },
-  { icon: Clock, title: 'Study on your schedule', text: 'Watch lectures between shifts, on the train, or the night before a paper.' },
-  { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once and keep every lesson, including updates when the syllabus changes.' },
-  { icon: Wallet, title: 'Fairly priced', text: 'One flat fee for all six subjects. No add-ons, no monthly bill.' },
+  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Taught by someone who has sat these papers.' },
+  { icon: Compass, title: 'Always know what is next', text: 'Short lessons in a set order.' },
+  { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
+  { icon: Clock, title: 'Study on your schedule', text: 'Watch anytime, on any device.' },
+  { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once, keep it forever.' },
+  { icon: Wallet, title: 'Fairly priced', text: 'One fee for all six subjects.' },
 ];
 
 const PITFALLS = [
   {
     icon: Wallet,
     title: 'Costs nobody warns you about',
-    text: 'Ground classes, exam fees, reattempts, conversion, type rating. Students routinely spend lakhs more than they budgeted because they did not know what to ask.',
+    text: 'Exam fees, retakes, conversion, type rating. Most students spend lakhs more than they planned.',
   },
   {
     icon: Building2,
     title: 'The wrong flight school',
-    text: 'Not every school abroad converts smoothly to a DGCA licence. Pick the wrong one and you pay again in time, money and paperwork.',
+    text: 'Not every school abroad converts easily to a DGCA licence. The wrong one costs you again.',
   },
   {
     icon: Hourglass,
     title: 'A year lost to delays',
-    text: 'Failed papers, visa waits and bad weather planning quietly add 12 to 18 months. Most of it is avoidable if you sequence your exams and training properly.',
+    text: 'Failed papers, visa waits and bad weather add a year. Most of it can be avoided.',
   },
 ];
 
@@ -260,8 +260,7 @@ function LandingPage({ setAuthMode }) {
               Pass your CPL ground exams without the guesswork.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Short video lessons, clear notes and real exam-style questions from an instructor who has flown the line.
-              Follow the plan, track your marks, and walk into the exam ready.
+              Short video lessons, clear notes and real exam questions, from a pilot who scored 90+ in all six papers.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <button onClick={() => setAuthMode('book')} className={btnPrimary}>Book a consultation</button>
@@ -298,7 +297,7 @@ function LandingPage({ setAuthMode }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Six DGCA subjects, one clear path</h2>
-            <p className="mt-4 text-lg text-muted">Everything the DGCA CPL ground papers cover, split into short lessons you can finish in a sitting. You need 70% in each paper to pass.</p>
+            <p className="mt-4 text-lg text-muted">Short lessons you can finish in one sitting. You need 70% in each paper to pass.</p>
           </div>
 
           <div className="mt-10 flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5 lg:inline-flex">
@@ -351,23 +350,14 @@ function LandingPage({ setAuthMode }) {
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">I was exactly where you are now.</h2>
             <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
               <p>
-                I earned my Commercial Pilot Licence at SkyDuo Aviation Academy in Miami. Before that, I was facing the same
-                six DGCA papers you are, trying to work out who to learn from.
+                I did my CPL at SkyDuo Aviation Academy in Miami. I could not find the right mentor, so even after paying for
+                expensive classes I worked most of it out alone.
               </p>
               <p>
-                I struggled to find the right coaching and the right mentor. Even after paying for very expensive classes, I
-                ended up figuring most of it out on my own.
+                I scored 90+ in every subject. A few papers took me two attempts, and those retakes showed me exactly where
+                students lose marks.
               </p>
-              <p>
-                I went on to score 90+ in every subject. Some papers took me more than one attempt, and each retake taught me
-                exactly where students lose marks. I have built all of that into these lessons so you can clear every paper
-                on your first attempt.
-              </p>
-              <p>
-                flywithsam is what I wish I had then. The notes are the ones I built and refined while studying, and the
-                lessons draw on what I have learned flying, not just what is in the textbook. My job is to get you into your
-                dream flying school and the life that comes after it.
-              </p>
+              <p>All of that is in these lessons, so you can clear every paper the first time.</p>
             </div>
             <ul className="mt-8 flex flex-wrap gap-3">
               <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
@@ -390,9 +380,7 @@ function LandingPage({ setAuthMode }) {
           <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose flywithsam</h2>
-              <p className="mt-5 text-lg leading-relaxed text-muted">
-                Good coaching should not cost a fortune or leave you piecing things together alone. Here is what you get instead.
-              </p>
+              <p className="mt-5 text-lg text-muted">Six reasons students stay.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {REASONS.map(({ icon: Icon, title, text }) => (
@@ -439,7 +427,7 @@ function LandingPage({ setAuthMode }) {
               What actually costs students their licence
             </h2>
             <p className="mt-4 text-lg text-blue-100/75">
-              Flying is the easy part. Most people lose money and years to decisions made before they ever reach a cockpit.
+              Flying is the easy part. Most money and time is lost before you reach a cockpit.
             </p>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
