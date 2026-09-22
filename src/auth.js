@@ -42,12 +42,23 @@ export async function signInWithGoogle() {
       uid: result.user.uid,
     };
   } catch (err) {
+    // The person closed the popup; not worth an error message.
     if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
-      return null; // the person changed their mind; not an error worth showing
+      return null;
     }
-    if (err?.code === 'auth/unauthorized-domain') {
-      throw new Error('This website is not allowed in your Firebase settings yet.');
-    }
-    throw new Error('Google sign-in did not work. Please try again.');
+    console.error('Google sign-in failed:', err?.code, err?.message);
+    const messages = {
+      'auth/configuration-not-found':
+        'Google sign-in is not switched on in Firebase yet (Authentication → Get started → Google).',
+      'auth/operation-not-allowed':
+        'Google sign-in is not switched on in Firebase yet (Authentication → Sign-in method → Google).',
+      'auth/unauthorized-domain':
+        'This website is not in the Firebase authorized domains list yet.',
+      'auth/popup-blocked':
+        'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+      'auth/network-request-failed':
+        'No connection to Google. Check your internet and try again.',
+    };
+    throw new Error(messages[err?.code] || `Google sign-in failed (${err?.code || 'unknown error'}).`);
   }
 }
