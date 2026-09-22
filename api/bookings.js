@@ -9,12 +9,14 @@ import {
   isValidDate, SLOT_TIMES,
 } from './_lib.js';
 
-// Every date that has ever been booked is remembered in a set, so nothing can
-// hide beyond a fixed window.
+// Look at every stored booking day, so nothing can hide beyond a fixed window.
 async function bookedDates() {
-  const dates = (await redis(['SMEMBERS', 'booking-dates'])) || [];
+  const keys = (await redis(['KEYS', 'bookings:*'])) || [];
   const today = new Date().toISOString().slice(0, 10);
-  return dates.filter((d) => d >= today).sort();
+  return keys
+    .map((k) => k.replace('bookings:', ''))
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= today)
+    .sort();
 }
 
 export default async function handler(req, res) {
