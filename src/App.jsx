@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown,
-  LayoutDashboard, Video, ArrowLeft, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+  LayoutDashboard, Video, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -166,31 +166,37 @@ const PITFALLS = [
 const REVIEWS = [
   {
     name: 'Aditya Menon',
+    colour: 'from-indigo-500 to-violet-500',
     role: 'Preparing for CPL, Kochi',
     text: 'I had failed Navigation twice. He looked at my papers and showed me where I was losing marks. I did not have to study the whole subject again. I got 88 in the next attempt.',
   },
   {
     name: 'Ishita Rao',
+    colour: 'from-rose-500 to-pink-500',
     role: 'Student pilot, Bengaluru',
     text: 'I wanted a mentor, not one more class. He really knows his stuff, and he answers even the small doubts I felt shy to ask anywhere else.',
   },
   {
     name: 'Harshit Sabharwal',
+    colour: 'from-sky-500 to-blue-600',
     role: 'Converting an FAA licence, Delhi',
     text: 'It is hard to find someone in this field who will talk to you honestly about money and time. One call stopped me from joining a school that would have cost me a year.',
   },
   {
     name: 'Nandini Pillai',
+    colour: 'from-amber-400 to-orange-500',
     role: 'Cleared four papers, Chennai',
     text: 'The notes are the best I have used. They are written the same way the questions are asked, so nothing feels new in the exam.',
   },
   {
     name: 'Rohan Deshmukh',
+    colour: 'from-emerald-500 to-teal-500',
     role: 'CPL aspirant, Pune',
     text: 'He cleared all my doubts in one call. Later I got stuck again and he replied on WhatsApp. He still remembers how hard this time is.',
   },
   {
     name: 'Simran Kaur',
+    colour: 'from-fuchsia-500 to-purple-600',
     role: 'Ground school student, Amritsar',
     text: 'I paid a lot for classes before and nobody there knew my name. Here my plan is made for me, and someone checks on me if I fall behind.',
   },
@@ -398,21 +404,30 @@ function LandingPage({ setAuthMode }) {
       </section>
 
       {/* Reviews */}
-      <section id="reviews" className="scroll-mt-20 py-20 sm:py-24">
+      <section id="reviews" className="scroll-mt-20 bg-sky py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What students say</h2>
             <p className="mt-4 text-lg text-muted">From people who were sitting exactly where you are.</p>
           </div>
-          <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {REVIEWS.map((r) => (
-              <figure key={r.name} className="flex h-full flex-col rounded-2xl bg-mist p-6">
-                <Quote className="h-6 w-6 text-brand/40" />
-                <blockquote className="mt-4 flex-1 leading-relaxed text-ink">{r.text}</blockquote>
-                <figcaption className="mt-6 border-t border-line pt-4">
-                  <span className="block font-bold text-ink">{r.name}</span>
-                  <span className="block text-sm text-muted">{r.role}</span>
+              <figure key={r.name} className="flex h-full flex-col rounded-3xl bg-white p-6 shadow-[0_12px_30px_-18px_rgba(15,23,51,0.35)]">
+                <figcaption className="flex items-center gap-3.5">
+                  <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${r.colour} text-lg font-bold text-white`}>
+                    {r.name[0]}
+                  </span>
+                  <span>
+                    <span className="block font-bold text-ink">{r.name}</span>
+                    <span className="mt-0.5 flex gap-0.5" aria-label="5 out of 5">
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </span>
+                  </span>
                 </figcaption>
+                <blockquote className="mt-5 flex-1 leading-relaxed text-muted">{r.text}</blockquote>
+                <p className="mt-5 border-t border-line pt-4 text-sm text-muted">{r.role}</p>
               </figure>
             ))}
           </div>
