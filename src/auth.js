@@ -36,6 +36,7 @@ export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     return {
+      idToken: await result.user.getIdToken(),
       email: result.user.email,
       name: result.user.displayName || '',
       photo: result.user.photoURL || '',

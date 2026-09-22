@@ -79,3 +79,75 @@ export function readJsonBody(req) {
   }
   return {};
 }
+
+// ---------- Accounts and access ----------
+
+// Instructors are set here, on the server, so the browser cannot claim the role.
+export const INSTRUCTOR_EMAILS = (process.env.INSTRUCTOR_EMAILS ||
+  'samarthya.s02@gmail.com,khanooja.anandita@gmail.com')
+  .split(',')
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
+
+export const isInstructorEmail = (email) =>
+  INSTRUCTOR_EMAILS.includes(String(email || '').trim().toLowerCase());
+
+const FIREBASE_API_KEY =
+  process.env.VITE_FIREBASE_API_KEY || 'AIzaSyCoajtzxGIQdvx1zWPZY-cPtQ7LVhFjYT0';
+
+// Checks a Google sign-in token with Google itself. An invalid or expired token
+// returns null, so nobody can pretend to be someone else by editing the request.
+export async function verifyIdToken(idToken) {
+  if (!idToken || typeof idToken !== 'string') return null;
+  try {
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const account = data.users?.[0];
+    if (!account?.email) return null;
+    return {
+      email: String(account.email).toLowerCase(),
+      name: account.displayName || '',
+      photo: account.photoUrl || '',
+      uid: account.localId,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// What a brand new account can see: nothing from the course.
+export const emptyAccess = () => ({
+  plan: 'none', // none | consultation | course
+  subjects: [],
+  questions: false,
+  tests: false,
+});
+
+export async function getAccount(email) {
+  const raw = await redis(['HGET', 'accounts', email]);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+export async function saveAccount(account) {
+  await redis(['HSET', 'accounts', account.email, JSON.stringify(account)]);
+  return account;
+}
+
+export async function listAccounts() {
+  const flat = (await redis(['HGETALL', 'accounts'])) || [];
+  const out = [];
+  // HGETALL comes back as [field, value, field, value, ...]
+  for (let i = 1; i < flat.length; i += 2) {
+    try { out.push(JSON.parse(flat[i])); } catch { /* skip unreadable rows */ }
+  }
+  return out.sort((a, b) => (b.lastSeen || '').localeCompare(a.lastSeen || ''));
+}

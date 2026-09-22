@@ -53,9 +53,29 @@ export default function AviationGroundSchool() {
     }
   };
 
-  const handleGoogleUser = (googleUser) => {
-    const instructor = isInstructor(googleUser.email);
-    setUser({ email: googleUser.email, name: googleUser.name, role: instructor ? 'admin' : 'student' });
+  const handleGoogleUser = async (googleUser) => {
+    // The server checks the sign-in, records the account and decides what this
+    // person can see. The list in the browser is only a fallback.
+    let profile = null;
+    try {
+      const res = await fetch('/api/me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: googleUser.idToken }),
+      });
+      if (res.ok) profile = await res.json();
+    } catch {
+      profile = null;
+    }
+
+    const instructor = profile ? profile.instructor : isInstructor(googleUser.email);
+    setUser({
+      email: googleUser.email,
+      name: googleUser.name || profile?.name || '',
+      idToken: googleUser.idToken,
+      access: profile?.access || null,
+      role: instructor ? 'admin' : 'student',
+    });
     setIsAdmin(instructor);
     setAuthModeState(instructor ? 'admin' : 'dashboard');
     window.history.replaceState(null, '', '/');
@@ -853,10 +873,14 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
 // ============= STUDENT DASHBOARD =============
 function StudentDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
+  // What this person can open is decided by the instructor, saved on the server.
+  const access = user.access || { plan: 'none', subjects: [], questions: false, tests: false };
+  const allowed = SUBJECTS.filter((s) => access.subjects?.includes(s.name));
+
   // Everyone starts at zero. Real progress will come from the database once
   // students' work is saved; nothing here is pre-filled.
   const [subjects] = useState(
-    SUBJECTS.map((s, i) => ({
+    allowed.map((s, i) => ({
       id: i + 1,
       name: s.name,
       topicsDone: 0,
@@ -867,7 +891,7 @@ function StudentDashboard({ user, onLogout }) {
   );
 
   const [resources] = useState(
-    SUBJECTS.map((s, i) => ({
+    allowed.map((s, i) => ({
       id: i + 1,
       title: `${s.name} — complete notes`,
       subject: s.name,
@@ -883,11 +907,38 @@ function StudentDashboard({ user, onLogout }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
     { id: 'resources', label: 'Resources', icon: FileText },
-    { id: 'scores', label: 'Test scores', icon: BarChart3 },
+    ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
+    ...(access.tests ? [{ id: 'scores', label: 'Test scores', icon: BarChart3 }] : []),
   ];
+
+  // Nobody gets course material until the instructor grants it.
+  if (allowed.length === 0) {
+    return (
+      <AppShell title={firstName(user)} subtitle="Welcome" onLogout={onLogout}
+        tabs={[{ id: 'overview', label: 'Overview', icon: LayoutDashboard }]}
+        activeTab="overview" setActiveTab={() => {}}>
+        <div className={`${card} mx-auto max-w-xl p-10 text-center`}>
+          <BookOpen className="mx-auto h-10 w-10 text-brand" />
+          <h2 className="mt-5 text-xl font-bold text-ink">
+            {access.plan === 'consultation' ? 'Your consultation is booked' : 'No course access yet'}
+          </h2>
+          <p className="mt-2 text-muted">
+            {access.plan === 'consultation'
+              ? 'Course notes and questions are part of the ground school course. Ask about it on your call, or get it below.'
+              : 'Once you join the course, your notes, questions and tests appear here.'}
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <a href="/#pricing" className={btnPrimary}>See the course</a>
+            <a href="/book" className={btnGhost}>Book a consultation</a>
+          </div>
+          <p className="mt-6 text-sm text-muted">
+            Already paid? Email us from {user.email} and we will switch on your access.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title={firstName(user)} subtitle="Welcome back" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
@@ -902,8 +953,8 @@ function StudentDashboard({ user, onLogout }) {
               <ProgressBar value={overallPercentage} height="h-3" />
               <p className="mt-2 text-sm text-muted">
                 {topicsDone === 0
-                  ? `Nothing started yet. ${topicsTotal} topics across six subjects are waiting for you.`
-                  : `${topicsDone} of ${topicsTotal} topics done across six subjects`}
+                  ? `Nothing started yet. ${topicsTotal} topics are waiting for you.`
+                  : `${topicsDone} of ${topicsTotal} topics done`}
               </p>
             </div>
           </div>
@@ -1006,41 +1057,92 @@ function StudentDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {activeTab === 'courses' && (
-        <div className={`${card} p-12 text-center`}>
-          <BookOpen className="mx-auto h-10 w-10 text-brand" />
-          <p className="mt-4 font-bold text-ink">Course materials are on their way</p>
-          <p className="mt-1 text-muted">Meanwhile, start with the notes or a practice test.</p>
-          <button onClick={() => setActiveTab('resources')} className={`${btnPrimary} mt-6`}>Go to the notes</button>
-        </div>
-      )}
     </AppShell>
   );
 }
 
 // ============= ADMIN PORTAL =============
+const PLAN_LABELS = {
+  none: 'No access',
+  consultation: 'Consultation only',
+  course: 'Course student',
+};
+
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [uploads, setUploads] = useState([
-    { id: 1, name: 'Air Regulations - complete notes.pdf', size: '18 MB', subject: 'Air Regulations', date: '2024-01-15', type: 'pdf' },
-    { id: 2, name: 'Navigation Notes.pdf', size: '5.2 MB', subject: 'Air Navigation', date: '2024-01-10', type: 'pdf' },
-  ]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [editing, setEditing] = useState(null); // email being edited
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [uploads, setUploads] = useState([]);
 
-  const [students] = useState([
-    { id: 1, name: 'Raj Kumar', email: 'raj@email.com', joinDate: '2024-01-01', progress: 75 },
-    { id: 2, name: 'Priya Singh', email: 'priya@email.com', joinDate: '2024-01-05', progress: 60 },
-    { id: 3, name: 'Vikram Patel', email: 'vikram@email.com', joinDate: '2024-01-08', progress: 85 },
-  ]);
-
-  const handleDelete = (id) => {
-    setUploads(uploads.filter(upload => upload.id !== id));
+  const call = async (body) => {
+    const res = await fetch('/api/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: user.idToken, ...body }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    return data;
   };
+
+  const loadStudents = async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
+      const data = await call({ action: 'list' });
+      setStudents(data.students || []);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadStudents(); }, []);
+
+  const startEditing = (student) => {
+    setEditing(student.email);
+    setDraft({
+      plan: student.access?.plan || 'none',
+      subjects: student.access?.subjects || [],
+      questions: Boolean(student.access?.questions),
+      tests: Boolean(student.access?.tests),
+    });
+  };
+
+  const saveAccess = async () => {
+    setSaving(true);
+    try {
+      const data = await call({ action: 'update', email: editing, access: draft });
+      setStudents((list) => list.map((s) => (s.email === editing ? data.student : s)));
+      setEditing(null);
+      setDraft(null);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSubject = (name) => {
+    setDraft((d) => ({
+      ...d,
+      subjects: d.subjects.includes(name) ? d.subjects.filter((x) => x !== name) : [...d.subjects, name],
+    }));
+  };
+
+  const courseStudents = students.filter((s) => s.access?.plan === 'course').length;
+  const consultOnly = students.filter((s) => s.access?.plan === 'consultation').length;
+  const waiting = students.filter((s) => !s.access?.plan || s.access.plan === 'none').length;
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'upload', label: 'Upload content', icon: Upload },
     { id: 'students', label: 'Students', icon: Users },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'upload', label: 'Upload material', icon: Upload },
   ];
 
   return (
@@ -1049,41 +1151,199 @@ function AdminPortal({ user, onLogout }) {
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { label: 'Total students', value: '247' },
-              { label: 'Total uploads', value: '48' },
-              { label: 'Average progress', value: '72%' },
-              { label: 'New this month', value: '23' },
+              { label: 'Accounts', value: students.length },
+              { label: 'Course students', value: courseStudents },
+              { label: 'Consultation only', value: consultOnly },
+              { label: 'Waiting for access', value: waiting },
             ].map((stat) => (
               <div key={stat.label} className={`${card} p-5`}>
                 <p className="text-sm text-muted">{stat.label}</p>
-                <p className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{stat.value}</p>
+                <p className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{loading ? '—' : stat.value}</p>
               </div>
             ))}
           </div>
 
           <div className={`${card} p-6`}>
-            <h2 className="mb-4 flex items-center gap-2 font-bold text-ink">
-              <FileText className="h-5 w-5 text-brand" /> Recent uploads
-            </h2>
-            <div className="divide-y divide-line">
-              {uploads.slice(0, 3).map((upload) => (
-                <div key={upload.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="font-semibold text-ink">{upload.name}</p>
-                    <p className="text-sm text-muted">{upload.subject} · {upload.size}</p>
+            <h2 className="mb-1 font-bold text-ink">Who needs access</h2>
+            <p className="mb-4 text-sm text-muted">
+              Everyone starts with no access. Give course access once you have confirmed their payment.
+            </p>
+            {loading && <p className="text-muted">Loading…</p>}
+            {!loading && waiting === 0 && <p className="text-muted">Nobody is waiting right now.</p>}
+            {!loading && waiting > 0 && (
+              <div className="divide-y divide-line">
+                {students.filter((s) => !s.access?.plan || s.access.plan === 'none').slice(0, 5).map((s) => (
+                  <div key={s.email} className="flex items-center justify-between gap-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-ink">{s.name || s.email}</p>
+                      <p className="truncate text-sm text-muted">{s.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { setActiveTab('students'); startEditing(s); }}
+                      className={`${btnGhost} px-4 py-2 text-sm`}
+                    >
+                      Set access
+                    </button>
                   </div>
-                  <p className="text-sm text-muted">{upload.date}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'students' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-bold text-ink">Everyone who has signed in ({students.length})</h2>
+              <p className="text-sm text-muted">Signing in gives nobody course access until you grant it here.</p>
+            </div>
+            <button onClick={loadStudents} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+          </div>
+
+          {loadError && <p className="text-sm font-medium text-red-600">{loadError}</p>}
+          {loading && <div className={`${card} p-12 text-center text-muted`}>Loading students…</div>}
+
+          {!loading && students.length === 0 && !loadError && (
+            <div className={`${card} p-12 text-center`}>
+              <Users className="mx-auto h-10 w-10 text-brand" />
+              <p className="mt-4 font-bold text-ink">Nobody has signed in yet</p>
+              <p className="mt-1 text-muted">Accounts appear here as soon as someone signs in with Google.</p>
+            </div>
+          )}
+
+          {!loading && students.map((student) => (
+            <div key={student.email} className={`${card} p-5`}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-bold text-ink">{student.name || student.email}</p>
+                  <p className="text-sm text-muted">{student.email}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    First signed in {new Date(student.firstSeen).toLocaleDateString('en-IN')} · {student.signIns} sign-ins
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                    student.access?.plan === 'course'
+                      ? 'bg-go/10 text-go'
+                      : student.access?.plan === 'consultation'
+                        ? 'bg-sky text-brand'
+                        : 'bg-mist text-muted'
+                  }`}>
+                    {PLAN_LABELS[student.access?.plan || 'none']}
+                  </span>
+                  <button
+                    onClick={() => (editing === student.email ? setEditing(null) : startEditing(student))}
+                    className={`${btnGhost} px-4 py-2 text-sm`}
+                  >
+                    {editing === student.email ? 'Close' : 'Manage access'}
+                  </button>
+                </div>
+              </div>
+
+              {student.access?.plan === 'course' && student.access.subjects?.length > 0 && editing !== student.email && (
+                <p className="mt-3 border-t border-line pt-3 text-sm text-muted">
+                  Subjects: {student.access.subjects.join(', ')}
+                  {student.access.questions && ' · question bank'}
+                  {student.access.tests && ' · tests'}
+                </p>
+              )}
+
+              {editing === student.email && draft && (
+                <div className="mt-5 border-t border-line pt-5">
+                  <p className="mb-2 text-sm font-semibold text-ink">What is this person?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(PLAN_LABELS).map(([value, label]) => (
+                      <button
+                        key={value}
+                        onClick={() => setDraft({
+                          ...draft,
+                          plan: value,
+                          subjects: value === 'course' ? draft.subjects : [],
+                          questions: value === 'course' ? draft.questions : false,
+                          tests: value === 'course' ? draft.tests : false,
+                        })}
+                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                          draft.plan === value ? 'border-brand bg-brand text-white' : 'border-line text-ink hover:border-brand'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {draft.plan === 'consultation' && (
+                    <p className="mt-4 rounded-xl bg-mist p-4 text-sm text-muted">
+                      Consultation students see the same pages as any visitor. They get no notes, questions or tests.
+                    </p>
+                  )}
+
+                  {draft.plan === 'course' && (
+                    <>
+                      <div className="mt-5 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-ink">Subjects they can open</p>
+                        <button
+                          onClick={() => setDraft({
+                            ...draft,
+                            subjects: draft.subjects.length === SUBJECTS.length ? [] : SUBJECTS.map((s) => s.name),
+                          })}
+                          className="text-sm font-semibold text-brand"
+                        >
+                          {draft.subjects.length === SUBJECTS.length ? 'Clear all' : 'Select all six'}
+                        </button>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {SUBJECTS.map((subject) => (
+                          <label key={subject.name} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
+                            <input
+                              type="checkbox"
+                              checked={draft.subjects.includes(subject.name)}
+                              onChange={() => toggleSubject(subject.name)}
+                              className="h-4 w-4 accent-[#2f5be0]"
+                            />
+                            <span className="font-medium text-ink">{subject.name}</span>
+                          </label>
+                        ))}
+                      </div>
+
+                      <p className="mt-5 text-sm font-semibold text-ink">What else can they use</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
+                          <input type="checkbox" checked={draft.questions}
+                            onChange={(e) => setDraft({ ...draft, questions: e.target.checked })}
+                            className="h-4 w-4 accent-[#2f5be0]" />
+                          <span className="font-medium text-ink">Question bank</span>
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
+                          <input type="checkbox" checked={draft.tests}
+                            onChange={(e) => setDraft({ ...draft, tests: e.target.checked })}
+                            className="h-4 w-4 accent-[#2f5be0]" />
+                          <span className="font-medium text-ink">Topic tests and mock exams</span>
+                        </label>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="mt-6 flex gap-3">
+                    <button onClick={saveAccess} disabled={saving} className={`${btnPrimary} px-6 py-2.5 text-sm`}>
+                      {saving ? 'Saving…' : 'Save access'}
+                    </button>
+                    <button onClick={() => { setEditing(null); setDraft(null); }} className={`${btnGhost} px-6 py-2.5 text-sm`}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
       {activeTab === 'upload' && (
         <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
           <div className={`${card} p-6 sm:p-8`}>
-            <h2 className="mb-6 text-lg font-bold text-ink">Upload course content</h2>
+            <h2 className="mb-6 text-lg font-bold text-ink">Upload study material</h2>
             <form className="space-y-5">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
@@ -1094,116 +1354,57 @@ function AdminPortal({ user, onLogout }) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-ink">Content type</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-ink">Type</label>
                   <select className={input}>
                     <option>Select type</option>
-                    <option>Study Notes</option>
-                    <option>Practice Questions</option>
-                    <option>Mock Paper</option>
+                    <option>Notes</option>
+                    <option>Question bank</option>
+                    <option>Topic test</option>
+                    <option>Mock exam</option>
                   </select>
                 </div>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-ink">Title</label>
-                <input type="text" placeholder="e.g. Introduction to Air Law" className={input} />
+                <input type="text" placeholder="e.g. Air Regulations - complete notes" className={input} />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-ink">File</label>
                 <div className="cursor-pointer rounded-2xl border-2 border-dashed border-line bg-mist p-8 text-center transition hover:border-brand hover:bg-sky">
                   <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
                   <p className="font-semibold text-ink">Click to upload or drag a file here</p>
-                  <p className="text-sm text-muted">MP4, PDF, ZIP and other files</p>
+                  <p className="text-sm text-muted">PDF, DOCX or ZIP</p>
                 </div>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-ink">Description (optional)</label>
-                <textarea rows="3" placeholder="Anything students should know about this file" className={input}></textarea>
-              </div>
               <button type="submit" className={`${btnPrimary} w-full`}>
-                <Upload className="h-4 w-4" /> Upload content
+                <Upload className="h-4 w-4" /> Upload material
               </button>
+              <p className="text-center text-sm text-muted">
+                Uploading is not connected yet. Files will save once we switch on storage for material.
+              </p>
             </form>
           </div>
 
           <div className={`${card} h-fit p-6`}>
             <h2 className="mb-4 font-bold text-ink">Your uploads</h2>
-            <div className="space-y-2">
-              {uploads.map((upload) => (
-                <div key={upload.id} className="flex items-center gap-3 rounded-xl bg-mist p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-ink">{upload.name}</p>
-                    <p className="text-sm text-muted">{upload.size} · {upload.date}</p>
+            {uploads.length === 0 ? (
+              <p className="text-sm text-muted">Nothing uploaded yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {uploads.map((upload) => (
+                  <div key={upload.id} className="flex items-center gap-3 rounded-xl bg-mist p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-ink">{upload.name}</p>
+                      <p className="text-sm text-muted">{upload.subject}</p>
+                    </div>
+                    <button onClick={() => setUploads(uploads.filter((u) => u.id !== upload.id))}
+                      className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-red-600" aria-label="Delete">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-brand" aria-label="View">
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => handleDelete(upload.id)} className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-red-600" aria-label="Delete">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {uploads.length === 0 && <p className="text-sm text-muted">No uploads yet. Add your first file with the form.</p>}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'students' && (
-        <div className={`${card} overflow-hidden`}>
-          <div className="border-b border-line p-6">
-            <h2 className="font-bold text-ink">Enrolled students ({students.length})</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-mist text-left text-muted">
-                <tr>
-                  <th className="px-6 py-3 font-semibold">Name</th>
-                  <th className="px-6 py-3 font-semibold">Email</th>
-                  <th className="px-6 py-3 font-semibold">Joined</th>
-                  <th className="px-6 py-3 font-semibold">Progress</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {students.map((student) => (
-                  <tr key={student.id} className="transition hover:bg-mist/60">
-                    <td className="px-6 py-4 font-semibold text-ink">{student.name}</td>
-                    <td className="px-6 py-4 text-muted">{student.email}</td>
-                    <td className="px-6 py-4 text-muted">{student.joinDate}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-28"><ProgressBar value={student.progress} color="bg-go" /></div>
-                        <span className="font-semibold text-ink">{student.progress}%</span>
-                      </div>
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'analytics' && (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className={`${card} p-6`}>
-            <h2 className="mb-4 font-bold text-ink">Enrollment over time</h2>
-            <div className="flex h-64 items-center justify-center rounded-xl bg-mist text-sm text-muted">
-              Enrollment chart appears here once real data is connected
-            </div>
-          </div>
-          <div className={`${card} p-6`}>
-            <h2 className="mb-4 font-bold text-ink">Average marks by subject</h2>
-            <div className="space-y-5">
-              {SUBJECTS.map(({ name: subject }, i) => (
-                <div key={subject}>
-                  <div className="mb-1.5 flex justify-between text-sm">
-                    <span className="text-ink">{subject}</span>
-                    <span className="font-semibold text-ink">{70 + i * 5}%</span>
-                  </div>
-                  <ProgressBar value={70 + i * 5} />
-                </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
