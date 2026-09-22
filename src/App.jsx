@@ -44,14 +44,14 @@ export default function AviationGroundSchool() {
   }, []);
 
   // Simulated login for demo
-  const handleLogin = (email, password, isAdminLogin) => {
+  const handleLogin = (email, password, isAdminLogin, name = '') => {
     if (isAdminLogin && email === 'admin@groundschool.com' && password === 'admin123') {
       setUser({ email, role: 'admin' });
       setIsAdmin(true);
       setAuthModeState('admin');
       window.history.replaceState(null, '', '/');
     } else if (!isAdminLogin && email && password) {
-      setUser({ email, role: 'student' });
+      setUser({ email, name, role: 'student' });
       setIsAdmin(false);
       setAuthModeState('dashboard');
       window.history.replaceState(null, '', '/');
@@ -607,6 +607,14 @@ function LandingPage({ setAuthMode }) {
   );
 }
 
+// Show a person's first name. Google gives us a full name; with email signup we
+// ask for one; otherwise fall back to the first part of the email address.
+function firstName(user) {
+  if (user?.name?.trim()) return user.name.trim().split(/\s+/)[0];
+  const local = (user?.email || '').split('@')[0].split(/[._-]/)[0];
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'there';
+}
+
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
 
 // ============= GOOGLE SIGN-IN =============
@@ -763,7 +771,7 @@ function SignupPage({ setAuthMode, onSignup, onGoogleUser }) {
       setError('Use a password of at least 6 characters.');
       return;
     }
-    onSignup(email, password, false);
+    onSignup(email, password, false, name);
   };
 
   return (
@@ -880,7 +888,7 @@ function StudentDashboard({ user, onLogout }) {
   ];
 
   return (
-    <AppShell title={user.email} subtitle="Welcome back" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+    <AppShell title={firstName(user)} subtitle="Welcome back" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
       {activeTab === 'overview' && (
         <div className="space-y-8">
           <div className={`${card} grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center md:gap-10`}>
