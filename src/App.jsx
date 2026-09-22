@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
-  PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown,
-  LayoutDashboard, Video, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+  PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
+  LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -130,17 +130,17 @@ const SUBJECTS = [
 ];
 
 const FEATURES = [
-  { icon: PlayCircle, title: 'Video lessons', text: 'Watch any topic again before the exam.' },
+  { icon: FileQuestion, title: '2000+ questions', text: 'Genuine questions across all six papers.' },
   { icon: NotebookPen, title: 'Study notes', text: 'Short notes that follow the syllabus.' },
-  { icon: ListChecks, title: 'Topic quizzes', text: 'Ten questions after each lesson.' },
+  { icon: ListChecks, title: 'Topic tests', text: 'Short tests after every topic.' },
   { icon: ClipboardCheck, title: 'Mock exams', text: 'Full papers with timing, marked at once.' },
 ];
 
 const REASONS = [
   { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Taught by someone who has sat these papers.' },
-  { icon: Compass, title: 'Always know what is next', text: 'Short lessons in a set order.' },
+  { icon: Compass, title: 'Always know what is next', text: 'Material in a set order, topic by topic.' },
   { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
-  { icon: Clock, title: 'Study on your schedule', text: 'Watch anytime, on any device.' },
+  { icon: Clock, title: 'Study on your schedule', text: 'Study anytime, on any device.' },
   { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once, keep it forever.' },
   { icon: Wallet, title: 'Fairly priced', text: 'One fee for all six subjects.' },
 ];
@@ -205,7 +205,7 @@ const REVIEWS = [
 const FAQS = [
   { q: 'Which exams does this prepare me for?', a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.' },
   { q: 'How long does it take to finish?', a: 'Most students complete all six subjects in 3 to 5 months studying an hour or two a day. You can go faster or slower.' },
-  { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to every lesson, note and mock exam, plus future updates.' },
+  { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to all the notes, questions and mock exams, plus future updates.' },
 ];
 
 function LandingPage({ setAuthMode }) {
@@ -266,7 +266,7 @@ function LandingPage({ setAuthMode }) {
               Pass your CPL ground exams without the guesswork.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Short video lessons, clear notes and real exam questions, from a pilot who scored 90+ in all six papers.
+              Clear notes and 2000+ real exam questions, from a pilot who scored 90+ in all six papers.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <button onClick={() => setAuthMode('book')} className={btnPrimary}>Book a consultation</button>
@@ -303,7 +303,7 @@ function LandingPage({ setAuthMode }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Six DGCA subjects, one clear path</h2>
-            <p className="mt-4 text-lg text-muted">Short lessons you can finish in one sitting. You need 70% in each paper to pass.</p>
+            <p className="mt-4 text-lg text-muted">You need 70% in each paper to pass.</p>
           </div>
 
           <div className="mt-10 flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5 lg:inline-flex">
@@ -363,7 +363,7 @@ function LandingPage({ setAuthMode }) {
                 I scored 90+ in every subject. A few papers took me two attempts, and those retakes showed me exactly where
                 students lose marks.
               </p>
-              <p>All of that is in these lessons, so you can clear every paper the first time.</p>
+              <p>All of that is in these notes and questions, so you can clear every paper the first time.</p>
             </div>
             <ul className="mt-8 flex flex-wrap gap-3">
               <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
@@ -468,24 +468,24 @@ function LandingPage({ setAuthMode }) {
       <section id="pricing" className="scroll-mt-20 bg-mist py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Two ways to work with me</h2>
-            <p className="mt-4 text-lg text-muted">Start with a call if you have decisions to make. Take the course if you have exams to clear.</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What we offer</h2>
+            <p className="mt-4 text-lg text-muted">A call when you need answers. A question bank and notes when you need to pass.</p>
           </div>
 
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
             {/* Consultation */}
             <div className={`${card} flex flex-col p-8`}>
               <p className="font-bold text-ink">1-on-1 consultation</p>
-              <p className="mt-1 text-sm text-muted">For choosing a school, a country, or your next step</p>
+              <p className="mt-1 text-sm text-muted">For choosing a school, a country or your next step</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹1,999</p>
               <p className="mt-1 text-sm text-muted">45 minutes, one session</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   '45 minutes 1-on-1 on Google Meet',
-                  'Open Q&A for all your doubts',
+                  'Ask anything: schools, exams, costs, visas',
                   'A study and career plan made for you',
-                  'Honest answers on costs and timelines',
-                  'Session recording available as an add-on',
+                  'Honest answers on money and timelines',
+                  'Session recording for ₹400 more',
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
@@ -499,16 +499,16 @@ function LandingPage({ setAuthMode }) {
             <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(47,91,224,0.35)]`}>
               <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">Most popular</span>
               <p className="font-bold text-ink">Full ground school course</p>
-              <p className="mt-1 text-sm text-muted">Everything you need for all six DGCA papers</p>
+              <p className="mt-1 text-sm text-muted">Notes and questions for all six DGCA papers</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹4,999</p>
               <p className="mt-1 text-sm text-muted">One-time payment, lifetime access</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   'Complete notes for all six subjects',
-                  '2000+ genuine practice questions',
+                  '2000+ genuine exam questions',
                   'Topic tests and full mock exams',
-                  'Study material and video lessons',
-                  'Progress and marks tracking',
+                  'Study material you can download',
+                  'Your marks tracked subject by subject',
                   'Free updates when the syllabus changes',
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
@@ -638,8 +638,8 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
         </svg>
         <button onClick={() => setAuthMode('landing')} className="relative w-fit"><Logo light /></button>
         <div className="relative max-w-md">
-          <p className="text-3xl font-extrabold leading-tight">Every lesson you need for the CPL ground papers, in the order you need them.</p>
-          <p className="mt-4 text-blue-100/70">Video lessons, notes, quizzes and mock exams in one place.</p>
+          <p className="text-3xl font-extrabold leading-tight">Everything you need for the CPL ground papers, in one place.</p>
+          <p className="mt-4 text-blue-100/70">Notes, 2000+ questions, topic tests and mock exams.</p>
         </div>
         <p className="relative text-sm text-blue-100/50">Trusted by 500+ student pilots</p>
       </div>
@@ -681,7 +681,7 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
     <AuthLayout
       setAuthMode={setAuthMode}
       title={isAdminLogin ? 'Instructor log in' : 'Welcome back'}
-      subtitle={isAdminLogin ? 'Manage lessons, uploads and students.' : 'Log in to pick up where you left off.'}
+      subtitle={isAdminLogin ? 'Manage material, uploads and students.' : 'Log in to pick up where you left off.'}
     >
       {!isAdminLogin && <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />}
 
@@ -823,10 +823,10 @@ function StudentDashboard({ user, onLogout }) {
     { id: 6, name: 'Radio Telephony (RTR)', progress: 90, quizzes: 7, totalMarks: 91, outOf: 100 },
   ]);
 
-  const [videos] = useState([
-    { id: 1, title: 'Introduction to Air Law', subject: 'Air Regulations', duration: '45 mins', watched: true },
-    { id: 2, title: 'Flight Rules and Procedures', subject: 'Air Regulations', duration: '38 mins', watched: true },
-    { id: 3, title: 'Weather Systems', subject: 'Aviation Meteorology', duration: '52 mins', watched: false },
+  const [resources] = useState([
+    { id: 1, title: 'Air Regulations — complete notes', subject: 'Air Regulations', detail: 'PDF · 64 pages', opened: true },
+    { id: 2, title: 'Rules of the air — question bank', subject: 'Air Regulations', detail: '220 questions', opened: true },
+    { id: 3, title: 'Weather systems — complete notes', subject: 'Aviation Meteorology', detail: 'PDF · 48 pages', opened: false },
   ]);
 
   const marksObtained = subjects.reduce((sum, s) => sum + s.totalMarks, 0);
@@ -837,7 +837,7 @@ function StudentDashboard({ user, onLogout }) {
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
-    { id: 'videos', label: 'Videos', icon: Video },
+    { id: 'resources', label: 'Resources', icon: FileText },
     { id: 'marks', label: 'Marks', icon: BarChart3 },
   ];
 
@@ -881,26 +881,24 @@ function StudentDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {activeTab === 'videos' && (
+      {activeTab === 'resources' && (
         <div className="space-y-3">
-          <h2 className="mb-4 text-lg font-bold text-ink">Video lessons</h2>
-          {videos.map((video) => (
-            <div key={video.id} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
+          <h2 className="mb-4 text-lg font-bold text-ink">Notes and question banks</h2>
+          {resources.map((item) => (
+            <div key={item.id} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky text-brand">
-                <PlayCircle className="h-6 w-6" />
+                <FileText className="h-6 w-6" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-ink">{video.title}</p>
-                <p className="text-sm text-muted">{video.subject} · {video.duration}</p>
+                <p className="font-bold text-ink">{item.title}</p>
+                <p className="text-sm text-muted">{item.subject} · {item.detail}</p>
               </div>
-              {video.watched && (
+              {item.opened && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">
-                  <Check className="h-4 w-4" /> Watched
+                  <Check className="h-4 w-4" /> Opened
                 </span>
               )}
-              <button className={`${video.watched ? btnGhost : btnPrimary} px-5 py-2 text-sm`}>
-                {video.watched ? 'Rewatch' : 'Watch'}
-              </button>
+              <button className={`${item.opened ? btnGhost : btnPrimary} px-5 py-2 text-sm`}>Open</button>
             </div>
           ))}
         </div>
@@ -950,8 +948,8 @@ function StudentDashboard({ user, onLogout }) {
         <div className={`${card} p-12 text-center`}>
           <BookOpen className="mx-auto h-10 w-10 text-brand" />
           <p className="mt-4 font-bold text-ink">Course materials are on their way</p>
-          <p className="mt-1 text-muted">Meanwhile, start with the video lessons or a quiz.</p>
-          <button onClick={() => setActiveTab('videos')} className={`${btnPrimary} mt-6`}>Go to video lessons</button>
+          <p className="mt-1 text-muted">Meanwhile, start with the notes or a practice test.</p>
+          <button onClick={() => setActiveTab('resources')} className={`${btnPrimary} mt-6`}>Go to the notes</button>
         </div>
       )}
     </AppShell>
@@ -962,7 +960,7 @@ function StudentDashboard({ user, onLogout }) {
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [uploads, setUploads] = useState([
-    { id: 1, name: 'Introduction to Air Law.mp4', size: '2.4 GB', subject: 'Air Regulations', date: '2024-01-15', type: 'video' },
+    { id: 1, name: 'Air Regulations - complete notes.pdf', size: '18 MB', subject: 'Air Regulations', date: '2024-01-15', type: 'pdf' },
     { id: 2, name: 'Navigation Notes.pdf', size: '5.2 MB', subject: 'Air Navigation', date: '2024-01-10', type: 'pdf' },
   ]);
 
@@ -1037,7 +1035,6 @@ function AdminPortal({ user, onLogout }) {
                   <label className="mb-1.5 block text-sm font-semibold text-ink">Content type</label>
                   <select className={input}>
                     <option>Select type</option>
-                    <option>Video Lecture</option>
                     <option>Study Notes</option>
                     <option>Practice Questions</option>
                     <option>Mock Paper</option>
