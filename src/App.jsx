@@ -843,31 +843,40 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
 // ============= STUDENT DASHBOARD =============
 function StudentDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [subjects] = useState([
-    { id: 1, name: 'Air Navigation', progress: 75, quizzes: 8, totalMarks: 82, outOf: 100 },
-    { id: 2, name: 'Aviation Meteorology', progress: 60, quizzes: 6, totalMarks: 74, outOf: 100 },
-    { id: 3, name: 'Air Regulations', progress: 85, quizzes: 10, totalMarks: 88, outOf: 100 },
-    { id: 4, name: 'Technical General', progress: 50, quizzes: 5, totalMarks: 71, outOf: 100 },
-    { id: 5, name: 'Technical Specific', progress: 30, quizzes: 3, totalMarks: 65, outOf: 100 },
-    { id: 6, name: 'Radio Telephony (RTR)', progress: 90, quizzes: 7, totalMarks: 91, outOf: 100 },
-  ]);
+  // Everyone starts at zero. Real progress will come from the database once
+  // students' work is saved; nothing here is pre-filled.
+  const [subjects] = useState(
+    SUBJECTS.map((s, i) => ({
+      id: i + 1,
+      name: s.name,
+      topicsDone: 0,
+      topicsTotal: s.topics.length,
+      testsDone: 0,
+      bestScore: null,
+    })),
+  );
 
-  const [resources] = useState([
-    { id: 1, title: 'Air Regulations — complete notes', subject: 'Air Regulations', detail: 'PDF · 64 pages', opened: true },
-    { id: 2, title: 'Rules of the air — question bank', subject: 'Air Regulations', detail: '220 questions', opened: true },
-    { id: 3, title: 'Weather systems — complete notes', subject: 'Aviation Meteorology', detail: 'PDF · 48 pages', opened: false },
-  ]);
+  const [resources] = useState(
+    SUBJECTS.map((s, i) => ({
+      id: i + 1,
+      title: `${s.name} — complete notes`,
+      subject: s.name,
+      detail: 'PDF',
+      opened: false,
+    })),
+  );
 
-  const marksObtained = subjects.reduce((sum, s) => sum + s.totalMarks, 0);
-  const marksTotal = subjects.reduce((sum, s) => sum + s.outOf, 0);
-  const overallPercentage = Math.round((marksObtained / marksTotal) * 100);
+  const topicsDone = subjects.reduce((sum, s) => sum + s.topicsDone, 0);
+  const topicsTotal = subjects.reduce((sum, s) => sum + s.topicsTotal, 0);
+  const overallPercentage = topicsTotal ? Math.round((topicsDone / topicsTotal) * 100) : 0;
+  const testsDone = subjects.reduce((sum, s) => sum + s.testsDone, 0);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'courses', label: 'Courses', icon: BookOpen },
     { id: 'quizzes', label: 'Quizzes', icon: ListChecks },
     { id: 'resources', label: 'Resources', icon: FileText },
-    { id: 'marks', label: 'Marks', icon: BarChart3 },
+    { id: 'scores', label: 'Test scores', icon: BarChart3 },
   ];
 
   return (
@@ -876,12 +885,16 @@ function StudentDashboard({ user, onLogout }) {
         <div className="space-y-8">
           <div className={`${card} grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center md:gap-10`}>
             <div>
-              <p className="text-sm font-medium text-muted">Overall marks</p>
+              <p className="text-sm font-medium text-muted">Course completed</p>
               <p className="text-5xl font-extrabold tracking-tight text-ink">{overallPercentage}%</p>
             </div>
             <div>
               <ProgressBar value={overallPercentage} height="h-3" />
-              <p className="mt-2 text-sm text-muted">{marksObtained} of {marksTotal} marks across all six subjects</p>
+              <p className="mt-2 text-sm text-muted">
+                {topicsDone === 0
+                  ? `Nothing started yet. ${topicsTotal} topics across six subjects are waiting for you.`
+                  : `${topicsDone} of ${topicsTotal} topics done across six subjects`}
+              </p>
             </div>
           </div>
 
@@ -895,13 +908,15 @@ function StudentDashboard({ user, onLogout }) {
                   </div>
                   <p className="mt-4 font-bold text-ink">{subject.name}</p>
                   <div className="mt-4 mb-1.5 flex justify-between text-sm">
-                    <span className="text-muted">Progress</span>
-                    <span className="font-semibold text-ink">{subject.progress}%</span>
+                    <span className="text-muted">Completed</span>
+                    <span className="font-semibold text-ink">
+                      {Math.round((subject.topicsDone / subject.topicsTotal) * 100)}%
+                    </span>
                   </div>
-                  <ProgressBar value={subject.progress} />
+                  <ProgressBar value={Math.round((subject.topicsDone / subject.topicsTotal) * 100)} />
                   <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm text-muted">
-                    <span>{subject.quizzes} quizzes done</span>
-                    <span className="font-semibold text-ink">{subject.totalMarks}/{subject.outOf}</span>
+                    <span>{subject.topicsDone} of {subject.topicsTotal} topics</span>
+                    <span>{subject.testsDone === 0 ? 'No tests yet' : `${subject.testsDone} tests done`}</span>
                   </div>
                 </div>
               ))}
@@ -952,24 +967,32 @@ function StudentDashboard({ user, onLogout }) {
         </div>
       )}
 
-      {activeTab === 'marks' && (
+      {activeTab === 'scores' && (
         <div className="space-y-4">
-          <h2 className="mb-4 text-lg font-bold text-ink">Your marks</h2>
-          {subjects.map((subject) => {
-            const pct = Math.round((subject.totalMarks / subject.outOf) * 100);
-            return (
+          <h2 className="mb-4 text-lg font-bold text-ink">Test scores</h2>
+          {testsDone === 0 ? (
+            <div className={`${card} p-12 text-center`}>
+              <BarChart3 className="mx-auto h-10 w-10 text-brand" />
+              <p className="mt-4 font-bold text-ink">No tests taken yet</p>
+              <p className="mt-1 text-muted">Your best score in each subject will show up here.</p>
+              <button onClick={() => setActiveTab('quizzes')} className={`${btnPrimary} mt-6`}>Take your first test</button>
+            </div>
+          ) : (
+            subjects.map((subject) => (
               <div key={subject.id} className={`${card} flex items-center gap-6 p-6`}>
                 <div className="flex-1">
                   <div className="mb-2 flex justify-between text-sm">
                     <span className="font-bold text-ink">{subject.name}</span>
-                    <span className="text-muted">{subject.totalMarks}/{subject.outOf}</span>
+                    <span className="text-muted">{subject.testsDone} tests</span>
                   </div>
-                  <ProgressBar value={pct} color="bg-go" height="h-2.5" />
+                  <ProgressBar value={subject.bestScore ?? 0} color="bg-go" height="h-2.5" />
                 </div>
-                <p className="w-16 text-right text-2xl font-extrabold text-ink">{pct}%</p>
+                <p className="w-20 text-right text-2xl font-extrabold text-ink">
+                  {subject.bestScore === null ? '—' : `${subject.bestScore}%`}
+                </p>
               </div>
-            );
-          })}
+            ))
+          )}
         </div>
       )}
 
