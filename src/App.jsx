@@ -18,7 +18,7 @@ const FIREBASE_CONFIG = {
 
 import { Logo, btnPrimary, btnGhost, input, card } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
-import { googleReady, signInWithGoogle } from './auth.js';
+import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle } from './auth.js';
 
 const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book' };
 const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book' };
@@ -27,6 +27,7 @@ const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '
 export default function AviationGroundSchool() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [restoring, setRestoring] = useState(googleReady);
   const [authMode, setAuthModeState] = useState(() => PATH_TO_MODE[window.location.pathname] || 'landing'); // landing, login, signup
 
   // Each public page gets its own URL so the browser's back/forward buttons work
@@ -53,7 +54,31 @@ export default function AviationGroundSchool() {
     }
   };
 
-  const handleGoogleUser = async (googleUser) => {
+  // Bring the session back after a refresh, before anything is drawn.
+  useEffect(() => {
+    let cancelled = false;
+    let unsubscribe = () => {};
+    // Never let a slow or blocked Firebase keep the site on a loading screen.
+    const giveUp = setTimeout(() => setRestoring(false), 2000);
+
+    watchGoogleUser(async (googleUser) => {
+      if (cancelled) return;
+      clearTimeout(giveUp);
+      if (!googleUser) {
+        setRestoring(false);
+        return;
+      }
+      await applyGoogleUser(googleUser, { keepPage: true });
+      setRestoring(false);
+    }).then((fn) => { unsubscribe = fn || (() => {}); });
+
+    // If Google sign-in is not connected, there is nothing to restore.
+    if (!googleReady) setRestoring(false);
+
+    return () => { cancelled = true; clearTimeout(giveUp); unsubscribe(); };
+  }, []);
+
+  const applyGoogleUser = async (googleUser, { keepPage = false } = {}) => {
     // The server checks the sign-in, records the account and decides what this
     // person can see. The list in the browser is only a fallback.
     let profile = null;
@@ -77,24 +102,42 @@ export default function AviationGroundSchool() {
       role: instructor ? 'admin' : 'student',
     });
     setIsAdmin(instructor);
-    setAuthModeState(instructor ? 'admin' : 'dashboard');
-    window.history.replaceState(null, '', '/');
+    // Coming back to /book after a refresh should stay on the booking page.
+    const stayOnBooking = keepPage && window.location.pathname === '/book';
+    setAuthModeState(stayOnBooking ? 'book' : instructor ? 'admin' : 'dashboard');
+    if (!keepPage) window.history.replaceState(null, '', '/');
   };
 
+  const handleGoogleUser = (googleUser) => applyGoogleUser(googleUser);
+
   const handleLogout = () => {
+    signOutGoogle();
     setUser(null);
     setIsAdmin(false);
     setAuthMode('landing');
   };
 
+  if (restoring) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <div className="flex items-center gap-3 text-muted">
+          <Plane className="h-5 w-5 -rotate-45 animate-pulse text-brand" />
+          Loading…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white">
-      {!user ? (
+      {/* Booking is open to everyone, signed in or not. */}
+      {authMode === 'book' ? (
+        <BookingPage goHome={() => setAuthMode(user ? (isAdmin ? 'admin' : 'dashboard') : 'landing')} />
+      ) : !user ? (
         <>
           {authMode === 'landing' && <LandingPage setAuthMode={setAuthMode} />}
           {authMode === 'login' && <LoginPage setAuthMode={setAuthMode} onLogin={handleLogin} onGoogleUser={handleGoogleUser} />}
           {authMode === 'signup' && <SignupPage setAuthMode={setAuthMode} onSignup={handleLogin} onGoogleUser={handleGoogleUser} />}
-          {authMode === 'book' && <BookingPage goHome={() => setAuthMode('landing')} />}
         </>
       ) : isAdmin ? (
         <AdminPortal user={user} onLogout={handleLogout} />

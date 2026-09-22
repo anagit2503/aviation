@@ -63,3 +63,46 @@ export async function signInWithGoogle() {
     throw new Error(messages[err?.code] || `Google sign-in failed (${err?.code || 'unknown error'}).`);
   }
 }
+
+// Keeps people signed in across refreshes. Firebase stores the session in the
+// browser; this reads it back on page load and hands over a fresh token.
+export async function watchGoogleUser(onUser) {
+  if (!googleReady) {
+    onUser(null);
+    return () => {};
+  }
+  try {
+    const { initializeApp, getApps, getApp } = await import('firebase/app');
+    const { getAuth, onAuthStateChanged } = await import('firebase/auth');
+    const app = getApps().length ? getApp() : initializeApp(config);
+    const auth = getAuth(app);
+    return onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        onUser(null);
+        return;
+      }
+      onUser({
+        idToken: await user.getIdToken(),
+        email: user.email,
+        name: user.displayName || '',
+        photo: user.photoURL || '',
+        uid: user.uid,
+      });
+    });
+  } catch {
+    onUser(null);
+    return () => {};
+  }
+}
+
+export async function signOutGoogle() {
+  if (!googleReady) return;
+  try {
+    const { getApps, getApp } = await import('firebase/app');
+    if (!getApps().length) return;
+    const { getAuth, signOut } = await import('firebase/auth');
+    await signOut(getAuth(getApp()));
+  } catch {
+    // already signed out; nothing to do
+  }
+}
