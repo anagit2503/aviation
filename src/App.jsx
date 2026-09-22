@@ -45,15 +45,6 @@ export default function AviationGroundSchool() {
   }, []);
 
   // Simulated login for demo
-  const handleLogin = (email, password, _unused, name = '') => {
-    if (email && password) {
-      setUser({ email, name, role: 'student' });
-      setIsAdmin(false);
-      setAuthModeState('dashboard');
-      window.history.replaceState(null, '', '/');
-    }
-  };
-
   // Bring the session back after a refresh, before anything is drawn.
   useEffect(() => {
     let cancelled = false;
@@ -166,8 +157,8 @@ export default function AviationGroundSchool() {
       ) : !user ? (
         <>
           {authMode === 'landing' && <LandingPage setAuthMode={setAuthMode} />}
-          {authMode === 'login' && <LoginPage setAuthMode={setAuthMode} onLogin={handleLogin} onGoogleUser={handleGoogleUser} />}
-          {authMode === 'signup' && <SignupPage setAuthMode={setAuthMode} onSignup={handleLogin} onGoogleUser={handleGoogleUser} />}
+          {authMode === 'login' && <AuthPage mode="login" setAuthMode={setAuthMode} onGoogleUser={handleGoogleUser} />}
+          {authMode === 'signup' && <AuthPage mode="signup" setAuthMode={setAuthMode} onGoogleUser={handleGoogleUser} />}
         </>
       ) : isAdmin ? (
         <AdminPortal user={user} onLogout={handleLogout} />
@@ -717,8 +708,6 @@ function firstName(user) {
   return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'there';
 }
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i;
-
 // ============= GOOGLE SIGN-IN =============
 function GoogleButton({ onGoogleUser, label }) {
   const [busy, setBusy] = useState(false);
@@ -758,11 +747,7 @@ function GoogleButton({ onGoogleUser, label }) {
         {busy ? 'Opening Google…' : label}
       </button>
       {error && <p className="mt-3 text-sm font-medium text-red-600">{error}</p>}
-      <div className="my-6 flex items-center gap-3">
-        <span className="h-px flex-1 bg-line" />
-        <span className="text-sm text-muted">or use your email</span>
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      <div className="h-6" />
     </div>
   );
 }
@@ -796,105 +781,38 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
   );
 }
 
-// ============= LOGIN PAGE =============
-function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError('Enter your email and password to log in.');
-      return;
-    }
-    if (!EMAIL_RE.test(email.trim())) {
-      setError('That email address is missing something. Example: you@gmail.com');
-      return;
-    }
-    onLogin(email, password, false);
-  };
-
+// ============= SIGN IN =============
+// Google is the only way in. There is no password to leak, and access is decided
+// on the server from the signed-in address.
+function AuthPage({ mode, setAuthMode, onGoogleUser }) {
+  const joining = mode === 'signup';
   return (
     <AuthLayout
       setAuthMode={setAuthMode}
-      title="Welcome back"
-      subtitle="Log in to pick up where you left off."
+      title={joining ? 'Create your account' : 'Welcome back'}
+      subtitle={joining
+        ? 'Sign up with Google. It takes a few seconds and there is no password to remember.'
+        : 'Sign in with the Google account you used before.'}
     >
-      <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />
+      <GoogleButton onGoogleUser={onGoogleUser} label={joining ? 'Sign up with Google' : 'Continue with Google'} />
 
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@email.com" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink">Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} placeholder="••••••••" />
-        </div>
-        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
-        <button type="submit" className={`${btnPrimary} w-full`}>Log in</button>
-      </form>
+      <div className="rounded-2xl bg-mist p-5 text-sm text-muted">
+        <p className="font-semibold text-ink">What happens next</p>
+        <ul className="mt-2 space-y-1.5">
+          <li>Booked a consultation? You do not need an account at all.</li>
+          <li>Bought the course? Sign in and we switch on your subjects.</li>
+          <li>Teaching here? The same button opens your instructor portal.</li>
+        </ul>
+      </div>
 
       <p className="mt-6 text-center text-sm text-muted">
-        Teaching here? Use <span className="font-semibold text-ink">Continue with Google</span> with your instructor account.
-      </p>
-
-      <p className="mt-6 text-center text-sm text-muted">
-        New here?{' '}
-        <button onClick={() => setAuthMode('signup')} className="font-semibold text-brand hover:text-brand-dark">Create an account</button>
-      </p>
-    </AuthLayout>
-  );
-}
-
-// ============= SIGNUP PAGE =============
-function SignupPage({ setAuthMode, onSignup, onGoogleUser }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name || !email || !password) {
-      setError('Fill in your name, email and password to continue.');
-      return;
-    }
-    if (!EMAIL_RE.test(email.trim())) {
-      setError('That email address is missing something. Example: you@gmail.com');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Use a password of at least 6 characters.');
-      return;
-    }
-    onSignup(email, password, false, name);
-  };
-
-  return (
-    <AuthLayout setAuthMode={setAuthMode} title="Create your account" subtitle="Start your ground school prep in under a minute.">
-      <GoogleButton onGoogleUser={onGoogleUser} label="Sign up with Google" />
-
-      <form onSubmit={handleSubmit} noValidate className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink">Full name</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={input} placeholder="Your name" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@email.com" />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-ink">Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} placeholder="••••••••" />
-        </div>
-        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
-        <button type="submit" className={`${btnPrimary} w-full`}>Create account</button>
-      </form>
-      <p className="mt-8 text-center text-sm text-muted">
-        Already have an account?{' '}
-        <button onClick={() => setAuthMode('login')} className="font-semibold text-brand hover:text-brand-dark">Log in</button>
+        {joining ? 'Already signed up?' : 'First time here?'}{' '}
+        <button
+          onClick={() => setAuthMode(joining ? 'login' : 'signup')}
+          className="font-semibold text-brand hover:text-brand-dark"
+        >
+          {joining ? 'Sign in' : 'Create an account'}
+        </button>
       </p>
     </AuthLayout>
   );
@@ -1069,7 +987,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
 
       {activeTab === 'resources' && (
         <div className="space-y-3">
-          <h2 className="mb-4 text-lg font-bold text-ink">Notes and question banks</h2>
+          <h2 className="mb-1 text-lg font-bold text-ink">Notes and question banks</h2>
+          <p className="mb-4 text-sm text-muted">These are the subjects you can access. Files are being uploaded now.</p>
           {resources.map((item) => (
             <div key={item.id} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky text-brand">
@@ -1084,7 +1003,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                   <Check className="h-4 w-4" /> Opened
                 </span>
               )}
-              <button className={`${item.opened ? btnGhost : btnPrimary} px-5 py-2 text-sm`}>Open</button>
+              <button disabled className={`${btnGhost} cursor-not-allowed px-5 py-2 text-sm opacity-60`}>
+                Coming soon
+              </button>
             </div>
           ))}
         </div>
@@ -1092,7 +1013,13 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
 
       {activeTab === 'quizzes' && (
         <div className="space-y-4">
-          <h2 className="mb-4 text-lg font-bold text-ink">Quizzes</h2>
+          <h2 className="mb-4 text-lg font-bold text-ink">Practice questions</h2>
+          <div className={`${card} p-8 text-center`}>
+            <ListChecks className="mx-auto h-10 w-10 text-brand" />
+            <p className="mt-4 font-bold text-ink">Questions are being added</p>
+            <p className="mt-1 text-muted">Your subjects are unlocked. The question bank goes live shortly.</p>
+          </div>
+          <div className="hidden">
           {subjects.map((subject) => (
             <div key={subject.id} className={`${card} p-6`}>
               <p className="mb-4 font-bold text-ink">{subject.name}</p>
@@ -1106,6 +1033,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 

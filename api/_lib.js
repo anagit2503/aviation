@@ -68,6 +68,43 @@ export async function sendBookingEmail(booking) {
   return { sent: true };
 }
 
+// A short confirmation for the student. Resend only delivers to the account
+// owner's address until a domain is verified, so this quietly does nothing until
+// then; the booking itself is never affected.
+export async function sendStudentConfirmation(booking) {
+  if (!emailReady) return { sent: false };
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.BOOKING_FROM || 'flywithsam <onboarding@resend.dev>',
+        to: [booking.email],
+        reply_to: BOOKING_EMAIL,
+        subject: `Your consultation is booked: ${booking.dayLabel} at ${booking.time} IST`,
+        text: [
+          `Hi ${booking.name.split(' ')[0]},`,
+          '',
+          `Your 45-minute consultation is booked for ${booking.dayLabel} at ${booking.time} IST.`,
+          '',
+          `Amount to pay: Rs ${booking.amount}${booking.recording ? ' (includes the session recording)' : ''}.`,
+          'We will reply with the Google Meet link and payment details.',
+          '',
+          'If you need to change the time, just reply to this email.',
+          '',
+          'flywithsam',
+        ].join('\n'),
+      }),
+    });
+    return { sent: res.ok };
+  } catch {
+    return { sent: false };
+  }
+}
+
 export function isValidDate(date) {
   return typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date);
 }

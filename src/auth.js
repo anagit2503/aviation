@@ -27,7 +27,7 @@ export async function signInWithGoogle() {
   }
 
   const { initializeApp, getApps, getApp } = await import('firebase/app');
-  const { getAuth, GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+  const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } = await import('firebase/auth');
 
   const app = getApps().length ? getApp() : initializeApp(config);
   const auth = getAuth(app);
@@ -46,6 +46,16 @@ export async function signInWithGoogle() {
     // The person closed the popup; not worth an error message.
     if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
       return null;
+    }
+    // Phone browsers often block popups. Fall back to sending the person to
+    // Google and back; the session is picked up when they return.
+    if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(err?.code)) {
+      try {
+        await signInWithRedirect(auth, new GoogleAuthProvider());
+        return null;
+      } catch {
+        throw new Error('Your browser blocked the Google window. Allow pop-ups for this site and try again.');
+      }
     }
     console.error('Google sign-in failed:', err?.code, err?.message);
     const messages = {

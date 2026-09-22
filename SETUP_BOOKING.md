@@ -35,10 +35,10 @@ Without this, bookings still save and block the slot, but no email reaches you.
 Booking emails arrive with the date, time, name, email, phone, what the student wants to
 discuss, whether they added the recording, and the amount to collect.
 
-## 3. Google login (15 minutes)
+## 3. Google login (15 minutes) — REQUIRED
 
-Until this is done, the "Continue with Google" button explains that it is not connected
-and students can still use email and password.
+Google is now the only way to sign in, for students and for you. Until this is done,
+nobody can sign in at all and you cannot reach the instructor portal.
 
 1. Go to **console.firebase.google.com** and click **Create a project**.
 2. In the project, open **Build → Authentication → Get started**, pick **Google**,
@@ -68,6 +68,22 @@ Until then, the booking page tells students you will send payment details by ema
 
 ---
 
+## How access works
+
+Signing in gives nobody anything. In **Instructor portal → Students** you decide, per
+person:
+
+- **No access** — the default for everyone who signs in.
+- **Consultation only** — they see the same pages as any visitor.
+- **Course student** — you tick which of the six subjects they can open, and whether
+  they get the question bank and the tests.
+
+Instructors are `samarthya.s02@gmail.com` and `khanooja.anandita@gmail.com`, set in
+`api/_lib.js`. Instructor accounts never appear in the student list.
+
+**Consultations tab:** every booking, with a Cancel button that frees the slot, and a way
+to block slots you want to keep for yourself. Cancelling does not email the student.
+
 ## Everyday questions
 
 **Someone booked a slot. What happens?**
@@ -75,7 +91,7 @@ The slot immediately shows as crossed out for everyone else, and you get an emai
 people clicking the same slot at the same time cannot both get it.
 
 **How do I block time for myself?**
-There is no admin screen for this yet. Tell me and I will add one.
+Instructor portal → Consultations. Cancel frees a slot; blocking keeps one for you.
 
 **What do the prices say now?**
 Consultation ₹1,999, optional session recording ₹400, course ₹4,999 one-time. To change

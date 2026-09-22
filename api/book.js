@@ -1,6 +1,6 @@
 // POST /api/book → claim a slot (first booking wins) and email the instructor.
 import {
-  redis, storageReady, emailReady, sendBookingEmail, bumpCounter,
+  redis, storageReady, emailReady, sendBookingEmail, sendStudentConfirmation, bumpCounter,
   isValidDate, readJsonBody, SLOT_TIMES,
 } from './_lib.js';
 
@@ -93,7 +93,12 @@ export default async function handler(req, res) {
 
   let emailed = { sent: false, reason: 'email-not-configured' };
   try {
-    emailed = await sendBookingEmail(booking);
+    // The instructor must be told; the student copy is a nice-to-have.
+    const [instructorMail] = await Promise.all([
+      sendBookingEmail(booking),
+      sendStudentConfirmation(booking),
+    ]);
+    emailed = instructorMail;
   } catch {
     emailed = { sent: false, reason: 'send-failed' };
   }
