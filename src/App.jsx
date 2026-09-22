@@ -44,13 +44,8 @@ export default function AviationGroundSchool() {
   }, []);
 
   // Simulated login for demo
-  const handleLogin = (email, password, isAdminLogin, name = '') => {
-    if (isAdminLogin && email === 'admin@groundschool.com' && password === 'admin123') {
-      setUser({ email, role: 'admin' });
-      setIsAdmin(true);
-      setAuthModeState('admin');
-      window.history.replaceState(null, '', '/');
-    } else if (!isAdminLogin && email && password) {
+  const handleLogin = (email, password, _unused, name = '') => {
+    if (email && password) {
       setUser({ email, name, role: 'student' });
       setIsAdmin(false);
       setAuthModeState('dashboard');
@@ -59,9 +54,10 @@ export default function AviationGroundSchool() {
   };
 
   const handleGoogleUser = (googleUser) => {
-    setUser({ email: googleUser.email, name: googleUser.name, role: 'student' });
-    setIsAdmin(false);
-    setAuthModeState('dashboard');
+    const instructor = isInstructor(googleUser.email);
+    setUser({ email: googleUser.email, name: googleUser.name, role: instructor ? 'admin' : 'student' });
+    setIsAdmin(instructor);
+    setAuthModeState(instructor ? 'admin' : 'dashboard');
     window.history.replaceState(null, '', '/');
   };
 
@@ -607,6 +603,16 @@ function LandingPage({ setAuthMode }) {
   );
 }
 
+// Instructors sign in with Google like everyone else; these addresses get the
+// instructor portal. Knowing an address here does not let anyone in: they would
+// still have to pass Google's sign-in for that account.
+const INSTRUCTOR_EMAILS = [
+  'samarthya.s02@gmail.com',
+  'khanooja.anandita@gmail.com',
+];
+
+const isInstructor = (email) => INSTRUCTOR_EMAILS.includes((email || '').trim().toLowerCase());
+
 // Show a person's first name. Google gives us a full name; with email signup we
 // ask for one; otherwise fall back to the first part of the email address.
 function firstName(user) {
@@ -699,7 +705,6 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -711,16 +716,16 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
       setError('That email address is missing something. Example: you@gmail.com');
       return;
     }
-    onLogin(email, password, isAdminLogin);
+    onLogin(email, password, false);
   };
 
   return (
     <AuthLayout
       setAuthMode={setAuthMode}
-      title={isAdminLogin ? 'Instructor log in' : 'Welcome back'}
-      subtitle={isAdminLogin ? 'Manage material, uploads and students.' : 'Log in to pick up where you left off.'}
+      title="Welcome back"
+      subtitle="Log in to pick up where you left off."
     >
-      {!isAdminLogin && <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />}
+      <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -735,14 +740,11 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
         <button type="submit" className={`${btnPrimary} w-full`}>Log in</button>
       </form>
 
-      <div className="mt-6 rounded-xl bg-mist p-4 text-center">
-        <button onClick={() => setIsAdminLogin(!isAdminLogin)} className="text-sm font-semibold text-brand hover:text-brand-dark">
-          {isAdminLogin ? 'Log in as a student instead' : 'Log in as the instructor'}
-        </button>
-        {isAdminLogin && <p className="mt-2 text-xs text-muted">Demo: admin@groundschool.com / admin123</p>}
-      </div>
+      <p className="mt-6 text-center text-sm text-muted">
+        Teaching here? Use <span className="font-semibold text-ink">Continue with Google</span> with your instructor account.
+      </p>
 
-      <p className="mt-8 text-center text-sm text-muted">
+      <p className="mt-6 text-center text-sm text-muted">
         New here?{' '}
         <button onClick={() => setAuthMode('signup')} className="font-semibold text-brand hover:text-brand-dark">Create an account</button>
       </p>
@@ -1042,7 +1044,7 @@ function AdminPortal({ user, onLogout }) {
   ];
 
   return (
-    <AppShell title="Instructor portal" subtitle={user.email} onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+    <AppShell title={firstName(user)} subtitle="Instructor portal" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

@@ -192,7 +192,7 @@ Edit the app file and search for these:
    - Update with your actual subjects
 
 4. **Demo Login (Important!):**
-   - Currently: `admin@groundschool.com / admin123`
+   - Currently: `your instructor Gmail address`
    - Change this to real admin email/password before launch
 
 ### Add YouTube Videos
@@ -228,7 +228,7 @@ Then in the video player:
 
 1. Click "Login" on landing page
 2. Toggle to "Instructor login"
-3. Use: `admin@groundschool.com` / `admin123`
+3. Use: `your instructor Gmail address` / ``
 4. **Change these credentials before launch!**
 
 ### Dashboard Tab
@@ -321,7 +321,7 @@ export const storage = getStorage(app);
 - To connect real Firebase, follow "Advanced Setup" section above
 
 ### "Can't login as instructor"
-- Credentials are: `admin@groundschool.com` / `admin123`
+- Credentials are: `your instructor Gmail address` / ``
 - Make sure you toggle to "Instructor login" first
 
 ### "Videos not playing"

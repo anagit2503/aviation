@@ -25,8 +25,8 @@ You'll have a website URL that looks like: `skymaster-ground-school.vercel.app`
 2. Click "Login" button
 3. Look for a small link that says "Instructor login?" - Click it
 4. Use these credentials:
-   - Email: `admin@groundschool.com`
-   - Password: `admin123`
+   - Email: `your instructor Gmail address`
+   - Password: ``
 
 **IMPORTANT:** Change this password immediately!
 1. Click your email at top right
@@ -35,8 +35,8 @@ You'll have a website URL that looks like: `skymaster-ground-school.vercel.app`
 
 ### Step 3: Customize Your Admin Login
 You should change the demo login to your actual email. Ask your tech person to:
-- Change `admin@groundschool.com` to your actual email
-- Change `admin123` to a strong password
+- Change `your instructor Gmail address` to your actual email
+- Change `` to a strong password
 - This ensures only you can access the admin area
 
 ---
