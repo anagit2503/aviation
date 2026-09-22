@@ -106,3 +106,18 @@ export async function signOutGoogle() {
     // already signed out; nothing to do
   }
 }
+
+// Google tokens expire after about an hour, so every call to our own API asks
+// Firebase for a current one instead of reusing the one from sign-in time.
+export async function currentIdToken() {
+  if (!googleReady) return null;
+  try {
+    const { getApps, getApp } = await import('firebase/app');
+    if (!getApps().length) return null;
+    const { getAuth } = await import('firebase/auth');
+    const user = getAuth(getApp()).currentUser;
+    return user ? await user.getIdToken() : null;
+  } catch {
+    return null;
+  }
+}

@@ -3,9 +3,9 @@
 // GET  /api/payment            → is online payment switched on, and what do things cost?
 // POST /api/payment            → create a Razorpay order for the chosen product.
 //
-// To switch it on, add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Vercel.
-// Nothing else in the site needs to change: the booking page reads this endpoint
-// and shows the pay step only when it reports enabled: true.
+// NOT FINISHED. Adding RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET is not enough on
+// its own: the booking page still has no checkout step, so nothing would be
+// charged. Building that step is the remaining work.
 import { readJsonBody } from './_lib.js';
 
 const PRODUCTS = {

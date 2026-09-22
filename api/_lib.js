@@ -112,6 +112,12 @@ export async function verifyIdToken(idToken) {
     const data = await res.json();
     const account = data.users?.[0];
     if (!account?.email) return null;
+    // Only real, verified Google sign-ins count. Without this, enabling another
+    // sign-in method in Firebase would let someone register an instructor's
+    // address with their own password and take over the portal.
+    const providers = (account.providerUserInfo || []).map((p) => p.providerId);
+    if (!providers.includes('google.com')) return null;
+    if (account.emailVerified === false) return null;
     return {
       email: String(account.email).toLowerCase(),
       name: account.displayName || '',
@@ -131,23 +137,55 @@ export const emptyAccess = () => ({
   tests: false,
 });
 
-export async function getAccount(email) {
+// Profiles (who signed in, when) and access (what they may open) live in two
+// separate places. Sign-ins only ever touch the profile, and the instructor only
+// ever touches the access, so a sign-in can never undo a grant made at the same
+// moment.
+const parseHash = (flat) => {
+  const out = {};
+  for (let i = 0; i < (flat || []).length; i += 2) {
+    try { out[flat[i]] = JSON.parse(flat[i + 1]); } catch { /* skip unreadable rows */ }
+  }
+  return out;
+};
+
+export async function getAccess(email) {
+  const raw = await redis(['HGET', 'access', email]);
+  if (!raw) return emptyAccess();
+  try { return { ...emptyAccess(), ...JSON.parse(raw) }; } catch { return emptyAccess(); }
+}
+
+export async function saveAccess(email, access) {
+  await redis(['HSET', 'access', email, JSON.stringify(access)]);
+  return access;
+}
+
+export async function getProfile(email) {
   const raw = await redis(['HGET', 'accounts', email]);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-export async function saveAccount(account) {
-  await redis(['HSET', 'accounts', account.email, JSON.stringify(account)]);
-  return account;
+export async function saveProfile(profile) {
+  await redis(['HSET', 'accounts', profile.email, JSON.stringify(profile)]);
+  return profile;
 }
 
 export async function listAccounts() {
-  const flat = (await redis(['HGETALL', 'accounts'])) || [];
-  const out = [];
-  // HGETALL comes back as [field, value, field, value, ...]
-  for (let i = 1; i < flat.length; i += 2) {
-    try { out.push(JSON.parse(flat[i])); } catch { /* skip unreadable rows */ }
-  }
-  return out.sort((a, b) => (b.lastSeen || '').localeCompare(a.lastSeen || ''));
+  const [profilesFlat, accessFlat] = await Promise.all([
+    redis(['HGETALL', 'accounts']),
+    redis(['HGETALL', 'access']),
+  ]);
+  const profiles = parseHash(profilesFlat);
+  const access = parseHash(accessFlat);
+  return Object.values(profiles)
+    .map((p) => ({ ...p, access: { ...emptyAccess(), ...(access[p.email] || {}) } }))
+    .sort((a, b) => (b.lastSeen || '').localeCompare(a.lastSeen || ''));
+}
+
+// Simple counter used to stop one person flooding the booking calendar.
+export async function bumpCounter(key, windowSeconds) {
+  const count = await redis(['INCR', key]);
+  if (count === 1) await redis(['EXPIRE', key, windowSeconds]);
+  return count;
 }

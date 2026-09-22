@@ -3,7 +3,7 @@
 // Called right after someone signs in with Google. The browser sends the Google
 // token; the server checks it, so nobody can claim an email that is not theirs.
 import {
-  verifyIdToken, getAccount, saveAccount, emptyAccess,
+  verifyIdToken, getProfile, saveProfile, getAccess, emptyAccess,
   isInstructorEmail, storageReady, readJsonBody,
 } from './_lib.js';
 
@@ -35,18 +35,19 @@ export default async function handler(req, res) {
   }
 
   const now = new Date().toISOString();
-  let account;
+  let profile;
+  let access;
   try {
-    account = await getAccount(person.email);
-    account = {
+    const existing = await getProfile(person.email);
+    profile = {
       email: person.email,
-      name: person.name || account?.name || '',
-      firstSeen: account?.firstSeen || now,
+      name: person.name || existing?.name || '',
+      firstSeen: existing?.firstSeen || now,
       lastSeen: now,
-      signIns: (account?.signIns || 0) + 1,
-      access: account?.access || emptyAccess(),
+      signIns: (existing?.signIns || 0) + 1,
     };
-    await saveAccount(account);
+    // Access is never written here, so signing in cannot undo a grant.
+    [access] = await Promise.all([getAccess(person.email), saveProfile(profile)]);
   } catch {
     res.status(200).json({
       email: person.email, name: person.name, instructor, access: emptyAccess(), saved: false,
@@ -55,10 +56,10 @@ export default async function handler(req, res) {
   }
 
   res.status(200).json({
-    email: account.email,
-    name: account.name,
+    email: profile.email,
+    name: profile.name,
     instructor,
-    access: account.access,
+    access,
     saved: true,
   });
 }

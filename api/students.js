@@ -5,7 +5,7 @@
 // Every call carries the instructor's Google token, and the server checks both
 // that the token is real and that the email belongs to an instructor.
 import {
-  verifyIdToken, isInstructorEmail, listAccounts, getAccount, saveAccount,
+  verifyIdToken, isInstructorEmail, listAccounts, getProfile, saveAccess,
   emptyAccess, storageReady, readJsonBody,
 } from './_lib.js';
 
@@ -65,16 +65,18 @@ export default async function handler(req, res) {
         res.status(400).json({ error: 'Which student should change?' });
         return;
       }
-      const account = await getAccount(target);
-      if (!account) {
+      const profile = await getProfile(target);
+      if (!profile) {
         res.status(404).json({ error: 'No account with that email has signed in yet.' });
         return;
       }
-      account.access = cleanAccess(access);
-      account.accessUpdatedAt = new Date().toISOString();
-      account.accessUpdatedBy = person.email;
-      await saveAccount(account);
-      res.status(200).json({ ok: true, student: account });
+      const next = {
+        ...cleanAccess(access),
+        updatedAt: new Date().toISOString(),
+        updatedBy: person.email,
+      };
+      await saveAccess(target, next);
+      res.status(200).json({ ok: true, student: { ...profile, access: next } });
       return;
     }
 

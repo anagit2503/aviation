@@ -45,7 +45,6 @@ export default function BookingPage({ goHome }) {
   const [loadingSlots, setLoadingSlots] = useState(true);
   const [form, setForm] = useState({ name: '', email: '', phone: '', goal: '' });
   const [recording, setRecording] = useState(false);
-  const [payment, setPayment] = useState({ enabled: false });
   const [status, setStatus] = useState('idle'); // idle, saving, done
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -53,13 +52,6 @@ export default function BookingPage({ goHome }) {
 
   const day = days[dayIndex];
   const total = SESSION_PRICE + (recording ? RECORDING_PRICE : 0);
-
-  useEffect(() => {
-    fetch('/api/payment')
-      .then((r) => (r.ok ? r.json() : { enabled: false }))
-      .then(setPayment)
-      .catch(() => setPayment({ enabled: false }));
-  }, []);
 
   useEffect(() => {
     let live = true;
@@ -199,12 +191,12 @@ export default function BookingPage({ goHome }) {
         </div>
 
         {/* Booking form */}
-        <form onSubmit={submit} className={`${card} p-6 sm:p-8`}>
+        <form onSubmit={submit} noValidate className={`${card} p-6 sm:p-8`}>
           <h2 className="font-bold text-ink">When should we meet?</h2>
           <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setPageStart(Math.max(0, pageStart - 5))}
+              onClick={() => { const next = Math.max(0, pageStart - 5); setPageStart(next); setDayIndex(next); }}
               disabled={pageStart === 0}
               className="rounded-full border border-line p-2 text-muted transition hover:text-ink disabled:opacity-40"
               aria-label="Earlier dates"
@@ -232,7 +224,7 @@ export default function BookingPage({ goHome }) {
             </div>
             <button
               type="button"
-              onClick={() => setPageStart(Math.min(days.length - 5, pageStart + 5))}
+              onClick={() => { const next = Math.min(days.length - 5, pageStart + 5); setPageStart(next); setDayIndex(next); }}
               disabled={pageStart >= days.length - 5}
               className="rounded-full border border-line p-2 text-muted transition hover:text-ink disabled:opacity-40"
               aria-label="Later dates"
@@ -241,7 +233,7 @@ export default function BookingPage({ goHome }) {
             </button>
           </div>
 
-          <h2 className="mt-7 font-bold text-ink">Pick a time</h2>
+          <h2 className="mt-7 font-bold text-ink">Pick a time on {day.long}</h2>
           <p className="mb-3 text-sm text-muted">All times are IST (GMT+5:30)</p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {SLOT_TIMES.map((slot) => {
@@ -292,7 +284,8 @@ export default function BookingPage({ goHome }) {
           </label>
 
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
-            <p className="mb-3 font-bold text-ink">Order summary</p>
+            <p className="mb-1 font-bold text-ink">Order summary</p>
+            <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
             <Row label="1-on-1 consultation (45 min)" value={`₹${SESSION_PRICE.toLocaleString('en-IN')}`} />
             {recording && <Row label="Add on: session recording" value={`₹${RECORDING_PRICE}`} />}
             <Row label="Total" value={`₹${total.toLocaleString('en-IN')}`} strong />
@@ -301,16 +294,10 @@ export default function BookingPage({ goHome }) {
           {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
           <button type="submit" disabled={status === 'saving'} className={`${btnPrimary} mt-6 w-full py-3.5`}>
-            {status === 'saving'
-              ? 'Booking your slot…'
-              : payment.enabled
-                ? `Confirm and pay ₹${total.toLocaleString('en-IN')}`
-                : 'Confirm booking'}
+            {status === 'saving' ? 'Booking your slot…' : 'Confirm booking'}
           </button>
           <p className="mt-3 text-center text-sm text-muted">
-            {payment.enabled
-              ? 'You will be taken to a secure payment page.'
-              : 'We will email you the meeting link and payment details.'}
+            We will email you the meeting link and payment details.
           </p>
         </form>
       </div>

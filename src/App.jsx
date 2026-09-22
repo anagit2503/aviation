@@ -18,7 +18,7 @@ const FIREBASE_CONFIG = {
 
 import { Logo, btnPrimary, btnGhost, input, card } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
-import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle } from './auth.js';
+import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
 
 const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book' };
 const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book' };
@@ -103,12 +103,40 @@ export default function AviationGroundSchool() {
     });
     setIsAdmin(instructor);
     // Coming back to /book after a refresh should stay on the booking page.
-    const stayOnBooking = keepPage && window.location.pathname === '/book';
-    setAuthModeState(stayOnBooking ? 'book' : instructor ? 'admin' : 'dashboard');
+    const restoredMode = keepPage ? PATH_TO_MODE[window.location.pathname] : null;
+    setAuthModeState(restoredMode || (instructor ? 'admin' : 'dashboard'));
     if (!keepPage) window.history.replaceState(null, '', '/');
   };
 
   const handleGoogleUser = (googleUser) => applyGoogleUser(googleUser);
+
+  // Access can change while someone is signed in, so check again when they come
+  // back to the tab. Without this a student who has just been given access would
+  // keep seeing the locked screen until they signed out.
+  const refreshAccess = async () => {
+    const idToken = await currentIdToken();
+    if (!idToken) return;
+    try {
+      const res = await fetch('/api/me', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      if (!res.ok) return;
+      const profile = await res.json();
+      setUser((current) => (current ? { ...current, access: profile.access, idToken } : current));
+      setIsAdmin(profile.instructor);
+    } catch {
+      // keep whatever we already had
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return undefined;
+    const onFocus = () => refreshAccess();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [user?.email]);
 
   const handleLogout = () => {
     signOutGoogle();
@@ -130,8 +158,10 @@ export default function AviationGroundSchool() {
 
   return (
     <div className="bg-white">
-      {/* Booking is open to everyone, signed in or not. */}
-      {authMode === 'book' ? (
+      {/* The public pages stay reachable while signed in. */}
+      {authMode === 'landing' && user ? (
+        <LandingPage setAuthMode={setAuthMode} signedIn />
+      ) : authMode === 'book' ? (
         <BookingPage goHome={() => setAuthMode(user ? (isAdmin ? 'admin' : 'dashboard') : 'landing')} />
       ) : !user ? (
         <>
@@ -142,7 +172,7 @@ export default function AviationGroundSchool() {
       ) : isAdmin ? (
         <AdminPortal user={user} onLogout={handleLogout} />
       ) : (
-        <StudentDashboard user={user} onLogout={handleLogout} />
+        <StudentDashboard user={user} onLogout={handleLogout} onGoPublic={setAuthMode} onRefreshAccess={refreshAccess} />
       )}
     </div>
   );
@@ -296,7 +326,7 @@ const FAQS = [
   },
 ];
 
-function LandingPage({ setAuthMode }) {
+function LandingPage({ setAuthMode, signedIn = false }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSubject, setActiveSubject] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
@@ -317,8 +347,11 @@ function LandingPage({ setAuthMode }) {
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
           </nav>
           <div className="hidden items-center gap-2 md:flex">
-            <button onClick={() => setAuthMode('login')} className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist">
-              Log in
+            <button
+              onClick={() => setAuthMode(signedIn ? 'dashboard' : 'login')}
+              className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist"
+            >
+              {signedIn ? 'My dashboard' : 'Log in'}
             </button>
             <button onClick={() => setAuthMode('book')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
               Book a consultation
@@ -790,7 +823,7 @@ function LoginPage({ setAuthMode, onLogin, onGoogleUser }) {
     >
       <GoogleButton onGoogleUser={onGoogleUser} label="Continue with Google" />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink">Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={input} placeholder="you@email.com" />
@@ -843,7 +876,7 @@ function SignupPage({ setAuthMode, onSignup, onGoogleUser }) {
     <AuthLayout setAuthMode={setAuthMode} title="Create your account" subtitle="Start your ground school prep in under a minute.">
       <GoogleButton onGoogleUser={onGoogleUser} label="Sign up with Google" />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-ink">Full name</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={input} placeholder="Your name" />
@@ -914,7 +947,7 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
 }
 
 // ============= STUDENT DASHBOARD =============
-function StudentDashboard({ user, onLogout }) {
+function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [activeTab, setActiveTab] = useState('overview');
   // What this person can open is decided by the instructor, saved on the server.
   const access = user.access || { plan: 'none', subjects: [], questions: false, tests: false };
@@ -922,8 +955,8 @@ function StudentDashboard({ user, onLogout }) {
 
   // Everyone starts at zero. Real progress will come from the database once
   // students' work is saved; nothing here is pre-filled.
-  const [subjects] = useState(
-    allowed.map((s, i) => ({
+  const subjects = React.useMemo(
+    () => allowed.map((s, i) => ({
       id: i + 1,
       name: s.name,
       topicsDone: 0,
@@ -931,16 +964,18 @@ function StudentDashboard({ user, onLogout }) {
       testsDone: 0,
       bestScore: null,
     })),
+    [access.subjects?.join(',')],
   );
 
-  const [resources] = useState(
-    allowed.map((s, i) => ({
+  const resources = React.useMemo(
+    () => allowed.map((s, i) => ({
       id: i + 1,
       title: `${s.name} — complete notes`,
       subject: s.name,
       detail: 'PDF',
       opened: false,
     })),
+    [access.subjects?.join(',')],
   );
 
   const topicsDone = subjects.reduce((sum, s) => sum + s.topicsDone, 0);
@@ -972,12 +1007,15 @@ function StudentDashboard({ user, onLogout }) {
               : 'Once you join the course, your notes, questions and tests appear here.'}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <a href="/#pricing" className={btnPrimary}>See the course</a>
-            <a href="/book" className={btnGhost}>Book a consultation</a>
+            <button onClick={() => onGoPublic('landing')} className={btnPrimary}>See the course</button>
+            <button onClick={() => onGoPublic('book')} className={btnGhost}>Book a consultation</button>
           </div>
           <p className="mt-6 text-sm text-muted">
             Already paid? Email us from {user.email} and we will switch on your access.
           </p>
+          <button onClick={onRefreshAccess} className="mt-4 text-sm font-semibold text-brand hover:text-brand-dark">
+            Access just granted? Check again
+          </button>
         </div>
       </AppShell>
     );
@@ -1121,12 +1159,16 @@ function AdminPortal({ user, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [uploads, setUploads] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  const call = async (body) => {
-    const res = await fetch('/api/students', {
+  const call = async (body, endpoint = '/api/students') => {
+    // Ask Firebase for a current token; the one from sign-in expires in an hour.
+    const idToken = (await currentIdToken()) || user.idToken;
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: user.idToken, ...body }),
+      body: JSON.stringify({ idToken, ...body }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Something went wrong.');
@@ -1147,7 +1189,29 @@ function AdminPortal({ user, onLogout }) {
     }
   };
 
-  useEffect(() => { loadStudents(); }, []);
+  const loadBookings = async () => {
+    setBookingsLoading(true);
+    try {
+      const data = await call({ action: 'list' }, '/api/bookings');
+      setBookings(data.bookings || []);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setBookingsLoading(false);
+    }
+  };
+
+  const cancelBooking = async (booking) => {
+    if (!window.confirm(`Free up ${booking.date} at ${booking.time}? The student is not told automatically.`)) return;
+    try {
+      await call({ action: 'cancel', date: booking.date, time: booking.time }, '/api/bookings');
+      setBookings((list) => list.filter((b) => !(b.date === booking.date && b.time === booking.time)));
+    } catch (err) {
+      setLoadError(err.message);
+    }
+  };
+
+  useEffect(() => { loadStudents(); loadBookings(); }, []);
 
   const startEditing = (student) => {
     setEditing(student.email);
@@ -1187,6 +1251,7 @@ function AdminPortal({ user, onLogout }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'bookings', label: 'Consultations', icon: CalendarClock },
     { id: 'upload', label: 'Upload material', icon: Upload },
   ];
 
@@ -1383,6 +1448,55 @@ function AdminPortal({ user, onLogout }) {
                   </div>
                 </div>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'bookings' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-bold text-ink">Upcoming consultations ({bookings.length})</h2>
+              <p className="text-sm text-muted">Cancelling frees the slot for someone else. The student is not emailed.</p>
+            </div>
+            <button onClick={loadBookings} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+          </div>
+
+          {bookingsLoading && <div className={`${card} p-12 text-center text-muted`}>Loading calendar…</div>}
+
+          {!bookingsLoading && bookings.length === 0 && (
+            <div className={`${card} p-12 text-center`}>
+              <CalendarClock className="mx-auto h-10 w-10 text-brand" />
+              <p className="mt-4 font-bold text-ink">No consultations booked</p>
+              <p className="mt-1 text-muted">Bookings from the website show up here.</p>
+            </div>
+          )}
+
+          {!bookingsLoading && bookings.map((booking) => (
+            <div key={`${booking.date}-${booking.time}`} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
+              <div className="w-32 shrink-0">
+                <p className="font-bold text-ink">{booking.time} IST</p>
+                <p className="text-sm text-muted">{booking.date}</p>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-ink">{booking.name}</p>
+                <p className="truncate text-sm text-muted">
+                  {booking.email}{booking.phone ? ` · ${booking.phone}` : ''}
+                </p>
+                {booking.goal && <p className="mt-1 text-sm text-muted">{booking.goal}</p>}
+              </div>
+              <div className="text-right">
+                {!booking.blocked && (
+                  <p className="text-sm font-semibold text-ink">
+                    ₹{(booking.amount || 1999).toLocaleString('en-IN')}
+                    {booking.recording && ' · recording'}
+                  </p>
+                )}
+                <button onClick={() => cancelBooking(booking)} className="mt-1 text-sm font-semibold text-red-600 hover:text-red-700">
+                  Cancel
+                </button>
+              </div>
             </div>
           ))}
         </div>
