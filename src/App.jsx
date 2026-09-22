@@ -1120,6 +1120,7 @@ function AdminPortal({ user, onLogout }) {
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploads, setUploads] = useState([]);
+  const [instructors, setInstructors] = useState([]);
 
   const call = async (body) => {
     const res = await fetch('/api/students', {
@@ -1138,6 +1139,7 @@ function AdminPortal({ user, onLogout }) {
     try {
       const data = await call({ action: 'list' });
       setStudents(data.students || []);
+      setInstructors(data.instructors || []);
     } catch (err) {
       setLoadError(err.message);
     } finally {
@@ -1240,7 +1242,10 @@ function AdminPortal({ user, onLogout }) {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-bold text-ink">Everyone who has signed in ({students.length})</h2>
-              <p className="text-sm text-muted">Signing in gives nobody course access until you grant it here.</p>
+              <p className="text-sm text-muted">
+                Signing in gives nobody course access until you grant it here.
+                {instructors.length > 0 && ` Instructor accounts (${instructors.length}) are not listed.`}
+              </p>
             </div>
             <button onClick={loadStudents} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
           </div>

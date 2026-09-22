@@ -52,7 +52,10 @@ export default async function handler(req, res) {
   try {
     if (action === 'list') {
       const accounts = await listAccounts();
-      res.status(200).json({ students: accounts });
+      // Instructor accounts are not students and never need access granted.
+      const students = accounts.filter((a) => !isInstructorEmail(a.email));
+      const instructors = accounts.filter((a) => isInstructorEmail(a.email)).map((a) => a.email);
+      res.status(200).json({ students, instructors });
       return;
     }
 
