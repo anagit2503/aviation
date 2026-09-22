@@ -203,9 +203,38 @@ const REVIEWS = [
 ];
 
 const FAQS = [
-  { q: 'Which exams does this prepare me for?', a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.' },
-  { q: 'How long does it take to finish?', a: 'Most students complete all six subjects in 3 to 5 months studying an hour or two a day. You can go faster or slower.' },
-  { q: 'Do I get access forever?', a: 'Yes. One payment gives you lifetime access to all the notes, questions and mock exams, plus future updates.' },
+  {
+    q: 'Where should I do my CPL: South Africa, the USA or India?',
+    a: 'I chose the USA and I still recommend it for most students. The price is reasonable, the course is faster, and there is more flying weather so you finish on time. South Africa can work, but check that the school converts cleanly to a DGCA licence. India is the slowest and usually the most expensive. On a call we can look at your budget and timeline and pick the right one for you.',
+  },
+  {
+    q: 'Should I clear the DGCA papers before I go abroad?',
+    a: 'Yes, clear as many as you can first. Papers are much harder to study for once flying training starts, and having them done means no waiting around after you come back.',
+  },
+  {
+    q: 'Which exams does this prepare me for?',
+    a: 'All six DGCA CPL ground subjects: Air Navigation, Aviation Meteorology, Air Regulations, Technical General, Technical Specific and Radio Telephony (RTR). You need at least 70% in each paper to pass.',
+  },
+  {
+    q: 'What if I fail a paper?',
+    a: 'It happens, and it happened to me. You write that paper again in the next session. What matters is finding out where you lost marks instead of studying the whole subject again.',
+  },
+  {
+    q: 'How long does it take to finish?',
+    a: 'Most students complete all six subjects in 3 to 5 months, studying an hour or two a day. You can go faster or slower.',
+  },
+  {
+    q: 'What does the whole thing cost, start to finish?',
+    a: 'It depends on the country and the school, and prices change. That is exactly what the consultation is for: we go through the real numbers, including the fees most schools do not mention up front.',
+  },
+  {
+    q: 'Do I get access forever?',
+    a: 'Yes. One payment gives you lifetime access to all the notes, questions and mock exams, plus future updates.',
+  },
+  {
+    q: 'Should I book a call or buy the course?',
+    a: 'Book a call if you are still deciding where to train or what to do next. Buy the course if you have exams to clear. Many students do both.',
+  },
 ];
 
 function LandingPage({ setAuthMode }) {
