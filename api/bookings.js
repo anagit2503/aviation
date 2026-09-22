@@ -9,17 +9,12 @@ import {
   isValidDate, SLOT_TIMES,
 } from './_lib.js';
 
-const DAYS_AHEAD = 60;
-
-function upcomingDates() {
-  const out = [];
-  const start = new Date();
-  for (let i = 0; i < DAYS_AHEAD; i += 1) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
+// Every date that has ever been booked is remembered in a set, so nothing can
+// hide beyond a fixed window.
+async function bookedDates() {
+  const dates = (await redis(['SMEMBERS', 'booking-dates'])) || [];
+  const today = new Date().toISOString().slice(0, 10);
+  return dates.filter((d) => d >= today).sort();
 }
 
 export default async function handler(req, res) {
@@ -46,7 +41,7 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'list') {
-      const dates = upcomingDates();
+      const dates = await bookedDates();
       const results = await Promise.all(dates.map((d) => redis(['HGETALL', `bookings:${d}`])));
       const bookings = [];
       results.forEach((flat, i) => {
@@ -93,6 +88,7 @@ export default async function handler(req, res) {
         res.status(409).json({ error: 'That slot is already booked. Cancel it first.' });
         return;
       }
+      await redis(['SADD', 'booking-dates', date]);
       res.status(200).json({ ok: true });
       return;
     }

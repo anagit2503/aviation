@@ -83,8 +83,9 @@ export default async function handler(req, res) {
       res.status(409).json({ error: 'Someone just took that slot. Please pick another time.' });
       return;
     }
-    // Keep a booking day for 120 days, then let it clear itself out.
-    await redis(['EXPIRE', `bookings:${date}`, 60 * 60 * 24 * 120]);
+    // Remember which days have bookings so the instructor's calendar can list
+    // them all, however far ahead they are.
+    await redis(['SADD', 'booking-dates', date]);
   } catch {
     res.status(503).json({ error: 'Could not save the booking. Please try again in a moment.' });
     return;
