@@ -275,7 +275,7 @@ const FEATURES = [
 ];
 
 const REASONS = [
-  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Taught by someone who has sat these papers.' },
+  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Learn from someone who has taken the exams, logged the hours, and earned the license.' },
   { icon: Compass, title: 'Always know what is next', text: 'Material in a set order, topic by topic.' },
   { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
   { icon: Clock, title: 'Study on your schedule', text: 'Study anytime, on any device.' },
@@ -510,7 +510,6 @@ function LandingPage({ setAuthMode, signedIn = false }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="max-w-2xl">
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Six DGCA subjects, one clear path</h2>
-            <p className="mt-4 text-lg text-muted">You need 70% in each paper to pass.</p>
           </div>
 
           <div className="mt-10 flex max-w-full gap-1 overflow-x-auto rounded-full bg-mist p-1.5 lg:inline-flex">
@@ -560,62 +559,33 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       <section id="about" className="scroll-mt-20 py-20 sm:py-24">
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">I was exactly where you are now.</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why We Built This</h2>
             <div className="mt-6 space-y-5 text-lg leading-relaxed text-muted">
-              <p>When I first entered aviation, I had to figure almost everything out myself.</p>
-              <ul className="space-y-2 border-l-2 border-line pl-5 text-ink">
-                {[
-                  'How to clear the DGCA exams.',
-                  'Where to find the right study material.',
-                  'How to choose a flight school.',
-                  'How the licensing process actually works.',
-                  'How to apply for a visa.',
-                  'What documents were required.',
-                  'What was worth paying for — and what wasn\'t.',
-                ].map((line) => <li key={line}>{line}</li>)}
-              </ul>
-              <p>And somewhere along the way, I realised something important:</p>
               <p className="text-2xl font-bold leading-snug text-ink">
-                Aviation is expensive. But becoming a pilot doesn&apos;t have to be unnecessarily expensive.
+                Your journey to the cockpit should begin with ADM.
+              </p>
+              <p className="border-l-2 border-line pl-5">
+                Aeronautical Decision-Making (ADM) is the process pilots use to assess situations, evaluate options and make
+                sound decisions.
               </p>
               <p>
-                For someone entering aviation for the first time, the industry can be overwhelming. There are unfamiliar exams,
-                regulations, flight schools, licenses, documentation, visas, medicals and countless decisions to make. When
-                students and parents don&apos;t have a background in aviation, it is natural to look for someone who can simply
-                &ldquo;handle everything.&rdquo;
-              </p>
-              <p>That&apos;s where we believe transparency matters.</p>
-              <p>
-                There is a difference between paying for genuine expertise and paying someone simply because you don&apos;t
-                know how to navigate the system yourself.
-              </p>
-              <p className="text-xl font-bold text-ink">You don&apos;t need a middleman to enter aviation.</p>
-              <p>
-                I cleared my exams myself. I found my flight school myself. I handled my applications and visa myself. I
-                completed my CPL myself. And every step taught me something that I wish someone had explained clearly from the
-                beginning.
-              </p>
-              <p>This platform exists to put that knowledge in your hands.</p>
-              <p>
-                From DGCA notes and question banks to practice tests, mock exams, career guidance and practical advice about
-                flight training, our goal is simple: give you the information you need to make your own decisions.
-              </p>
-              <p>We don&apos;t want you to depend on us for every step.</p>
-              <p>We want you to understand the process well enough that you don&apos;t have to.</p>
-              <p>
-                Because your money should go toward becoming a pilot—not toward paying for information that should have been
-                accessible in the first place.
+                We believe that mindset should begin long before you reach the cockpit. This platform is built for future
+                pilots who want to understand the journey, not simply be taken through it.
               </p>
               <p>
-                Flight training itself is a significant investment. There is no reason for the ground preparation and guidance
-                around it to become another unnecessary financial burden.
+                When we entered aviation, we didn&apos;t come from an aviation background. We had to figure out the DGCA
+                exams, find the right study material, choose a flight school, navigate licensing, visas and documentation —
+                and learn what was actually worth paying for.
               </p>
-              <p>So this isn&apos;t just another ground school.</p>
-              <p>It&apos;s a place to learn, prepare, understand the process and navigate aviation independently.</p>
-              <p>We built this because we went through it ourselves.</p>
               <p>
-                And if our experience can save you from making an expensive mistake, paying for something you don&apos;t need,
-                or simply feeling lost at the beginning of your aviation journey, then we&apos;ve done what we set out to do.
+                And if our experience can save you from making an expensive mistake, paying for something you don&rsquo;t
+                need, or simply feeling lost at the beginning of your aviation journey, then we&rsquo;ve done what we set out
+                to do.
+              </p>
+              <p>
+                The goal is to give you the knowledge, resources and context to ask better questions, evaluate your options
+                and make your own decisions — so that when you reach the cockpit, you have a journey you can truly call your
+                own.
               </p>
               <p className="border-t border-line pt-5 text-2xl font-extrabold tracking-tight text-ink">
                 Learn the system. Make your own decisions. Become the pilot.
