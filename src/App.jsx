@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, Bookmark,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -19,6 +19,7 @@ const FIREBASE_CONFIG = {
 
 import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
+import { parseQuestions, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
 
 const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book' };
@@ -1086,6 +1087,240 @@ function StudentDoubts({ user, onRead }) {
   );
 }
 
+// ============= PRACTICE QUESTIONS (student) =============
+const STATUSES = [
+  { id: 'all', label: 'All' },
+  { id: 'new', label: 'Not tried' },
+  { id: 'tried', label: 'Tried' },
+  { id: 'wrong', label: 'Got wrong' },
+  { id: 'bookmarked', label: 'Bookmarked' },
+];
+
+function matchesStatus(p, status) {
+  if (status === 'new') return !p?.attempts;
+  if (status === 'tried') return Boolean(p?.attempts);
+  if (status === 'wrong') return Boolean(p?.attempts) && p.lastCorrect === false;
+  if (status === 'bookmarked') return Boolean(p?.bookmarked);
+  return true;
+}
+
+function PracticeQuestions({ user, subjects }) {
+  const [questions, setQuestions] = useState([]);
+  const [progress, setProgress] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState({ subject: '', topic: '', subtopic: '', status: 'all' });
+  // The set being practised is fixed when it starts, so answering a
+  // "Not tried" question does not make it vanish mid-way.
+  const [set, setSet] = useState(null);
+  const [index, setIndex] = useState(0);
+  const [results, setResults] = useState({}); // id → { choice, answer, correct } for this sitting
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    api('/api/questions', { action: 'list' }, user.idToken)
+      .then((data) => { setQuestions(data.questions || []); setProgress(data.progress || {}); })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const inSubject = questions.filter((q) => !filter.subject || q.subject === filter.subject);
+  const topics = [...new Set(inSubject.map((q) => q.topic).filter(Boolean))].sort();
+  const subtopics = [...new Set(inSubject.filter((q) => !filter.topic || q.topic === filter.topic)
+    .map((q) => q.subtopic).filter(Boolean))].sort();
+  const matching = inSubject.filter((q) => (!filter.topic || q.topic === filter.topic)
+    && (!filter.subtopic || q.subtopic === filter.subtopic)
+    && matchesStatus(progress[q.id], filter.status));
+
+  const tried = questions.filter((q) => progress[q.id]?.attempts).length;
+  const right = questions.filter((q) => progress[q.id]?.everCorrect).length;
+
+  const start = () => { setSet(matching.map((q) => q.id)); setIndex(0); setResults({}); window.scrollTo(0, 0); };
+
+  const choose = async (q, choice) => {
+    if (results[q.id] || checking) return;
+    setChecking(true);
+    try {
+      const data = await api('/api/questions', { action: 'answer', id: q.id, choice }, user.idToken);
+      setResults((r) => ({ ...r, [q.id]: { choice, answer: data.answer, correct: data.correct } }));
+      setProgress((p) => ({ ...p, [q.id]: data.progress }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const bookmark = async (q) => {
+    const on = !progress[q.id]?.bookmarked;
+    setProgress((p) => ({ ...p, [q.id]: { ...p[q.id], bookmarked: on } }));
+    try {
+      await api('/api/questions', { action: 'bookmark', id: q.id, on }, user.idToken);
+    } catch (err) {
+      setProgress((p) => ({ ...p, [q.id]: { ...p[q.id], bookmarked: !on } }));
+      setError(err.message);
+    }
+  };
+
+  if (loading) return <div className={`${card} p-10 text-center text-muted`}>Loading questions…</div>;
+
+  // ---------- Practising ----------
+  if (set) {
+    const byId = new Map(questions.map((q) => [q.id, q]));
+    const q = byId.get(set[index]);
+    const result = q && results[q.id];
+    const done = Object.values(results);
+    const score = done.filter((r) => r.correct).length;
+    const finished = index >= set.length;
+
+    return (
+      <div className="mx-auto max-w-3xl space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button onClick={() => setSet(null)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted hover:text-ink">
+            <ArrowLeft className="h-4 w-4" /> Change filters
+          </button>
+          <p className="text-sm text-muted">{done.length} answered · {score} correct</p>
+        </div>
+        <ProgressBar value={set.length ? Math.round((Math.min(index + (result ? 1 : 0), set.length) / set.length) * 100) : 0} />
+        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+        {finished ? (
+          <div className={`${card} p-10 text-center`}>
+            <ListChecks className="mx-auto h-10 w-10 text-brand" />
+            <p className="mt-4 text-2xl font-extrabold text-ink">{score} / {done.length}</p>
+            <p className="mt-1 text-muted">You finished this set.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              {done.some((r) => !r.correct) && (
+                <button onClick={() => { setSet(set.filter((id) => results[id] && !results[id].correct)); setIndex(0); setResults({}); }}
+                  className={btnPrimary}>Retry the ones I got wrong</button>
+              )}
+              <button onClick={() => setSet(null)} className={btnGhost}>Pick another set</button>
+            </div>
+          </div>
+        ) : q && (
+          <div className={`${card} p-6 sm:p-8`}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="rounded-full bg-sky px-2.5 py-1 text-ink">Question {index + 1} of {set.length}</span>
+                {q.topic && <span className="rounded-full border border-line px-2.5 py-1 text-muted">{q.topic}</span>}
+                {q.subtopic && <span className="rounded-full border border-line px-2.5 py-1 text-muted">{q.subtopic}</span>}
+              </div>
+              <button onClick={() => bookmark(q)} className="rounded-full p-2 text-muted transition hover:text-ink"
+                aria-label={progress[q.id]?.bookmarked ? 'Remove bookmark' : 'Bookmark'}>
+                <Bookmark className={`h-5 w-5 ${progress[q.id]?.bookmarked ? 'fill-current text-ink' : ''}`} />
+              </button>
+            </div>
+            <p className="mt-5 whitespace-pre-wrap text-lg font-semibold leading-relaxed text-ink">{q.text}</p>
+            <div className="mt-6 space-y-2.5">
+              {q.options.map((option, i) => {
+                const isAnswer = result && i === result.answer;
+                const isWrongPick = result && i === result.choice && !result.correct;
+                return (
+                  <button key={i} onClick={() => choose(q, i)} disabled={Boolean(result) || checking}
+                    className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition ${
+                      isAnswer ? 'border-go bg-go/10'
+                        : isWrongPick ? 'border-red-400 bg-red-50 dark:bg-red-950/40'
+                          : result ? 'border-line opacity-60'
+                            : 'border-line hover:border-brand hover:bg-sky'
+                    }`}>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${
+                      isAnswer ? 'border-go bg-go text-white' : isWrongPick ? 'border-red-500 bg-red-500 text-white' : 'border-line text-muted'
+                    }`}>
+                      {isAnswer ? <Check className="h-4 w-4" strokeWidth={3} /> : isWrongPick ? <X className="h-4 w-4" strokeWidth={3} /> : letter(i)}
+                    </span>
+                    <span className="text-ink">{option}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {result && (
+              <p className={`mt-5 font-semibold ${result.correct ? 'text-go' : 'text-red-600'}`}>
+                {result.correct ? 'Correct!' : `Not quite. The answer is ${letter(result.answer)}.`}
+              </p>
+            )}
+            <div className="mt-6 flex justify-between gap-3">
+              <button onClick={() => setIndex(Math.max(0, index - 1))} disabled={index === 0}
+                className={`${btnGhost} px-5 py-2.5 text-sm disabled:opacity-50`}>Previous</button>
+              <button onClick={() => setIndex(index + 1)} className={`${btnPrimary} px-6 py-2.5 text-sm`}>
+                {index === set.length - 1 ? 'Finish' : result ? 'Next' : 'Skip'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- Choosing a set ----------
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-ink">Practice questions</h2>
+          <p className="text-sm text-muted">{questions.length} questions · {tried} tried · {right} answered correctly at least once</p>
+        </div>
+      </div>
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+      {questions.length === 0 ? (
+        <div className={`${card} p-10 text-center`}>
+          <ListChecks className="mx-auto h-10 w-10 text-brand" />
+          <p className="mt-4 font-bold text-ink">Questions are being added</p>
+          <p className="mt-1 text-muted">Your subjects are unlocked. The question bank goes live shortly.</p>
+        </div>
+      ) : (
+        <div className={`${card} space-y-5 p-6`}>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+              <select className={input} value={filter.subject} onChange={(e) => setFilter({ ...filter, subject: e.target.value, topic: '', subtopic: '' })}>
+                <option value="">All my subjects</option>
+                {subjects.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Topic</label>
+              <select className={input} value={filter.topic} onChange={(e) => setFilter({ ...filter, topic: e.target.value, subtopic: '' })}>
+                <option value="">All topics</option>
+                {topics.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Subtopic</label>
+              <select className={input} value={filter.subtopic} onChange={(e) => setFilter({ ...filter, subtopic: e.target.value })}
+                disabled={subtopics.length === 0}>
+                <option value="">All subtopics</option>
+                {subtopics.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink">Status</p>
+            <div className="flex flex-wrap gap-2">
+              {STATUSES.map((s) => {
+                const count = inSubject.filter((q) => (!filter.topic || q.topic === filter.topic)
+                  && (!filter.subtopic || q.subtopic === filter.subtopic) && matchesStatus(progress[q.id], s.id)).length;
+                return (
+                  <button key={s.id} onClick={() => setFilter({ ...filter, status: s.id })}
+                    className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+                      filter.status === s.id ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
+                    }`}>
+                    {s.label} <span className="opacity-60">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-5">
+            <p className="text-muted"><b className="text-ink">{matching.length}</b> question{matching.length === 1 ? '' : 's'} match</p>
+            <button onClick={start} disabled={matching.length === 0} className={btnPrimary}>Start practice</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============= STUDENT DASHBOARD =============
 function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1154,7 +1389,6 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
     ];
 
   const shownMaterials = materials.filter((m) => subjectFilter === 'all' || m.subject === subjectFilter);
-  const questionBanks = materials.filter((m) => m.type === 'questions');
   const tests = materials.filter((m) => m.type === 'test' || m.type === 'mock');
 
   const emptyFiles = (text) => (
@@ -1266,13 +1500,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         </div>
       )}
 
-      {activeTab === 'quizzes' && (
-        <div className="space-y-3">
-          <h2 className="mb-4 text-lg font-bold text-ink">Practice questions</h2>
-          {!materialsLoading && questionBanks.length === 0 && emptyFiles('Your subjects are unlocked. The question bank goes live shortly.')}
-          {questionBanks.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
-        </div>
-      )}
+      {activeTab === 'quizzes' && <PracticeQuestions user={user} subjects={allowed} />}
 
       {activeTab === 'scores' && (
         <div className="space-y-4">
@@ -1626,6 +1854,383 @@ function UploadMaterial({ user }) {
   );
 }
 
+// ============= QUESTION BANK (instructor) =============
+const inputCompact = input.replace('py-3', 'py-2');
+const letter = (i) => String.fromCharCode(97 + i);
+let questionKey = 0;
+const withKey = (q) => ({ ...q, key: q.key || `q${(questionKey += 1)}` });
+
+// Topic suggestions: the subject's syllabus topics plus any already used.
+function topicSuggestions(subject, questions, field, topic) {
+  const used = questions
+    .filter((q) => (!subject || q.subject === subject) && (field === 'topic' || q.topic === topic))
+    .map((q) => q[field]);
+  const base = field === 'topic' ? (SUBJECTS.find((s) => s.name === subject)?.topics || []) : [];
+  return [...new Set([...base, ...used].filter(Boolean))].sort();
+}
+
+function QuestionCard({ q, onChange, selected, onSelect, topics, subtopics, listId }) {
+  const warnings = questionWarnings(q);
+  const set = (patch) => onChange({ ...q, ...patch, dirty: true });
+  const setOption = (i, value) => set({ options: q.options.map((o, j) => (j === i ? value : o)) });
+  const removeOption = (i) => set({
+    options: q.options.filter((_, j) => j !== i),
+    answer: q.answer === i ? null : q.answer > i ? q.answer - 1 : q.answer,
+  });
+
+  return (
+    <div className={`${card} p-4 sm:p-5 ${selected ? 'ring-2 ring-brand' : ''}`}>
+      <div className="flex items-start gap-3">
+        <input type="checkbox" checked={selected} onChange={onSelect} className="mt-1.5 h-4 w-4 accent-brand" aria-label="Select question" />
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-bold text-ink">Q{q.number || '?'}</span>
+            {q.source && <span className="text-xs text-muted">{q.source}</span>}
+            {warnings.map((w) => (
+              <span key={w} className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">{w}</span>
+            ))}
+          </div>
+          <textarea value={q.text} onChange={(e) => set({ text: e.target.value })} rows={2}
+            className={`${inputCompact} resize-y text-[15px]`} />
+          <div className="space-y-2">
+            {q.options.map((option, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <button type="button" onClick={() => set({ answer: i })}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition ${
+                    q.answer === i ? 'border-go bg-go text-white' : 'border-line text-muted hover:border-go hover:text-go'
+                  }`}
+                  title="Mark as the correct answer" aria-label={`Mark option ${letter(i)} correct`}>
+                  {q.answer === i ? <Check className="h-4 w-4" strokeWidth={3} /> : letter(i)}
+                </button>
+                <input value={option} onChange={(e) => setOption(i, e.target.value)} className={`${inputCompact}`} />
+                <button type="button" onClick={() => removeOption(i)} className="rounded-lg p-1.5 text-muted hover:text-red-600" aria-label="Remove option">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {q.options.length < 8 && (
+              <button type="button" onClick={() => set({ options: [...q.options, ''] })} className="text-sm font-semibold text-brand">
+                + Add option
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={q.topic || ''} onChange={(e) => set({ topic: e.target.value })} list={`${listId}-topics`}
+              placeholder="Topic" className={`${inputCompact}`} />
+            <input value={q.subtopic || ''} onChange={(e) => set({ subtopic: e.target.value })} list={`${listId}-subtopics-${q.key}`}
+              placeholder="Subtopic" className={`${inputCompact}`} />
+            <datalist id={`${listId}-subtopics-${q.key}`}>
+              {subtopics(q.topic).map((t) => <option key={t} value={t} />)}
+            </datalist>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A page of question cards with bulk tagging. Used for new and saved questions.
+function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer }) {
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkTopic, setBulkTopic] = useState('');
+  const [bulkSubtopic, setBulkSubtopic] = useState('');
+  const [onlyProblems, setOnlyProblems] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE = 50;
+
+  const pool = [...allQuestions, ...items];
+  const topics = topicSuggestions(subject, pool, 'topic');
+  const subtopics = (topic) => topicSuggestions(subject, pool, 'subtopic', topic);
+
+  const problems = items.filter((q) => questionWarnings(q).length > 0);
+  const shown = onlyProblems ? problems : items;
+  const pageItems = shown.slice(page * PAGE, page * PAGE + PAGE);
+  const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+
+  const toggle = (key) => setSelected((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  const allShownSelected = shown.length > 0 && shown.every((q) => selected.has(q.key));
+  const selectAll = () => setSelected(allShownSelected ? new Set() : new Set(shown.map((q) => q.key)));
+
+  const apply = () => {
+    setItems(items.map((q) => (selected.has(q.key)
+      ? { ...q, ...(bulkTopic.trim() ? { topic: bulkTopic.trim() } : {}), ...(bulkSubtopic.trim() ? { subtopic: bulkSubtopic.trim() } : {}), dirty: true }
+      : q)));
+  };
+  const removeSelected = () => {
+    setItems(items.filter((q) => !selected.has(q.key)));
+    setSelected(new Set());
+  };
+
+  return (
+    <div className="space-y-4">
+      <datalist id={`${listId}-topics`}>{topics.map((t) => <option key={t} value={t} />)}</datalist>
+
+      <div className={`${card} sticky top-[118px] z-30 space-y-3 p-4`}>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <label className="inline-flex cursor-pointer items-center gap-2 font-semibold text-ink">
+            <input type="checkbox" checked={allShownSelected} onChange={selectAll} className="h-4 w-4 accent-brand" />
+            Select all{onlyProblems ? ' shown' : ''}
+          </label>
+          <span className="text-muted">{selected.size} selected</span>
+          <span className="text-muted">·</span>
+          <button onClick={() => { setOnlyProblems(!onlyProblems); setPage(0); }}
+            className={`rounded-full border px-3 py-1 font-semibold transition ${onlyProblems ? 'border-brand bg-brand text-on-brand' : 'border-line text-ink hover:border-brand'}`}>
+            Needs attention ({problems.length})
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <input value={bulkTopic} onChange={(e) => setBulkTopic(e.target.value)} list={`${listId}-topics`}
+            placeholder="Topic for selected" className={`${inputCompact} min-w-[180px] flex-1`} />
+          <input value={bulkSubtopic} onChange={(e) => setBulkSubtopic(e.target.value)} list={`${listId}-bulk-subtopics`}
+            placeholder="Subtopic for selected" className={`${inputCompact} min-w-[180px] flex-1`} />
+          <datalist id={`${listId}-bulk-subtopics`}>{subtopics(bulkTopic).map((t) => <option key={t} value={t} />)}</datalist>
+          <button onClick={apply} disabled={!selected.size || (!bulkTopic.trim() && !bulkSubtopic.trim())}
+            className={`${btnPrimary} px-5 py-2 text-sm`}>Apply to {selected.size || 'selected'}</button>
+          <button onClick={removeSelected} disabled={!selected.size}
+            className={`${btnGhost} px-5 py-2 text-sm disabled:opacity-50`}>Remove selected</button>
+        </div>
+      </div>
+
+      {pageItems.map((q) => (
+        <QuestionCard key={q.key} q={q} listId={listId} topics={topics} subtopics={subtopics}
+          selected={selected.has(q.key)} onSelect={() => toggle(q.key)}
+          onChange={(next) => setItems(items.map((x) => (x.key === q.key ? next : x)))} />
+      ))}
+      {shown.length === 0 && <div className={`${card} p-8 text-center text-muted`}>Nothing to show.</div>}
+
+      {pages > 1 && (
+        <div className="flex items-center justify-center gap-3 text-sm">
+          <button disabled={page === 0} onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Previous</button>
+          <span className="text-muted">Page {page + 1} of {pages}</span>
+          <button disabled={page >= pages - 1} onClick={() => { setPage(page + 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Next</button>
+        </div>
+      )}
+      {footer}
+    </div>
+  );
+}
+
+function QuestionBankAdmin({ user }) {
+  const [view, setView] = useState('add');
+  const [saved, setSaved] = useState([]);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Adding
+  const [subject, setSubject] = useState('');
+  const [source, setSource] = useState('');
+  const [pasted, setPasted] = useState('');
+  const [draft, setDraft] = useState([]);
+  const fileRef = React.useRef(null);
+
+  // Browsing saved questions
+  const [filter, setFilter] = useState({ subject: '', topic: '', subtopic: '' });
+  const [editing, setEditing] = useState([]);
+
+  const load = async () => {
+    try {
+      const data = await api('/api/questions', { action: 'list' }, user.idToken);
+      setSaved((data.questions || []).map(withKey));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    setEditing(saved.filter((q) => (!filter.subject || q.subject === filter.subject)
+      && (!filter.topic || q.topic === filter.topic)
+      && (!filter.subtopic || q.subtopic === filter.subtopic)));
+  }, [saved, filter.subject, filter.topic, filter.subtopic]);
+
+  const split = (text, name) => {
+    const found = parseQuestions(text);
+    if (found.length === 0) {
+      setError('No questions found. Each question should start with a number like "12." and each option with "a)".');
+      return;
+    }
+    setDraft(found.map((q) => withKey({ ...q, subject, source: source || name || '', topic: '', subtopic: '' })));
+    setNotice('');
+    setError('');
+  };
+
+  const readFile = async (file) => {
+    if (!file) return;
+    if (!subject) { setError('Pick the subject first.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const name = file.name.replace(/\.[^.]+$/, '');
+      if (!source) setSource(name);
+      const text = /\.pdf$/i.test(file.name) ? await pdfToText(file) : await file.text();
+      split(text, name);
+    } catch {
+      setError('Could not read that file. Try a PDF or .txt, or paste the text instead.');
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const save = async (items, { onDone }) => {
+    const bad = items.filter((q) => questionWarnings(q).length > 0);
+    if (bad.length) {
+      setError(`${bad.length} question${bad.length === 1 ? ' needs' : 's need'} attention first. Use "Needs attention" to see them.`);
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const payload = items.map(({ key, dirty, ...q }) => ({ ...q, subject: q.subject || subject }));
+      const data = await api('/api/questions', { action: 'save', questions: payload }, user.idToken);
+      const byId = new Map(data.questions.map((q) => [q.id, q]));
+      setSaved((list) => [
+        ...list.filter((q) => !byId.has(q.id)),
+        ...data.questions.map(withKey),
+      ]);
+      setNotice(`${data.questions.length} question${data.questions.length === 1 ? '' : 's'} saved. Students see them straight away.`);
+      onDone?.();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteRemoved = async () => {
+    const keep = new Set(editing.map((q) => q.id));
+    const gone = saved.filter((q) => (!filter.subject || q.subject === filter.subject)
+      && (!filter.topic || q.topic === filter.topic)
+      && (!filter.subtopic || q.subtopic === filter.subtopic)
+      && !keep.has(q.id));
+    const changed = editing.filter((q) => q.dirty);
+    if (!gone.length && !changed.length) { setNotice('Nothing has changed.'); return; }
+    if (gone.length && !window.confirm(`Delete ${gone.length} question${gone.length === 1 ? '' : 's'} for good? Students lose their progress on them.`)) return;
+    setBusy(true);
+    try {
+      if (gone.length) await api('/api/questions', { action: 'delete', ids: gone.map((q) => q.id) }, user.idToken);
+      setSaved((list) => list.filter((q) => !gone.some((g) => g.id === q.id)));
+      if (changed.length) await save(changed, {});
+      else setNotice(`${gone.length} deleted.`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const savedTopics = topicSuggestions(filter.subject, saved, 'topic');
+  const savedSubtopics = topicSuggestions(filter.subject, saved, 'subtopic', filter.topic);
+  const needAnswer = draft.filter((q) => q.answer === null || q.answer === undefined).length;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          {[['add', 'Add questions'], ['saved', `All questions (${saved.length})`]].map(([id, label]) => (
+            <button key={id} onClick={() => { setView(id); setError(''); setNotice(''); }}
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                view === id ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
+              }`}>{label}</button>
+          ))}
+        </div>
+      </div>
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+      {notice && <p className="rounded-xl bg-go/10 p-3 text-sm font-medium text-go">{notice}</p>}
+
+      {view === 'add' && draft.length === 0 && (
+        <div className={`${card} space-y-5 p-6 sm:p-8`}>
+          <div>
+            <h2 className="text-lg font-bold text-ink">Add questions from a paper</h2>
+            <p className="mt-1 text-sm text-muted">
+              Each question should start with its number (<b>12.</b>) and each option with a letter (<b>a)</b>).
+              You check every question, mark the answers and give topics before anything is saved.
+            </p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+              <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
+                <option value="">Select a subject</option>
+                {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Paper name <span className="font-normal text-muted">(optional)</span></label>
+              <input className={input} value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. MET1" />
+            </div>
+          </div>
+          <label className={`block cursor-pointer rounded-2xl border-2 border-dashed border-line bg-mist p-8 text-center transition hover:border-brand hover:bg-sky ${!subject ? 'opacity-60' : ''}`}>
+            <input ref={fileRef} type="file" accept=".pdf,.txt" className="sr-only" disabled={!subject || busy}
+              onChange={(e) => readFile(e.target.files?.[0])} />
+            <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
+            <p className="font-semibold text-ink">{busy ? 'Reading…' : subject ? 'Choose a PDF or text file' : 'Pick the subject first'}</p>
+            <p className="text-sm text-muted">It is split into one card per question</p>
+          </label>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-ink">Or paste the questions</label>
+            <textarea rows={6} value={pasted} onChange={(e) => setPasted(e.target.value)} className={`${input} font-mono text-sm`}
+              placeholder={'1. Coriolis force is strongest at\na) Equator\nb) Poles\nc) Mid latitudes'} />
+            <button onClick={() => (subject ? split(pasted) : setError('Pick the subject first.'))} disabled={!pasted.trim()}
+              className={`${btnPrimary} mt-3 px-6 py-2.5 text-sm`}>Split into questions</button>
+          </div>
+        </div>
+      )}
+
+      {view === 'add' && draft.length > 0 && (
+        <>
+          <div className={`${card} flex flex-wrap items-center justify-between gap-3 p-5`}>
+            <div>
+              <p className="font-bold text-ink">Found {draft.length} questions · {subject}{source ? ` · ${source}` : ''}</p>
+              <p className="text-sm text-muted">
+                {needAnswer > 0
+                  ? `${needAnswer} still need the correct answer. Click the letter next to the right option.`
+                  : 'Every question has an answer. Add topics and save.'}
+              </p>
+            </div>
+            <button onClick={() => { if (window.confirm('Discard these questions?')) setDraft([]); }} className={`${btnGhost} px-4 py-2 text-sm`}>
+              Start over
+            </button>
+          </div>
+          <QuestionEditor items={draft} setItems={setDraft} allQuestions={saved} subject={subject} listId="draft"
+            footer={(
+              <button onClick={() => save(draft, { onDone: () => { setDraft([]); setPasted(''); setSource(''); } })} disabled={busy}
+                className={`${btnPrimary} w-full py-3.5`}>
+                {busy ? 'Saving…' : `Save ${draft.length} questions`}
+              </button>
+            )} />
+        </>
+      )}
+
+      {view === 'saved' && (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <select className={input} value={filter.subject} onChange={(e) => setFilter({ subject: e.target.value, topic: '', subtopic: '' })}>
+              <option value="">All subjects</option>
+              {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+            <select className={input} value={filter.topic} onChange={(e) => setFilter({ ...filter, topic: e.target.value, subtopic: '' })}>
+              <option value="">All topics</option>
+              {savedTopics.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <select className={input} value={filter.subtopic} onChange={(e) => setFilter({ ...filter, subtopic: e.target.value })}>
+              <option value="">All subtopics</option>
+              {savedSubtopics.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <QuestionEditor items={editing} setItems={setEditing} allQuestions={saved} subject={filter.subject} listId="saved"
+            footer={editing.length > 0 || saved.length > 0 ? (
+              <button onClick={deleteRemoved} disabled={busy} className={`${btnPrimary} w-full py-3.5`}>
+                {busy ? 'Saving…' : 'Save changes'}
+              </button>
+            ) : null} />
+        </>
+      )}
+    </div>
+  );
+}
+
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
@@ -1745,6 +2350,7 @@ function AdminPortal({ user, onLogout }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'questions', label: 'Question bank', icon: ListChecks },
     { id: 'inbox', label: 'Inbox', icon: Inbox, badge: unreadDoubts },
     { id: 'bookings', label: 'Consultations', icon: CalendarClock },
     { id: 'upload', label: 'Upload material', icon: Upload },
@@ -2005,6 +2611,8 @@ function AdminPortal({ user, onLogout }) {
       {activeTab === 'inbox' && (
         <InstructorInbox user={user} threads={threads} loadThreads={loadThreads} error={inboxError} />
       )}
+
+      {activeTab === 'questions' && <QuestionBankAdmin user={user} />}
 
       {activeTab === 'upload' && <UploadMaterial user={user} />}
     </AppShell>
