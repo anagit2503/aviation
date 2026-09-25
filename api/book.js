@@ -20,6 +20,10 @@ export default async function handler(req, res) {
 
   const { date, time, name, phone, goal, recording, idToken } = readJsonBody(req);
   let { email } = readJsonBody(req);
+  // 'doubt' = a doubt class on one subject, for course students only.
+  const kind = readJsonBody(req).kind === 'doubt' ? 'doubt' : 'consultation';
+  const requestedSubject = String(readJsonBody(req).subject || '');
+  let subject = '';
 
   // Course students book from inside the portal, free of charge. The server
   // checks their sign-in and access itself; the browser only says "I am signed in".
@@ -34,8 +38,9 @@ export default async function handler(req, res) {
       try {
         const access = await getAccess(person.email);
         // At least one subject has to be active (not paused for non-payment).
-        courseStudent = access.plan === 'course'
-          && (access.subjects || []).some((s) => !(access.paused || []).includes(s));
+        const active = (access.subjects || []).filter((s) => !(access.paused || []).includes(s));
+        courseStudent = access.plan === 'course' && active.length > 0;
+        if (kind === 'doubt' && active.includes(requestedSubject)) subject = requestedSubject;
       } catch {
         courseStudent = false;
       }
@@ -45,6 +50,15 @@ export default async function handler(req, res) {
       return;
     }
     email = person.email;
+  }
+
+  if (kind === 'doubt' && !courseStudent) {
+    res.status(403).json({ error: 'Doubt classes are for course students. Sign in to your portal to book one.' });
+    return;
+  }
+  if (kind === 'doubt' && !subject) {
+    res.status(400).json({ error: 'Pick one of your subjects for the doubt class.' });
+    return;
   }
 
   if (!isValidDate(date) || !SLOT_TIMES.includes(time)) {
@@ -97,7 +111,9 @@ export default async function handler(req, res) {
     email: String(email).trim().slice(0, 160),
     phone: String(phone || '').trim().slice(0, 40),
     goal: String(goal || '').trim().slice(0, 2000),
-    recording: Boolean(recording),
+    recording: kind === 'doubt' ? false : Boolean(recording),
+    kind,
+    subject,
     amount: courseStudent ? 0 : SESSION_PRICE + (recording ? RECORDING_PRICE : 0),
     paymentStatus: courseStudent ? 'free, course student' : 'to be collected — no online payment yet',
     courseStudent,

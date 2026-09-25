@@ -19,6 +19,13 @@ const TALK_ABOUT = [
   'Life abroad during training',
 ];
 
+const DOUBT_INCLUDED = [
+  { icon: Video, text: '1 hour 1-on-1 on Google Meet' },
+  { icon: MessageSquare, text: 'Bring the exact questions you are stuck on' },
+  { icon: Map, text: 'We go through it step by step until it clicks' },
+  { icon: Clock, text: 'Free with your course' },
+];
+
 const INCLUDED = [
   { icon: Video, text: '1 hour 1-on-1 on Google Meet' },
   { icon: MessageSquare, text: 'Open Q&A for all your doubts' },
@@ -53,7 +60,10 @@ const money = (n) => (n === 0 ? 'Free' : `₹${n.toLocaleString('en-IN')}`);
 // `free` is the course-student version shown inside the portal: no price, the
 // name and email come from their Google account, and the server double-checks
 // their access before waiving the fee.
-export default function BookingPage({ goHome, free = false, embedded = false, account = null, getIdToken = null }) {
+// `kind="doubt"`: a doubt class on one of the student's subjects (course students, free).
+export default function BookingPage({ goHome, free = false, embedded = false, account = null, getIdToken = null, kind = 'consultation', subjects = [] }) {
+  const doubt = kind === 'doubt';
+  const [subject, setSubject] = useState(subjects.length === 1 ? subjects[0] : '');
   const days = useMemo(() => buildDays(), []);
   const [dayIndex, setDayIndex] = useState(0);
   const [pageStart, setPageStart] = useState(0);
@@ -127,6 +137,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
     e.preventDefault();
     setError('');
     if (!time) { setError('Pick a time for your session.'); return; }
+    if (doubt && !subject) { setError('Pick the subject for your doubt class.'); return; }
     const errors = validate();
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -140,7 +151,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
       const res = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, date: day.key, time, recording, amount: total, idToken }),
+        body: JSON.stringify({ ...form, date: day.key, time, recording: doubt ? false : recording, amount: total, idToken, kind, subject }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -175,7 +186,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-go/10 text-go">
               <Check className="h-7 w-7" strokeWidth={3} />
             </div>
-            <h1 className="mt-6 text-2xl font-extrabold text-ink">Your session is booked</h1>
+            <h1 className="mt-6 text-2xl font-extrabold text-ink">{doubt ? `Your ${subject} doubt class is booked` : 'Your session is booked'}</h1>
             <p className="mt-3 text-muted">
               {confirmed.dayLabel} at {confirmed.time} IST, for about an hour. No need to watch the clock.
             </p>
@@ -197,16 +208,17 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
       <div className={`mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1.25fr] ${embedded ? '' : 'px-4 py-10 sm:px-6'}`}>
         {/* What you get */}
         <div className="h-fit rounded-3xl bg-night p-7 text-white sm:p-8">
-          <p className="text-sm font-semibold text-neutral-300/80">1-on-1 consultation</p>
+          <p className="text-sm font-semibold text-neutral-300/80">{doubt ? 'Doubt class' : '1-on-1 consultation'}</p>
           <h1 className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">
-            Get your flight training questions answered
+            {doubt ? 'Get unstuck on a topic' : 'Get your flight training questions answered'}
           </h1>
           <p className="mt-4 leading-relaxed text-neutral-300/75">
-            Bring your doubts about DGCA exams, choosing a flight school, costs and timelines. You leave with a plan
-            written for your situation.
+            {doubt
+              ? 'Pick the subject, tell me what is confusing you, and we work through it together, question by question.'
+              : 'Bring your doubts about DGCA exams, choosing a flight school, costs and timelines. You leave with a plan written for your situation.'}
           </p>
           <ul className="mt-7 space-y-4 border-t border-white/10 pt-7">
-            {INCLUDED.map(({ icon: Icon, text }) => (
+            {(doubt ? DOUBT_INCLUDED : INCLUDED).map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3">
                 <Icon className="h-5 w-5 shrink-0 text-neutral-400" />
                 <span className="text-neutral-50">{text}</span>
@@ -217,14 +229,14 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             <b className="text-white">Don’t worry about the time.</b> The hour is a guide, not a limit. I won’t be
             watching the clock, so we keep going until your questions are answered.
           </p>
-          <div className="mt-6">
+          {!doubt && <div className="mt-6">
             <p className="text-sm font-semibold text-white">Talk about anything and everything, for example:</p>
             <ul className="mt-3 flex flex-wrap gap-2">
               {TALK_ABOUT.map((topic) => (
                 <li key={topic} className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-neutral-100">{topic}</li>
               ))}
             </ul>
-          </div>
+          </div>}
           {free ? (
             <div className="mt-8">
               <p className="text-3xl font-extrabold">Free</p>
@@ -312,10 +324,24 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             {field('name', 'Full name')}
             {field('email', 'Email', 'email', Boolean(account?.email))}
             {field('phone', 'Phone (optional)', 'tel')}
-            {field('goal', 'Where are you in your training?')}
+            {field('goal', doubt ? 'What are you stuck on?' : 'Where are you in your training?')}
           </div>
 
-          <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">
+          {doubt && (
+            <div className="mt-5">
+              <p className="mb-2 font-bold text-ink">Which subject?</p>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map((name) => (
+                  <button type="button" key={name} onClick={() => setSubject(name)}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                      subject === name ? 'border-brand bg-brand text-on-brand' : 'border-line text-ink hover:border-brand'
+                    }`}>{name}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!doubt && <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">
             <input type="checkbox" checked={recording} onChange={(e) => setRecording(e.target.checked)}
               className="mt-0.5 h-5 w-5 rounded accent-brand" />
             <span>
@@ -326,12 +352,12 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
                 {free ? 'Free for course students' : `₹${RECORDING_PRICE}`} · rewatch the call whenever you need it
               </span>
             </span>
-          </label>
+          </label>}
 
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
             <p className="mb-1 font-bold text-ink">{free ? 'Your session' : 'Order summary'}</p>
             <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
-            <Row label="1-on-1 consultation (1 hour)" value={money(sessionPrice)} />
+            <Row label={doubt ? `Doubt class${subject ? ` · ${subject}` : ''} (1 hour)` : '1-on-1 consultation (1 hour)'} value={money(sessionPrice)} />
             {recording && <Row label="Add on: session recording" value={money(recordingPrice)} />}
             <Row label="Total" value={free ? '₹0' : money(total)} strong />
           </div>

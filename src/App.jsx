@@ -1571,7 +1571,10 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       { id: 'resources', label: 'Notes', icon: FileText },
       ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
       ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
-      ...(access.plan === 'course' ? [{ id: 'book', label: 'Book a consultation', icon: CalendarClock }] : []),
+      ...(access.plan === 'course' ? [
+        { id: 'book', label: 'Book a consultation', icon: CalendarClock },
+        { id: 'doubtclass', label: 'Book a doubt class', icon: NotebookPen },
+      ] : []),
       doubtsTab,
     ];
 
@@ -1695,6 +1698,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             {[
               access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
               access.plan === 'course' && { label: 'Book a free consultation', text: '1 hour 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
+              access.plan === 'course' && { label: 'Book a doubt class', text: 'Work through a topic you are stuck on, 1-on-1.', icon: NotebookPen, tab: 'doubtclass' },
               { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
             ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>
@@ -1770,6 +1774,18 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         <BookingPage
           free
           embedded
+          account={{ name: user.name, email: user.email }}
+          getIdToken={async () => (await currentIdToken()) || user.idToken}
+          goHome={() => setActiveTab('overview')}
+        />
+      )}
+
+      {activeTab === 'doubtclass' && (
+        <BookingPage
+          free
+          embedded
+          kind="doubt"
+          subjects={allowed.map((s) => s.name)}
           account={{ name: user.name, email: user.email }}
           getIdToken={async () => (await currentIdToken()) || user.idToken}
           goHome={() => setActiveTab('overview')}
@@ -2706,7 +2722,7 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
           </button>
           <p className="ml-2 font-semibold text-ink">{days[0].dayMonth} – {days[6].dayMonth}</p>
         </div>
-        <p className="text-sm text-muted">{weekCount} consultation{weekCount === 1 ? '' : 's'} this week</p>
+        <p className="text-sm text-muted">{weekCount} session{weekCount === 1 ? '' : 's'} this week</p>
       </div>
 
       <div className={`${card} overflow-x-auto`}>
@@ -2736,8 +2752,8 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
                       {booking && !booking.blocked ? (
                         <button onClick={() => click(d.key, time)} title={`${booking.name} · ${booking.email}`}
                           className={`block w-full truncate rounded-lg px-2 py-2 text-left text-xs font-semibold transition hover:opacity-85 ${
-                            booking.amount === 0 ? 'bg-go text-white' : 'bg-brand text-on-brand'} ${past ? 'opacity-50' : ''}`}>
-                          {booking.name?.split(' ')[0] || 'Booked'}
+                            booking.kind === 'doubt' ? 'bg-violet-600 text-white' : booking.amount === 0 ? 'bg-go text-white' : 'bg-brand text-on-brand'} ${past ? 'opacity-50' : ''}`}>
+                          {booking.kind === 'doubt' ? 'Doubt · ' : ''}{booking.name?.split(' ')[0] || 'Booked'}
                         </button>
                       ) : booking?.blocked ? (
                         <button onClick={() => click(d.key, time)} disabled={busy} title="Blocked by you. Click to open it again."
@@ -2764,7 +2780,8 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
 
       <div className="flex flex-wrap gap-4 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-brand" /> Paid consultation</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-go" /> Free, course student</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-go" /> Free consultation, course student</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-violet-600" /> Doubt class</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-line bg-mist" /> Blocked by you</span>
         <span>Click an empty slot to block it · click a booking for details</span>
       </div>
@@ -2774,7 +2791,9 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
           <div className={`${card} w-full max-w-md p-6`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm text-muted">{picked.dayLabel || picked.date} · {picked.time} IST</p>
+                <p className="text-sm text-muted">
+                  {picked.kind === 'doubt' ? `Doubt class · ${picked.subject} · ` : 'Consultation · '}{picked.dayLabel || picked.date} · {picked.time} IST
+                </p>
                 <p className="mt-1 text-xl font-bold text-ink">{picked.name}</p>
               </div>
               <button onClick={() => setPicked(null)} className="rounded-lg p-1 text-muted hover:text-ink" aria-label="Close"><X className="h-5 w-5" /></button>
@@ -2790,7 +2809,7 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
             </div>
             <button onClick={() => { onCancel(picked); setPicked(null); }}
               className="mt-6 w-full rounded-full border border-red-200 px-6 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/50">
-              Cancel this consultation
+              {picked.kind === 'doubt' ? 'Cancel this doubt class' : 'Cancel this consultation'}
             </button>
           </div>
         </div>
@@ -3297,7 +3316,7 @@ function AdminPortal({ user, onLogout }) {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="font-bold text-ink">Upcoming consultations ({bookings.filter((b) => !b.blocked).length})</h2>
+              <h2 className="font-bold text-ink">Upcoming sessions ({bookings.filter((b) => !b.blocked).length})</h2>
               <p className="text-sm text-muted">Every booking appears here the moment it is made. Cancelling frees the slot; the student is not emailed.</p>
             </div>
             <div className="flex items-center gap-2">
@@ -3337,6 +3356,7 @@ function AdminPortal({ user, onLogout }) {
                 <p className="truncate text-sm text-muted">
                   {booking.email}{booking.phone ? ` · ${booking.phone}` : ''}
                 </p>
+                {booking.kind === 'doubt' && <p className="mt-1 inline-block rounded-full bg-violet-600 px-2.5 py-0.5 text-xs font-semibold text-white">Doubt class · {booking.subject}</p>}
                 {booking.goal && <p className="mt-1 text-sm text-muted">{booking.goal}</p>}
               </div>
               <div className="text-right">

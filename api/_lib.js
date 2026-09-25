@@ -33,6 +33,7 @@ export async function sendBookingEmail(booking) {
   if (!emailReady) return { sent: false, reason: 'email-not-configured' };
 
   const lines = [
+    ...(booking.kind === 'doubt' ? [`DOUBT CLASS: ${booking.subject}`, ''] : []),
     `Date: ${booking.date} (${booking.dayLabel})`,
     `Time: ${booking.time} IST (1 hour)`,
     '',
@@ -59,7 +60,9 @@ export async function sendBookingEmail(booking) {
       from: process.env.BOOKING_FROM || 'Avero Aviation <onboarding@resend.dev>',
       to: [BOOKING_EMAIL],
       reply_to: booking.email,
-      subject: `New consultation: ${booking.name}, ${booking.dayLabel} at ${booking.time} IST`,
+      subject: booking.kind === 'doubt'
+        ? `New doubt class (${booking.subject}): ${booking.name}, ${booking.dayLabel} at ${booking.time} IST`
+        : `New consultation: ${booking.name}, ${booking.dayLabel} at ${booking.time} IST`,
       text: lines.join('\n'),
     }),
   });
@@ -84,11 +87,11 @@ export async function sendStudentConfirmation(booking) {
         from: process.env.BOOKING_FROM || 'Avero Aviation <onboarding@resend.dev>',
         to: [booking.email],
         reply_to: BOOKING_EMAIL,
-        subject: `Your consultation is booked: ${booking.dayLabel} at ${booking.time} IST`,
+        subject: `Your ${booking.kind === 'doubt' ? 'doubt class' : 'consultation'} is booked: ${booking.dayLabel} at ${booking.time} IST`,
         text: [
           `Hi ${booking.name.split(' ')[0]},`,
           '',
-          `Your 1-hour consultation is booked for ${booking.dayLabel} at ${booking.time} IST. Don't worry about the time; we keep going until your questions are answered.`,
+          `Your 1-hour ${booking.kind === 'doubt' ? `doubt class on ${booking.subject}` : 'consultation'} is booked for ${booking.dayLabel} at ${booking.time} IST. Don't worry about the time; we keep going until your questions are answered.`,
           '',
           ...(booking.amount === 0
             ? ['This session is free as part of your course.', 'We will reply with the Google Meet link.']
