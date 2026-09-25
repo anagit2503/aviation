@@ -204,6 +204,7 @@ export async function verifyIdToken(idToken) {
 export const emptyAccess = () => ({
   plan: 'none', // none | consultation | course
   subjects: [],
+  paused: [], // subjects kept on the list but locked, e.g. this month is unpaid
   questions: false,
   tests: false,
 });

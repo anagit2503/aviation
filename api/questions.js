@@ -42,10 +42,14 @@ const clip = (value, max) => String(value || '').trim().slice(0, max);
 // Returns a clean question, or a reason it cannot be saved.
 function cleanQuestion(input, by) {
   if (!input || typeof input !== 'object') return { error: 'Unreadable question.' };
-  const options = (Array.isArray(input.options) ? input.options : [])
-    .map((o) => clip(o, 500)).filter(Boolean).slice(0, MAX_OPTIONS);
+  // Blank options are dropped, and the answer index is moved with them, so
+  // "a, (blank), c ✓, d" still saves c as correct and not d.
+  const raw = (Array.isArray(input.options) ? input.options : []).map((o) => clip(o, 500));
   // Number(null) is 0, which would quietly make option (a) correct.
-  const answer = input.answer === null || input.answer === undefined || input.answer === '' ? NaN : Number(input.answer);
+  const picked = input.answer === null || input.answer === undefined || input.answer === '' ? NaN : Number(input.answer);
+  const kept = raw.map((text, i) => ({ text, i })).filter((o) => o.text).slice(0, MAX_OPTIONS);
+  const options = kept.map((o) => o.text);
+  const answer = kept.findIndex((o) => o.i === picked);
   const q = {
     id: typeof input.id === 'string' && /^[a-z0-9-]{8,40}$/i.test(input.id) ? input.id : crypto.randomUUID(),
     subject: input.subject,
@@ -62,7 +66,7 @@ function cleanQuestion(input, by) {
   if (!SUBJECT_NAMES.includes(q.subject)) return { error: 'Pick a subject.' };
   if (!q.text) return { error: 'A question is empty.' };
   if (q.options.length < 2) return { error: `"${q.text.slice(0, 40)}…" needs at least two options.` };
-  if (!Number.isInteger(answer) || answer < 0 || answer >= q.options.length) {
+  if (answer < 0) {
     return { error: `"${q.text.slice(0, 40)}…" has no correct answer picked.` };
   }
   return { question: q };
@@ -147,7 +151,7 @@ export default async function handler(req, res) {
       res.status(403).json({ error: 'The question bank is not part of your access yet.' });
       return;
     }
-    const allowed = (q) => q && access.subjects.includes(q.subject);
+    const allowed = (q) => q && access.subjects.includes(q.subject) && !(access.paused || []).includes(q.subject);
 
     if (body.action === 'list') {
       const [questions, progress] = await Promise.all([

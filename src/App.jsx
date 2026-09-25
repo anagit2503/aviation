@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -19,11 +19,55 @@ const FIREBASE_CONFIG = {
 
 import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card, SLOT_TIMES } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
-import { parseQuestions, questionWarnings, pdfToText } from './questionParser.js';
+import EnrollPage, { SUBJECT_PRICE, rememberSubjectPick } from './EnrollPage.jsx';
+import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
 
-const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book' };
-const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book' };
+const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book', '/enroll': 'enroll' };
+const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book', enroll: '/enroll' };
+
+// ============= NEW VERSION BANNER =============
+// A tab that stays open keeps running the version it loaded, so after an
+// update people would see old behaviour until they refresh. This compares the
+// running script with the one the site serves now and offers a refresh.
+function useNewVersionAvailable() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    const running = document.querySelector('script[type="module"][src*="/assets/index-"]')?.getAttribute('src');
+    if (!running) return undefined; // local development: nothing to compare
+    const check = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const html = await (await fetch('/', { cache: 'no-store' })).text();
+        const served = html.match(/src="(\/assets\/index-[^"]+\.js)"/)?.[1];
+        if (served && served !== running) setAvailable(true);
+      } catch { /* offline: try again later */ }
+    };
+    const timer = setInterval(check, 60000);
+    document.addEventListener('visibilitychange', check);
+    window.addEventListener('focus', check);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', check);
+      window.removeEventListener('focus', check);
+    };
+  }, []);
+  return available;
+}
+
+function NewVersionBanner() {
+  if (!useNewVersionAvailable()) return null;
+  return (
+    <div className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4">
+      <div className="flex items-center gap-4 rounded-full bg-night py-2 pl-5 pr-2 text-sm text-white shadow-2xl ring-1 ring-white/10">
+        <span>A new version of the site is ready.</span>
+        <button onClick={() => window.location.reload()} className="rounded-full bg-white px-4 py-2 font-semibold text-black transition hover:bg-neutral-200">
+          Refresh
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ============= MAIN APP =============
 export default function AviationGroundSchool() {
@@ -101,7 +145,8 @@ export default function AviationGroundSchool() {
     if (!keepPage) window.history.replaceState(null, '', '/');
   };
 
-  const handleGoogleUser = (googleUser) => applyGoogleUser(googleUser);
+  // Signing in from the subject picker goes straight back to it.
+  const handleGoogleUser = (googleUser) => applyGoogleUser(googleUser, { keepPage: authMode === 'enroll' });
 
   // Access can change while someone is signed in, so check again when they come
   // back to the tab. Without this a student who has just been given access would
@@ -151,11 +196,22 @@ export default function AviationGroundSchool() {
 
   return (
     <div className="bg-surface">
+      <NewVersionBanner />
       {/* The public pages stay reachable while signed in. */}
       {authMode === 'landing' && user ? (
         <LandingPage setAuthMode={setAuthMode} signedIn />
       ) : authMode === 'book' ? (
         <BookingPage goHome={() => setAuthMode(user ? (isAdmin ? 'admin' : 'dashboard') : 'landing')} />
+      ) : authMode === 'enroll' && !user ? (
+        <AuthPage mode="login" setAuthMode={setAuthMode} onGoogleUser={handleGoogleUser} forEnroll />
+      ) : authMode === 'enroll' && !isAdmin ? (
+        <EnrollPage
+          user={user}
+          subjects={SUBJECTS}
+          api={(endpoint, body) => api(endpoint, body, user.idToken)}
+          goBack={() => setAuthMode('dashboard')}
+          onPaid={refreshAccess}
+        />
       ) : !user ? (
         <>
           {authMode === 'landing' && <LandingPage setAuthMode={setAuthMode} />}
@@ -224,7 +280,7 @@ const REASONS = [
   { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
   { icon: Clock, title: 'Study on your schedule', text: 'Study anytime, on any device.' },
   { icon: MessageCircle, title: 'Never stuck on a doubt', text: 'Ask in the chat and your instructor replies.' },
-  { icon: Wallet, title: 'Fairly priced', text: 'One monthly fee for all six subjects.' },
+  { icon: Wallet, title: 'Fairly priced', text: 'Pay per subject, month by month.' },
 ];
 
 const PITFALLS = [
@@ -311,7 +367,7 @@ const FAQS = [
   },
   {
     q: 'How does the monthly fee work?',
-    a: 'The course is ₹4,999 a month. While you are enrolled you get all the notes, questions and mock exams, plus free 1-on-1 consultations and the doubts chat. Stop whenever you have cleared your papers.',
+    a: 'Each subject is ₹5,000 a month, and you only pay for the subjects you choose. While a subject is active you get its notes, questions and mock exams, plus free 1-on-1 consultations and the doubts chat. Stop a subject once you have cleared that paper.',
   },
   {
     q: 'Should I book a call or buy the course?',
@@ -452,7 +508,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-8`}>Start this subject</button>
+              <button onClick={() => { rememberSubjectPick(subject.name); setAuthMode('enroll'); }} className={`${btnPrimary} mt-8`}>Start this subject</button>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {FEATURES.map(({ icon: Icon, title, text }) => (
@@ -666,14 +722,14 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(0,0,0,0.35)]`}>
               <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-on-brand">Most popular</span>
               <p className="font-bold text-ink">Full ground school course</p>
-              <p className="mt-1 text-sm text-muted">Notes and questions for all six DGCA papers</p>
+              <p className="mt-1 text-sm text-muted">Pick only the DGCA subjects you need</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">
-                ₹4,999<span className="text-lg font-semibold text-muted"> / month</span>
+                ₹{SUBJECT_PRICE.toLocaleString('en-IN')}<span className="text-lg font-semibold text-muted"> / subject / month</span>
               </p>
-              <p className="mt-1 text-sm text-muted">Billed monthly, stop any time</p>
+              <p className="mt-1 text-sm text-muted">Add or pause subjects month by month</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
-                  'Complete notes for all six subjects',
+                  'Complete notes for every subject you pick',
                   '2000+ genuine exam questions',
                   'Topic tests and full mock exams',
                   'Study material you can download',
@@ -686,7 +742,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => setAuthMode('signup')} className={`${btnPrimary} mt-8 w-full py-3.5`}>Get the course</button>
+              <button onClick={() => setAuthMode('enroll')} className={`${btnPrimary} mt-8 w-full py-3.5`}>Choose your subjects</button>
             </div>
           </div>
         </div>
@@ -845,15 +901,17 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
 // ============= SIGN IN =============
 // Google is the only way in. There is no password to leak, and access is decided
 // on the server from the signed-in address.
-function AuthPage({ mode, setAuthMode, onGoogleUser }) {
+function AuthPage({ mode, setAuthMode, onGoogleUser, forEnroll = false }) {
   const joining = mode === 'signup';
   return (
     <AuthLayout
       setAuthMode={setAuthMode}
-      title={joining ? 'Create your account' : 'Welcome back'}
-      subtitle={joining
-        ? 'Sign up with Google. It takes a few seconds and there is no password to remember.'
-        : 'Sign in with the Google account you used before.'}
+      title={forEnroll ? 'First, sign in' : joining ? 'Create your account' : 'Welcome back'}
+      subtitle={forEnroll
+        ? 'Sign in with Google so we can save the subjects you pick and link your payment to you. Then you choose your subjects.'
+        : joining
+          ? 'Sign up with Google. It takes a few seconds and there is no password to remember.'
+          : 'Sign in with the Google account you used before.'}
     >
       <GoogleButton onGoogleUser={onGoogleUser} label={joining ? 'Sign up with Google' : 'Continue with Google'} />
 
@@ -861,7 +919,7 @@ function AuthPage({ mode, setAuthMode, onGoogleUser }) {
         <p className="font-semibold text-ink">What happens next</p>
         <ul className="mt-2 space-y-1.5">
           <li>Booked a consultation? You do not need an account at all.</li>
-          <li>Bought the course? Sign in and we switch on your subjects.</li>
+          <li>Joining the course? After signing in you pick your subjects and pay.</li>
           <li>Teaching here? The same button opens your instructor portal.</li>
         </ul>
       </div>
@@ -1388,21 +1446,46 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [unread, setUnread] = useState(0);
   // What this person can open is decided by the instructor, saved on the server.
-  const access = user.access || { plan: 'none', subjects: [], questions: false, tests: false };
-  const allowed = SUBJECTS.filter((s) => access.subjects?.includes(s.name));
-  const accessKey = [access.plan, access.questions, access.tests, ...(access.subjects || [])].join(',');
+  // A paused subject (e.g. this month unpaid) stays listed but is locked.
+  const access = user.access || { plan: 'none', subjects: [], paused: [], questions: false, tests: false };
+  const pausedNames = access.paused || [];
+  const allowed = SUBJECTS.filter((s) => access.subjects?.includes(s.name) && !pausedNames.includes(s.name));
+  const pausedSubjects = SUBJECTS.filter((s) => access.subjects?.includes(s.name) && pausedNames.includes(s.name));
+  const accessKey = [access.plan, access.questions, access.tests, ...(access.subjects || []), '|', ...pausedNames].join(',');
+  const [materialsError, setMaterialsError] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [checking, setChecking] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   // The server only returns files this student is allowed to open.
   useEffect(() => {
     if (allowed.length === 0) { setMaterialsLoading(false); return; }
     let live = true;
     setMaterialsLoading(true);
+    setMaterialsError('');
     api('/api/materials', { action: 'list' }, user.idToken)
       .then((data) => { if (live) setMaterials(data.materials || []); })
-      .catch(() => { if (live) setMaterials([]); })
+      .catch((err) => { if (live) { setMaterials([]); setMaterialsError(err.message); } })
       .finally(() => { if (live) setMaterialsLoading(false); });
     return () => { live = false; };
   }, [accessKey]);
+
+  // Payments waiting for the instructor to confirm.
+  useEffect(() => {
+    api('/api/payment', { action: 'mine' }, user.idToken)
+      .then((data) => setPayments(data.requests || []))
+      .catch(() => {});
+  }, [accessKey]);
+  const pending = payments.filter((p) => p.status === 'awaiting' || p.status === 'claimed');
+  const rejected = payments.find((p) => p.status === 'rejected' && !pending.length);
+  const pendingNames = [...new Set(pending.flatMap((p) => p.subjects))];
+
+  const checkAgain = async () => {
+    setChecking(true);
+    await onRefreshAccess();
+    setChecking(false);
+    setChecked(true);
+  };
 
   // Unread replies, for the badge on the Doubts tab.
   usePolling(() => {
@@ -1412,35 +1495,30 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .catch(() => {});
   }, 60000, [activeTab]);
 
-  // Everyone starts at zero. Real progress will come from the database once
-  // students' work is saved; nothing here is pre-filled.
+  // Scores stay at zero until tests are taken on the site.
   const subjects = React.useMemo(
     () => allowed.map((s, i) => ({
       id: i + 1,
       name: s.name,
-      topicsDone: 0,
-      topicsTotal: s.topics.length,
+      blurb: s.blurb,
       testsDone: 0,
       bestScore: null,
       files: materials.filter((m) => m.subject === s.name).length,
     })),
     [accessKey, materials],
   );
-
-  const topicsDone = subjects.reduce((sum, s) => sum + s.topicsDone, 0);
-  const topicsTotal = subjects.reduce((sum, s) => sum + s.topicsTotal, 0);
-  const overallPercentage = topicsTotal ? Math.round((topicsDone / topicsTotal) * 100) : 0;
   const testsDone = subjects.reduce((sum, s) => sum + s.testsDone, 0);
 
   const open = (material) => openMaterial(material, user.idToken);
   const openSubject = (name) => { setSubjectFilter(name); setActiveTab('resources'); window.scrollTo(0, 0); };
+  const enroll = () => onGoPublic('enroll');
 
   const doubtsTab = { id: 'doubts', label: 'Doubts', icon: MessageCircle, badge: unread };
   const tabs = allowed.length === 0
     ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, doubtsTab]
     : [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-      { id: 'resources', label: 'Resources', icon: FileText },
+      { id: 'resources', label: 'Notes', icon: FileText },
       ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
       ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
       ...(access.plan === 'course' ? [{ id: 'book', label: 'Book a consultation', icon: CalendarClock }] : []),
@@ -1453,85 +1531,114 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const emptyFiles = (text) => (
     <div className={`${card} p-10 text-center`}>
       <FileText className="mx-auto h-10 w-10 text-brand" />
-      <p className="mt-4 font-bold text-ink">Nothing here yet</p>
-      <p className="mt-1 text-muted">{text}</p>
+      <p className="mt-4 font-bold text-ink">{materialsError ? 'Could not load your files' : 'Nothing here yet'}</p>
+      <p className="mt-1 text-muted">{materialsError ? `${materialsError} Refresh the page to try again.` : text}</p>
+    </div>
+  );
+
+  const pendingNote = pending.length > 0 && (
+    <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+      <Hourglass className="mt-0.5 h-5 w-5 shrink-0" />
+      <p>
+        We are checking your payment for <b>{pendingNames.join(', ')}</b>. They switch on as soon as it is confirmed,
+        usually within a few hours.
+      </p>
     </div>
   );
 
   return (
     <AppShell title={firstName(user)} subtitle={allowed.length ? 'Welcome back' : 'Welcome'} onLogout={onLogout}
       tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
-      {/* Nobody gets course material until the instructor grants it. */}
+      {/* Nobody gets course material until a payment is confirmed. */}
       {activeTab === 'overview' && allowed.length === 0 && (
-        <div className={`${card} mx-auto max-w-xl p-10 text-center`}>
-          <BookOpen className="mx-auto h-10 w-10 text-brand" />
-          <h2 className="mt-5 text-xl font-bold text-ink">
-            {access.plan === 'consultation' ? 'Your consultation is booked' : 'No course access yet'}
-          </h2>
-          <p className="mt-2 text-muted">
-            {access.plan === 'consultation'
-              ? 'Course notes and questions are part of the ground school course. Ask about it on your call, or get it below.'
-              : 'Once you join the course, your notes, questions and tests appear here.'}
-          </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <button onClick={() => onGoPublic('landing')} className={btnPrimary}>See the course</button>
-            <button onClick={() => onGoPublic('book')} className={btnGhost}>Book a consultation</button>
+        <div className="mx-auto max-w-xl space-y-4">
+          {pendingNote}
+          <div className={`${card} p-8 text-center sm:p-10`}>
+            {pausedSubjects.length > 0 ? <Pause className="mx-auto h-10 w-10 text-brand" /> : <BookOpen className="mx-auto h-10 w-10 text-brand" />}
+            <h2 className="mt-5 text-xl font-bold text-ink">
+              {pending.length ? 'Almost there' : pausedSubjects.length ? 'Your subjects are paused' : 'Start the ground school course'}
+            </h2>
+            <p className="mt-2 text-muted">
+              {pending.length
+                ? 'Your notes, questions and tests appear here once your payment is confirmed.'
+                : pausedSubjects.length
+                  ? `${pausedSubjects.map((s) => s.name).join(', ')} ${pausedSubjects.length === 1 ? 'is' : 'are'} on hold until this month is paid.`
+                  : `Pick the subjects you need, ₹${SUBJECT_PRICE.toLocaleString('en-IN')} each per month. Notes, questions and tests appear here once you have paid.`}
+            </p>
+            {rejected?.note && <p className="mt-3 rounded-xl bg-mist p-3 text-sm text-muted">About your last payment: {rejected.note}</p>}
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              {!pending.length && (
+                <button onClick={enroll} className={btnPrimary}>
+                  {pausedSubjects.length ? 'Renew my subjects' : 'Choose your subjects'}
+                </button>
+              )}
+              <button onClick={() => onGoPublic('book')} className={btnGhost}>Book a consultation</button>
+            </div>
+            <button onClick={checkAgain} disabled={checking} className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:text-brand-dark">
+              {checking && <LoaderCircle className="h-4 w-4 animate-spin" />}
+              {checking ? 'Checking…' : 'Paid already? Check again'}
+            </button>
+            {checked && !checking && (
+              <p className="mt-2 text-sm text-muted">Not switched on yet. It happens as soon as your instructor confirms the payment.</p>
+            )}
           </div>
-          <p className="mt-6 text-sm text-muted">
-            Already paid? Email us from {user.email} and we will switch on your access.
-          </p>
-          <button onClick={onRefreshAccess} className="mt-4 text-sm font-semibold text-brand hover:text-brand-dark">
-            Access just granted? Check again
-          </button>
         </div>
       )}
 
       {activeTab === 'overview' && allowed.length > 0 && (
         <div className="space-y-8">
-          <div className={`${card} grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center md:gap-10`}>
+          {pendingNote}
+          <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-muted">Course completed</p>
-              <p className="text-5xl font-extrabold tracking-tight text-ink">{overallPercentage}%</p>
+              <h2 className="text-lg font-bold text-ink">Your subjects</h2>
+              <p className="text-sm text-muted">Open a subject to see its notes.</p>
             </div>
-            <div>
-              <ProgressBar value={overallPercentage} height="h-3" />
-              <p className="mt-2 text-sm text-muted">
-                {topicsDone === 0
-                  ? `Nothing started yet. ${topicsTotal} topics are waiting for you.`
-                  : `${topicsDone} of ${topicsTotal} topics done`}
-              </p>
-            </div>
+            <button onClick={enroll} className={`${btnGhost} px-5 py-2 text-sm`}>+ Add subjects</button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {subjects.map((subject) => (
+              <button key={subject.id} onClick={() => openSubject(subject.name)}
+                className={`${card} group flex flex-col p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
+                </div>
+                <p className="mt-4 font-bold text-ink">{subject.name}</p>
+                <p className="mt-1 flex-1 text-sm text-muted">{subject.blurb}</p>
+                <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">
+                  {materialsLoading ? 'Open notes' : subject.files === 0 ? 'Notes coming soon' : `${subject.files} file${subject.files === 1 ? '' : 's'} · Open`}
+                </p>
+              </button>
+            ))}
+            {pausedSubjects.map((s) => (
+              <button key={s.name} onClick={enroll}
+                className={`${card} flex flex-col border-dashed p-6 text-left opacity-80 transition hover:border-brand hover:opacity-100`}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mist text-muted">
+                  <Pause className="h-5 w-5" />
+                </div>
+                <p className="mt-4 font-bold text-ink">{s.name}</p>
+                <p className="mt-1 flex-1 text-sm text-muted">Paused until this month is paid.</p>
+                <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">Renew · ₹{SUBJECT_PRICE.toLocaleString('en-IN')}</p>
+              </button>
+            ))}
           </div>
 
-          <div>
-            <h2 className="mb-4 text-lg font-bold text-ink">Your subjects</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              {subjects.map((subject) => (
-                <button key={subject.id} onClick={() => openSubject(subject.name)}
-                  className={`${card} group p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
-                      <BookOpen className="h-5 w-5" />
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
-                  </div>
-                  <p className="mt-4 font-bold text-ink">{subject.name}</p>
-                  <div className="mt-4 mb-1.5 flex justify-between text-sm">
-                    <span className="text-muted">Completed</span>
-                    <span className="font-semibold text-ink">
-                      {Math.round((subject.topicsDone / subject.topicsTotal) * 100)}%
-                    </span>
-                  </div>
-                  <ProgressBar value={Math.round((subject.topicsDone / subject.topicsTotal) * 100)} />
-                  <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm text-muted">
-                    <span>{subject.topicsDone} of {subject.topicsTotal} topics</span>
-                    <span className="font-semibold text-brand">
-                      {materialsLoading ? 'Open' : subject.files === 0 ? 'No files yet' : `${subject.files} file${subject.files === 1 ? '' : 's'}`}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
+              access.plan === 'course' && { label: 'Book a free consultation', text: '45 minutes 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
+              { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
+            ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+                <span>
+                  <span className="block font-semibold text-ink">{label}</span>
+                  <span className="block text-sm text-muted">{text}</span>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -2027,8 +2134,10 @@ function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer
 
   const problems = items.filter((q) => questionWarnings(q).length > 0);
   const shown = onlyProblems ? problems : items;
-  const pageItems = shown.slice(page * PAGE, page * PAGE + PAGE);
   const pages = Math.max(1, Math.ceil(shown.length / PAGE));
+  // The list can shrink (filter, removal, save); never sit on an empty page.
+  const current = Math.min(page, pages - 1);
+  const pageItems = shown.slice(current * PAGE, current * PAGE + PAGE);
 
   const toggle = (key) => setSelected((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   const allShownSelected = shown.length > 0 && shown.every((q) => selected.has(q.key));
@@ -2083,9 +2192,9 @@ function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3 text-sm">
-          <button disabled={page === 0} onClick={() => { setPage(page - 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Previous</button>
-          <span className="text-muted">Page {page + 1} of {pages}</span>
-          <button disabled={page >= pages - 1} onClick={() => { setPage(page + 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Next</button>
+          <button disabled={current === 0} onClick={() => { setPage(current - 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Previous</button>
+          <span className="text-muted">Page {current + 1} of {pages}</span>
+          <button disabled={current >= pages - 1} onClick={() => { setPage(current + 1); window.scrollTo(0, 0); }} className={`${btnGhost} px-4 py-2 disabled:opacity-50`}>Next</button>
         </div>
       )}
       {footer}
@@ -2093,26 +2202,94 @@ function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer
   );
 }
 
+// The unsaved draft is kept in this browser tab, so switching portal tabs or
+// changing the subject for a moment does not throw away marked answers.
+const DRAFT_STORE = 'flywithsam-question-draft';
+const readDraft = () => {
+  try { return JSON.parse(sessionStorage.getItem(DRAFT_STORE) || 'null'); } catch { return null; }
+};
+const writeDraft = (value) => {
+  try {
+    if (value?.draft?.length) sessionStorage.setItem(DRAFT_STORE, JSON.stringify(value));
+    else sessionStorage.removeItem(DRAFT_STORE);
+  } catch { /* storage unavailable: the draft just lives in memory */ }
+};
+
+function StepTitle({ n, title, children }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-on-brand">{n}</span>
+      <div>
+        <p className="font-bold text-ink">{title}</p>
+        {children && <p className="mt-0.5 text-sm text-muted">{children}</p>}
+      </div>
+    </div>
+  );
+}
+
+function Message({ error, notice }) {
+  if (error) return <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>;
+  if (notice) return <p className="rounded-xl bg-go/10 p-3 text-sm font-medium text-go">{notice}</p>;
+  return null;
+}
+
+// Reads a PDF or text file; scanned PDFs (pictures of pages) have no text.
+async function fileToText(file) {
+  const text = /\.pdf$/i.test(file.name) ? await pdfToText(file) : await file.text();
+  if (text.replace(/\s/g, '').length < 20) {
+    throw new Error('This file has no readable text. It is probably a scanned picture of the pages. Paste the text instead.');
+  }
+  return text;
+}
+
 // `fixedSubject` / `addOnly`: used inside the Upload tab, where the subject is
 // already picked there and only the add-and-split flow is shown.
 function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
+  const stored = React.useMemo(() => {
+    const d = readDraft();
+    return d && (!fixedSubject || d.subject === fixedSubject) ? d : null;
+  }, [fixedSubject]);
+
   const [view, setView] = useState('add');
   const [saved, setSaved] = useState([]);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(stored ? 'Your unsaved questions from earlier are back.' : '');
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   // Adding
-  const [pickedSubject, setSubject] = useState('');
+  const [pickedSubject, setSubject] = useState(stored?.subject || '');
   const subject = fixedSubject || pickedSubject;
-  const [source, setSource] = useState('');
+  const [source, setSource] = useState(stored?.source || '');
   const [pasted, setPasted] = useState('');
-  const [draft, setDraft] = useState([]);
+  const [draft, setDraft] = useState(() => (stored?.draft || []).map(withKey));
+  const [keyText, setKeyText] = useState('');
+  const [keyResult, setKeyResult] = useState('');
   const fileRef = React.useRef(null);
+  const keyFileRef = React.useRef(null);
 
-  // Browsing saved questions
+  // Browsing saved questions: edits and removals are kept by id, so changing a
+  // filter never throws them away.
   const [filter, setFilter] = useState({ subject: '', topic: '', subtopic: '' });
-  const [editing, setEditing] = useState([]);
+  const [edits, setEdits] = useState(() => new Map());
+  const [removed, setRemoved] = useState(() => new Set());
+
+  // Skip the first run: opening the screen for another subject must not wipe
+  // a draft that belongs to a different subject.
+  const firstRun = React.useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    writeDraft({ subject, source, draft });
+  }, [draft, subject, source]);
+
+  // Warn before closing the page with unsaved work.
+  const unsaved = draft.length > 0 || edits.size > 0 || removed.size > 0;
+  useEffect(() => {
+    if (!unsaved) return undefined;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved]);
 
   const load = async () => {
     try {
@@ -2124,21 +2301,32 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   };
   useEffect(() => { load(); }, []);
 
-  useEffect(() => {
-    setEditing(saved.filter((q) => (!filter.subject || q.subject === filter.subject)
-      && (!filter.topic || q.topic === filter.topic)
-      && (!filter.subtopic || q.subtopic === filter.subtopic)));
-  }, [saved, filter.subject, filter.topic, filter.subtopic]);
+  const matches = (q) => (!filter.subject || q.subject === filter.subject)
+    && (!filter.topic || q.topic === filter.topic)
+    && (!filter.subtopic || q.subtopic === filter.subtopic);
+  const editing = saved.filter((q) => matches(q) && !removed.has(q.id)).map((q) => edits.get(q.id) || q);
+  const setEditing = (next) => {
+    const nextIds = new Set(next.map((q) => q.id));
+    setRemoved((r) => new Set([...r, ...editing.filter((q) => !nextIds.has(q.id)).map((q) => q.id)]));
+    setEdits((e) => {
+      const m = new Map(e);
+      next.forEach((q) => { if (q.dirty) m.set(q.id, q); });
+      return m;
+    });
+  };
 
   const split = (text, name) => {
     const found = parseQuestions(text);
     if (found.length === 0) {
-      setError('No questions found. Each question should start with a number like "12." and each option with "a)".');
+      setError('No questions found. Each question should start with a number like "12." and each option with a letter like "a)".');
       return;
     }
     setDraft(found.map((q) => withKey({ ...q, subject, source: source || name || '', topic: '', subtopic: '' })));
-    setNotice('');
+    setKeyResult('');
+    const answered = found.filter((q) => q.answer !== null).length;
+    setNotice(answered ? `Found ${found.length} questions. The answer key in the file filled in ${answered}.` : '');
     setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const readFile = async (file) => {
@@ -2149,35 +2337,70 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
     try {
       const name = file.name.replace(/\.[^.]+$/, '');
       if (!source) setSource(name);
-      const text = /\.pdf$/i.test(file.name) ? await pdfToText(file) : await file.text();
-      split(text, name);
+      split(await fileToText(file), name);
     } catch (err) {
       console.error('Reading the question file failed:', err);
-      setError(`Could not read that file (${err?.message || 'unknown error'}). Try again, or paste the text instead.`);
+      setError(err?.message?.startsWith('This file') ? err.message
+        : `Could not read that file (${err?.message || 'unknown error'}). Try again, or paste the text instead.`);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = '';
     }
   };
 
-  const save = async (items, { onDone }) => {
-    const bad = items.filter((q) => questionWarnings(q).length > 0);
-    if (bad.length) {
-      setError(`${bad.length} question${bad.length === 1 ? ' needs' : 's need'} attention first. Use "Needs attention" to see them.`);
+  const applyKey = (text) => {
+    const key = parseAnswerKey(text);
+    if (key.length === 0) {
+      setKeyResult('No answers found in that key. Write it like "1. b  2. c  3. a".');
       return;
     }
+    const result = applyAnswerKey(draft, key);
+    setDraft(result.questions);
+    setKeyResult(`Filled in ${result.applied} of ${draft.length} answers.`
+      + (result.missing.length ? ` Still to do by hand: Q${result.missing.slice(0, 12).join(', Q')}${result.missing.length > 12 ? '…' : ''}.` : ' Every question has an answer now.')
+      + (result.unmatched.length ? ` Not used (no such question or option): ${result.unmatched.slice(0, 8).join(', ')}.` : ''));
+  };
+
+  const readKeyFile = async (file) => {
+    if (!file) return;
+    try {
+      const text = await fileToText(file);
+      setKeyText(text);
+      applyKey(text);
+    } catch (err) {
+      setKeyResult(err.message || 'Could not read that file.');
+    } finally {
+      if (keyFileRef.current) keyFileRef.current.value = '';
+    }
+  };
+
+  const save = async (items) => {
+    const bad = items.filter((q) => questionWarnings(q).length > 0);
+    if (bad.length) {
+      setError(`${bad.length} question${bad.length === 1 ? ' needs' : 's need'} attention first (Q${bad.slice(0, 8).map((q) => q.number || '?').join(', Q')}${bad.length > 8 ? '…' : ''}). Click "Needs attention" to see them.`);
+      return false;
+    }
+    const payload = items.map(({ key, dirty, ...q }) => ({ ...q, subject: q.subject || subject }));
+    const data = await api('/api/questions', { action: 'save', questions: payload }, user.idToken);
+    const byId = new Map(data.questions.map((q) => [q.id, q]));
+    setSaved((list) => [...list.filter((q) => !byId.has(q.id)), ...data.questions.map(withKey)]);
+    return data.questions.length;
+  };
+
+  const saveDraft = async () => {
     setBusy(true);
     setError('');
     try {
-      const payload = items.map(({ key, dirty, ...q }) => ({ ...q, subject: q.subject || subject }));
-      const data = await api('/api/questions', { action: 'save', questions: payload }, user.idToken);
-      const byId = new Map(data.questions.map((q) => [q.id, q]));
-      setSaved((list) => [
-        ...list.filter((q) => !byId.has(q.id)),
-        ...data.questions.map(withKey),
-      ]);
-      setNotice(`${data.questions.length} question${data.questions.length === 1 ? '' : 's'} saved. Students see them straight away.`);
-      onDone?.();
+      const count = await save(draft);
+      if (count) {
+        setDraft([]);
+        setPasted('');
+        setSource('');
+        setKeyText('');
+        setKeyResult('');
+        setNotice(`${count} question${count === 1 ? '' : 's'} saved. Students with ${subject} can practise them now.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2185,21 +2408,27 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
     }
   };
 
-  const deleteRemoved = async () => {
-    const keep = new Set(editing.map((q) => q.id));
-    const gone = saved.filter((q) => (!filter.subject || q.subject === filter.subject)
-      && (!filter.topic || q.topic === filter.topic)
-      && (!filter.subtopic || q.subtopic === filter.subtopic)
-      && !keep.has(q.id));
-    const changed = editing.filter((q) => q.dirty);
+  const saveChanges = async () => {
+    const gone = [...removed];
+    const changed = [...edits.values()].filter((q) => !removed.has(q.id));
     if (!gone.length && !changed.length) { setNotice('Nothing has changed.'); return; }
+    // Check the edits before deleting anything, so a save never half-happens.
+    if (changed.some((q) => questionWarnings(q).length)) {
+      setError('Some edited questions need attention first. Click "Needs attention" to see them.');
+      return;
+    }
     if (gone.length && !window.confirm(`Delete ${gone.length} question${gone.length === 1 ? '' : 's'} for good? Students lose their progress on them.`)) return;
     setBusy(true);
+    setError('');
     try {
-      if (gone.length) await api('/api/questions', { action: 'delete', ids: gone.map((q) => q.id) }, user.idToken);
-      setSaved((list) => list.filter((q) => !gone.some((g) => g.id === q.id)));
-      if (changed.length) await save(changed, {});
-      else setNotice(`${gone.length} deleted.`);
+      if (changed.length) await save(changed);
+      if (gone.length) {
+        await api('/api/questions', { action: 'delete', ids: gone }, user.idToken);
+        setSaved((list) => list.filter((q) => !removed.has(q.id)));
+      }
+      setEdits(new Map());
+      setRemoved(new Set());
+      setNotice([changed.length && `${changed.length} updated`, gone.length && `${gone.length} deleted`].filter(Boolean).join(', ') + '.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -2210,12 +2439,12 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   const savedTopics = topicSuggestions(filter.subject, saved, 'topic');
   const savedSubtopics = topicSuggestions(filter.subject, saved, 'subtopic', filter.topic);
   const needAnswer = draft.filter((q) => q.answer === null || q.answer === undefined).length;
+  const needTopic = draft.filter((q) => !q.topic?.trim()).length;
 
   return (
     <div className="space-y-5">
       {!addOnly && (
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {[['add', 'Add questions'], ['saved', `All questions (${saved.length})`]].map(([id, label]) => (
             <button key={id} onClick={() => { setView(id); setError(''); setNotice(''); }}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
@@ -2223,73 +2452,94 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
               }`}>{label}</button>
           ))}
         </div>
-      </div>
       )}
-      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
-      {notice && <p className="rounded-xl bg-go/10 p-3 text-sm font-medium text-go">{notice}</p>}
+      <Message error={error} notice={notice} />
 
       {view === 'add' && draft.length === 0 && (
-        <div className={`${card} space-y-5 p-6 sm:p-8`}>
-          <div>
-            <h2 className="text-lg font-bold text-ink">Add questions from a paper</h2>
-            <p className="mt-1 text-sm text-muted">
-              Each question should start with its number (<b>12.</b>) and each option with a letter (<b>a)</b>).
-              You check every question, mark the answers and give topics before anything is saved.
-            </p>
-          </div>
+        <div className={`${card} space-y-6 p-6 sm:p-8`}>
+          <StepTitle n={1} title="Choose the question paper">
+            Questions start with a number (<b>12.</b>) and options with a letter (<b>a)</b>). Nothing is saved until step 3.
+          </StepTitle>
           <div className="grid gap-5 sm:grid-cols-2">
             {!fixedSubject && (
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
-              <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value="">Select a subject</option>
-                {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
-            </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+                <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
+                  <option value="">Select a subject</option>
+                  {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
             )}
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">Paper name <span className="font-normal text-muted">(optional)</span></label>
               <input className={input} value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. MET1" />
             </div>
           </div>
-          <label className={`block cursor-pointer rounded-2xl border-2 border-dashed border-line bg-mist p-8 text-center transition hover:border-brand hover:bg-sky ${!subject ? 'opacity-60' : ''}`}>
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); readFile(e.dataTransfer.files?.[0]); }}
+            className={`block cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition ${
+              dragging ? 'border-brand bg-sky' : 'border-line bg-mist hover:border-brand hover:bg-sky'} ${!subject ? 'opacity-60' : ''}`}>
             <input ref={fileRef} type="file" accept=".pdf,.txt" className="sr-only" disabled={!subject || busy}
               onChange={(e) => readFile(e.target.files?.[0])} />
-            <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
-            <p className="font-semibold text-ink">{busy ? 'Reading…' : subject ? 'Choose a PDF or text file' : 'Pick the subject first'}</p>
-            <p className="text-sm text-muted">It is split into one card per question</p>
+            {busy ? <LoaderCircle className="mx-auto mb-2 h-7 w-7 animate-spin text-brand" /> : <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />}
+            <p className="font-semibold text-ink">{busy ? 'Reading your paper…' : subject ? 'Click to choose the PDF, or drag it here' : 'Pick the subject first'}</p>
+            <p className="text-sm text-muted">PDF or .txt · every question becomes its own card</p>
           </label>
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-ink">Or paste the questions</label>
-            <textarea rows={6} value={pasted} onChange={(e) => setPasted(e.target.value)} className={`${input} font-mono text-sm`}
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-semibold text-brand">Or paste the questions as text</summary>
+            <textarea rows={8} value={pasted} onChange={(e) => setPasted(e.target.value)} className={`${input} mt-3 font-mono text-sm`}
               placeholder={'1. Coriolis force is strongest at\na) Equator\nb) Poles\nc) Mid latitudes'} />
-            <button onClick={() => (subject ? split(pasted) : setError('Pick the subject first.'))} disabled={!pasted.trim()}
+            <button onClick={() => (subject ? split(pasted, source) : setError('Pick the subject first.'))} disabled={!pasted.trim()}
               className={`${btnPrimary} mt-3 px-6 py-2.5 text-sm`}>Split into questions</button>
-          </div>
+          </details>
         </div>
       )}
 
       {view === 'add' && draft.length > 0 && (
         <>
-          <div className={`${card} flex flex-wrap items-center justify-between gap-3 p-5`}>
-            <div>
-              <p className="font-bold text-ink">Found {draft.length} questions · {subject}{source ? ` · ${source}` : ''}</p>
-              <p className="text-sm text-muted">
+          <div className={`${card} space-y-4 p-5 sm:p-6`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <StepTitle n={2} title={`Check the ${draft.length} questions from ${source || 'your paper'} · ${subject}`}>
                 {needAnswer > 0
-                  ? `${needAnswer} still need the correct answer. Click the letter next to the right option.`
-                  : 'Every question has an answer. Add topics and save.'}
-              </p>
+                  ? `${needAnswer} still need the correct answer: add an answer key below, or click the letter next to the right option.`
+                  : 'Every question has an answer.'}
+                {needTopic > 0 ? ` ${needTopic} have no topic yet (optional).` : ''}
+              </StepTitle>
+              <button onClick={() => { if (window.confirm('Throw away these questions and start again?')) { setDraft([]); setKeyResult(''); setNotice(''); } }}
+                className={`${btnGhost} px-4 py-2 text-sm`}>Start over</button>
             </div>
-            <button onClick={() => { if (window.confirm('Discard these questions?')) setDraft([]); }} className={`${btnGhost} px-4 py-2 text-sm`}>
-              Start over
-            </button>
+            <ProgressBar value={Math.round(((draft.length - needAnswer) / draft.length) * 100)} color="bg-go" />
+
+            <div className="rounded-xl border border-line p-4">
+              <p className="font-semibold text-ink">Add the answer key</p>
+              <p className="mt-0.5 text-sm text-muted">Paste it or choose the file. Any layout works: <b>1. b 2. c</b>, <b>1-B</b>, <b>1) (b)</b>, one per line or all together.</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <textarea rows={2} value={keyText} onChange={(e) => setKeyText(e.target.value)} placeholder="1. b  2. c  3. a …"
+                  className={`${inputCompact} font-mono text-sm`} />
+                <div className="flex shrink-0 gap-2 sm:flex-col">
+                  <button onClick={() => applyKey(keyText)} disabled={!keyText.trim()} className={`${btnPrimary} px-5 py-2 text-sm`}>Apply key</button>
+                  <label className={`${btnGhost} cursor-pointer px-5 py-2 text-sm`}>
+                    <input ref={keyFileRef} type="file" accept=".pdf,.txt" className="sr-only" onChange={(e) => readKeyFile(e.target.files?.[0])} />
+                    Key from file
+                  </label>
+                </div>
+              </div>
+              {keyResult && <p className="mt-2 text-sm font-medium text-ink">{keyResult}</p>}
+            </div>
           </div>
+
           <QuestionEditor items={draft} setItems={setDraft} allQuestions={saved} subject={subject} listId="draft"
             footer={(
-              <button onClick={() => save(draft, { onDone: () => { setDraft([]); setPasted(''); setSource(''); } })} disabled={busy}
-                className={`${btnPrimary} w-full py-3.5`}>
-                {busy ? 'Saving…' : `Save ${draft.length} questions`}
-              </button>
+              <div className={`${card} space-y-3 p-5`}>
+                <StepTitle n={3} title="Save">
+                  {needAnswer > 0 ? `Mark the remaining ${needAnswer} answer${needAnswer === 1 ? '' : 's'} first.` : 'Students see the questions as soon as you save.'}
+                </StepTitle>
+                <button onClick={saveDraft} disabled={busy} className={`${btnPrimary} w-full py-3.5`}>
+                  {busy ? 'Saving…' : `Save ${draft.length} questions`}
+                </button>
+              </div>
             )} />
         </>
       )}
@@ -2310,9 +2560,14 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
               {savedSubtopics.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+          {(edits.size > 0 || removed.size > 0) && (
+            <p className="text-sm font-medium text-ink">
+              Unsaved: {[edits.size && `${edits.size} edited`, removed.size && `${removed.size} to delete`].filter(Boolean).join(', ')}. Click “Save changes” at the bottom.
+            </p>
+          )}
           <QuestionEditor items={editing} setItems={setEditing} allQuestions={saved} subject={filter.subject} listId="saved"
-            footer={editing.length > 0 || saved.length > 0 ? (
-              <button onClick={deleteRemoved} disabled={busy} className={`${btnPrimary} w-full py-3.5`}>
+            footer={saved.length > 0 ? (
+              <button onClick={saveChanges} disabled={busy} className={`${btnPrimary} w-full py-3.5`}>
                 {busy ? 'Saving…' : 'Save changes'}
               </button>
             ) : null} />
@@ -2418,8 +2673,8 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
                         <div className="h-8" />
                       ) : (
                         <button onClick={() => click(d.key, time)} disabled={busy} title="Free. Click to block it for yourself."
-                          className="group block h-8 w-full rounded-lg text-xs font-semibold text-transparent transition hover:bg-mist hover:text-muted">
-                          {busy ? '…' : 'Block'}
+                          className="group block h-8 w-full rounded-lg text-xs font-semibold text-line transition hover:bg-mist hover:text-muted">
+                          {busy ? '…' : <><span className="group-hover:hidden">+</span><span className="hidden group-hover:inline">Block</span></>}
                         </button>
                       )}
                     </td>
@@ -2468,6 +2723,86 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
   );
 }
 
+// ============= PAYMENTS (instructor) =============
+const PAYMENT_STATUS = {
+  awaiting: { label: 'Opened the QR, not confirmed yet', tone: 'bg-mist text-muted' },
+  claimed: { label: 'Says they have paid', tone: 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200' },
+  approved: { label: 'Approved', tone: 'bg-go/10 text-go' },
+  rejected: { label: 'Rejected', tone: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300' },
+};
+
+function PaymentsAdmin({ requests, onApprove, onReject, busyId, error, onRefresh }) {
+  const [showDone, setShowDone] = useState(false);
+  const open = requests.filter((r) => r.status === 'claimed' || r.status === 'awaiting')
+    .sort((a, b) => (a.status === 'claimed' ? -1 : 1) - (b.status === 'claimed' ? -1 : 1));
+  const done = requests.filter((r) => r.status === 'approved' || r.status === 'rejected');
+  const when = (iso) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  const row = (r) => (
+    <div key={r.id} className={`${card} p-5`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-bold text-ink">{r.name || r.email}</p>
+          <p className="text-sm text-muted">{r.email}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {r.subjects.map((s) => <span key={s} className="rounded-full bg-sky px-2.5 py-1 text-xs font-semibold text-ink">{s}</span>)}
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-2xl font-extrabold text-ink">₹{r.amount.toLocaleString('en-IN')}</p>
+          <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${PAYMENT_STATUS[r.status]?.tone}`}>
+            {PAYMENT_STATUS[r.status]?.label}
+          </span>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted">
+        <span>Asked {when(r.createdAt)}</span>
+        {r.claimedAt && <span>Paid {when(r.claimedAt)}</span>}
+        {r.reference && <span>UPI ref: <b className="text-ink">{r.reference}</b></span>}
+        {r.decidedAt && <span>{r.status === 'approved' ? 'Approved' : 'Rejected'} {when(r.decidedAt)}</span>}
+        {r.note && <span>Note: {r.note}</span>}
+      </div>
+      {(r.status === 'claimed' || r.status === 'awaiting') && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+          <button onClick={() => onApprove(r)} disabled={busyId === r.id} className={`${btnPrimary} px-5 py-2 text-sm`}>
+            {busyId === r.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            Payment received · switch on {r.subjects.length === 1 ? 'this subject' : `these ${r.subjects.length} subjects`}
+          </button>
+          <button onClick={() => onReject(r)} disabled={busyId === r.id} className={`${btnGhost} px-5 py-2 text-sm`}>Not received</button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-bold text-ink">Payments to check ({open.length})</h2>
+          <p className="text-sm text-muted">Check the money has arrived in your UPI app, then switch the subjects on. The student sees them straight away.</p>
+        </div>
+        <button onClick={onRefresh} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+      </div>
+      {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
+      {open.length === 0 ? (
+        <div className={`${card} p-10 text-center`}>
+          <Wallet className="mx-auto h-10 w-10 text-brand" />
+          <p className="mt-4 font-bold text-ink">Nothing to check</p>
+          <p className="mt-1 text-muted">When a student pays for subjects, it shows up here.</p>
+        </div>
+      ) : open.map(row)}
+      {done.length > 0 && (
+        <div className="pt-4">
+          <button onClick={() => setShowDone(!showDone)} className="text-sm font-semibold text-brand">
+            {showDone ? 'Hide' : 'Show'} past payments ({done.length})
+          </button>
+          {showDone && <div className="mt-3 space-y-3">{done.map(row)}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
@@ -2478,6 +2813,9 @@ function AdminPortal({ user, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [threads, setThreads] = useState([]);
   const [inboxError, setInboxError] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [paymentsError, setPaymentsError] = useState('');
+  const [paymentBusy, setPaymentBusy] = useState(null);
   const [instructors, setInstructors] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
@@ -2497,6 +2835,45 @@ function AdminPortal({ user, onLogout }) {
   };
   usePolling(loadThreads, 10000, []);
   const unreadDoubts = threads.reduce((sum, t) => sum + (t.unread || 0), 0);
+
+  const loadPayments = async () => {
+    try {
+      const data = await call({ action: 'list' }, '/api/payment');
+      setPayments(data.requests || []);
+      setPaymentsError('');
+    } catch (err) {
+      setPaymentsError(err.message);
+    }
+  };
+  usePolling(loadPayments, 30000, []);
+  const paymentsToCheck = payments.filter((p) => p.status === 'claimed' || p.status === 'awaiting').length;
+
+  const approvePayment = async (request) => {
+    setPaymentBusy(request.id);
+    try {
+      const data = await call({ action: 'approve', id: request.id }, '/api/payment');
+      setPayments((list) => list.map((p) => (p.id === request.id ? data.request : p)));
+      setStudents((list) => list.map((st) => (st.email === request.email ? { ...st, access: data.access } : st)));
+    } catch (err) {
+      setPaymentsError(err.message);
+    } finally {
+      setPaymentBusy(null);
+    }
+  };
+
+  const rejectPayment = async (request) => {
+    const note = window.prompt('Why? The student sees this note (for example: "Payment not received, please try again").', 'Payment not received yet. Please check and try again.');
+    if (note === null) return;
+    setPaymentBusy(request.id);
+    try {
+      const data = await call({ action: 'reject', id: request.id, note }, '/api/payment');
+      setPayments((list) => list.map((p) => (p.id === request.id ? data.request : p)));
+    } catch (err) {
+      setPaymentsError(err.message);
+    } finally {
+      setPaymentBusy(null);
+    }
+  };
 
   const deleteStudent = async (student) => {
     if (!window.confirm(
@@ -2574,12 +2951,18 @@ function AdminPortal({ user, onLogout }) {
     setDraft({
       plan: student.access?.plan || 'none',
       subjects: student.access?.subjects || [],
+      paused: student.access?.paused || [],
       questions: Boolean(student.access?.questions),
       tests: Boolean(student.access?.tests),
     });
   };
 
   const saveAccess = async () => {
+    if (draft.plan === 'course' && draft.subjects.length === 0) {
+      setLoadError('Tick at least one subject for a course student.');
+      return;
+    }
+    setLoadError('');
     setSaving(true);
     try {
       const data = await call({ action: 'update', email: editing, access: draft });
@@ -2606,6 +2989,7 @@ function AdminPortal({ user, onLogout }) {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'payments', label: 'Payments', icon: Wallet, badge: paymentsToCheck },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'questions', label: 'Question bank', icon: ListChecks },
     { id: 'inbox', label: 'Inbox', icon: Inbox, badge: unreadDoubts },
@@ -2720,7 +3104,7 @@ function AdminPortal({ user, onLogout }) {
 
               {student.access?.plan === 'course' && student.access.subjects?.length > 0 && editing !== student.email && (
                 <p className="mt-3 border-t border-line pt-3 text-sm text-muted">
-                  Subjects: {student.access.subjects.join(', ')}
+                  Subjects: {student.access.subjects.map((sub) => ((student.access.paused || []).includes(sub) ? `${sub} (paused)` : sub)).join(', ')}
                   {student.access.questions && ' · question bank'}
                   {student.access.tests && ' · tests'}
                 </p>
@@ -2737,8 +3121,9 @@ function AdminPortal({ user, onLogout }) {
                           ...draft,
                           plan: value,
                           subjects: value === 'course' ? draft.subjects : [],
-                          questions: value === 'course' ? draft.questions : false,
-                          tests: value === 'course' ? draft.tests : false,
+                          // Course students normally get the question bank and tests too.
+                          questions: value === 'course' ? (draft.plan === 'course' ? draft.questions : true) : false,
+                          tests: value === 'course' ? (draft.plan === 'course' ? draft.tests : true) : false,
                         })}
                         className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                           draft.plan === value ? 'border-brand bg-brand text-on-brand' : 'border-line text-ink hover:border-brand'
@@ -2770,17 +3155,30 @@ function AdminPortal({ user, onLogout }) {
                         </button>
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {SUBJECTS.map((subject) => (
-                          <label key={subject.name} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
-                            <input
-                              type="checkbox"
-                              checked={draft.subjects.includes(subject.name)}
-                              onChange={() => toggleSubject(subject.name)}
-                              className="h-4 w-4 accent-brand"
-                            />
-                            <span className="font-medium text-ink">{subject.name}</span>
-                          </label>
-                        ))}
+                        {SUBJECTS.map((subject) => {
+                          const on = draft.subjects.includes(subject.name);
+                          const isPaused = on && (draft.paused || []).includes(subject.name);
+                          return (
+                            <div key={subject.name} className={`flex items-center gap-3 rounded-xl border p-3 text-sm transition ${isPaused ? 'border-dashed border-line bg-mist' : 'border-line hover:border-brand/60'}`}>
+                              <label className="flex flex-1 cursor-pointer items-center gap-3">
+                                <input type="checkbox" checked={on} onChange={() => toggleSubject(subject.name)} className="h-4 w-4 accent-brand" />
+                                <span className={`font-medium ${isPaused ? 'text-muted' : 'text-ink'}`}>{subject.name}</span>
+                                {isPaused && <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold text-muted ring-1 ring-line">Paused</span>}
+                              </label>
+                              {on && (
+                                <button type="button"
+                                  onClick={() => setDraft({
+                                    ...draft,
+                                    paused: isPaused ? draft.paused.filter((x) => x !== subject.name) : [...(draft.paused || []), subject.name],
+                                  })}
+                                  title={isPaused ? 'Give access back' : 'Lock this subject until they pay'}
+                                  className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs font-semibold text-ink transition hover:border-brand">
+                                  {isPaused ? <><Play className="h-3 w-3" /> Resume</> : <><Pause className="h-3 w-3" /> Pause</>}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <p className="mt-5 text-sm font-semibold text-ink">What else can they use</p>
@@ -2834,6 +3232,7 @@ function AdminPortal({ user, onLogout }) {
             </div>
           </div>
 
+          {loadError && <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">{loadError}</p>}
           {bookingsLoading && <div className={`${card} p-12 text-center text-muted`}>Loading calendar…</div>}
 
           {!bookingsLoading && bookingsView === 'calendar' && (
@@ -2879,6 +3278,11 @@ function AdminPortal({ user, onLogout }) {
 
       {activeTab === 'inbox' && (
         <InstructorInbox user={user} threads={threads} loadThreads={loadThreads} error={inboxError} />
+      )}
+
+      {activeTab === 'payments' && (
+        <PaymentsAdmin requests={payments} onApprove={approvePayment} onReject={rejectPayment}
+          busyId={paymentBusy} error={paymentsError} onRefresh={loadPayments} />
       )}
 
       {activeTab === 'questions' && <QuestionBankAdmin user={user} />}

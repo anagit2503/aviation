@@ -23,6 +23,9 @@ function cleanAccess(input) {
       .filter(Boolean)
       .slice(0, 20);
   }
+  if (Array.isArray(input.paused)) {
+    access.paused = input.paused.filter((s) => access.subjects.includes(s));
+  }
   access.questions = Boolean(input.questions);
   access.tests = Boolean(input.tests);
   return access;

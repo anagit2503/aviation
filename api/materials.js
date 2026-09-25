@@ -55,6 +55,7 @@ const blobSettingNames = () => Object.keys(process.env).filter((k) => /BLOB/i.te
 function canOpen(access, material) {
   if (access?.plan !== 'course') return false;
   if (!access.subjects?.includes(material.subject)) return false;
+  if (access.paused?.includes(material.subject)) return false;
   if (material.type === 'questions') return Boolean(access.questions);
   if (material.type === 'test' || material.type === 'mock') return Boolean(access.tests);
   return true;

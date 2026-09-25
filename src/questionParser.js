@@ -86,11 +86,41 @@ export function parseQuestions(text) {
     .map((q) => ({ ...q, answer: q.answer !== null && q.answer < q.options.length ? q.answer : null }));
 }
 
+// Reads an answer key on its own: "1. b 2. c", "1-B", "1) (b)", "Q1: b", one
+// per line or all on one line. Returns [{ number, answer }] in the order found.
+export function parseAnswerKey(text) {
+  const body = String(text || '').replace(/\banswer\s*key\b/gi, ' ');
+  const out = [];
+  for (const m of body.matchAll(/(?:^|[^a-z0-9])(?:q\.?\s*)?(\d{1,4})\s*[.):\-–]?\s*\(?([a-h])\)?(?![a-z0-9])/gi)) {
+    out.push({ number: Number(m[1]), answer: m[2].toLowerCase().charCodeAt(0) - 97 });
+  }
+  return out;
+}
+
+// Fills in answers from a key. With restarted numbering, key entries are used
+// in order: the first "1." in the key goes to the first question 1, and so on.
+// Returns the updated questions and which numbers could not be matched.
+export function applyAnswerKey(questions, key) {
+  const used = new Set();
+  const next = questions.map((q) => ({ ...q }));
+  const unmatched = [];
+  for (const entry of key) {
+    const index = next.findIndex((q, i) => !used.has(i) && q.number === entry.number);
+    if (index === -1 || entry.answer >= next[index].options.length) { unmatched.push(entry.number); continue; }
+    used.add(index);
+    next[index].answer = entry.answer;
+    next[index].dirty = true;
+  }
+  const missing = next.filter((q, i) => !used.has(i)).map((q) => q.number);
+  return { questions: next, applied: used.size, unmatched, missing };
+}
+
 // Problems worth a second look before saving.
 export function questionWarnings(q) {
   const warnings = [];
   if (!q.text?.trim()) warnings.push('The question is empty.');
   if ((q.options || []).filter((o) => o.trim()).length < 2) warnings.push('Needs at least two options.');
+  if ((q.options || []).some((o) => !o.trim())) warnings.push('An option is empty: fill it in or remove it.');
   const seen = new Set();
   for (const o of q.options || []) {
     const key = o.trim().toLowerCase();

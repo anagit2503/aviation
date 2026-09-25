@@ -32,7 +32,10 @@ export default async function handler(req, res) {
     }
     if (storageReady && !isInstructorEmail(person.email)) {
       try {
-        courseStudent = (await getAccess(person.email)).plan === 'course';
+        const access = await getAccess(person.email);
+        // At least one subject has to be active (not paused for non-payment).
+        courseStudent = access.plan === 'course'
+          && (access.subjects || []).some((s) => !(access.paused || []).includes(s));
       } catch {
         courseStudent = false;
       }
