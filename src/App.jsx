@@ -1511,9 +1511,20 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   // Show the apology only while it still applies: the latest request was
   // declined AND the student still lacks at least one of those subjects. Once
   // the subjects are switched on (by a later payment or by hand) it disappears.
+  // Never shown once the student has access to any subject from that request,
+  // once any payment was approved after it, or once they dismissed it.
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem('dismissed-payment-note') || ''; } catch { return ''; }
+  });
   const latest = payments[0];
   const rejected = !pending.length && latest?.status === 'rejected'
-    && latest.subjects.some((s) => !allowed.some((a) => a.name === s)) ? latest : null;
+    && latest.id !== dismissed
+    && !latest.subjects.some((s) => (access.subjects || []).includes(s))
+    ? latest : null;
+  const dismissRejected = () => {
+    setDismissed(latest.id);
+    try { localStorage.setItem('dismissed-payment-note', latest.id); } catch { /* shows again next visit */ }
+  };
   const pendingNames = [...new Set(pending.flatMap((p) => p.subjects))];
 
   const checkAgain = async () => {
@@ -1576,7 +1587,10 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   );
 
   const rejectedNote = rejected && (
-    <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-left text-sm leading-relaxed text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+    <div className="relative mt-4 rounded-2xl bg-amber-50 p-4 pr-10 text-left text-sm leading-relaxed text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+      <button onClick={dismissRejected} className="absolute right-2 top-2 rounded-lg p-1.5 opacity-70 transition hover:opacity-100" aria-label="Dismiss">
+        <X className="h-4 w-4" />
+      </button>
       <p className="font-semibold">We’re sorry, we couldn’t confirm your payment for {rejected.subjects.join(', ')} yet.</p>
       <p className="mt-1">
         Apologies for the inconvenience. If you have already paid and still see this message, please email us at{' '}
