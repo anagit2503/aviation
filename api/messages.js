@@ -1,6 +1,6 @@
 // POST /api/messages → the doubts chat between each student and the instructors.
 //
-// Students (any signed-in, non-instructor account):
+// Students (course students with at least one active, un-paused subject):
 //   { action: 'thread', markRead }     → their own conversation
 //   { action: 'send', text }           → ask a question
 // Instructors:
@@ -12,7 +12,7 @@
 // short summary per student for the inbox; two counters per student track what
 // each side has not read yet.
 import {
-  redis, verifyIdToken, isInstructorEmail, getProfile, storageReady, readJsonBody,
+  redis, verifyIdToken, isInstructorEmail, getProfile, getAccess, storageReady, readJsonBody,
   bumpCounter, sendDoubtNotification,
 } from './_lib.js';
 
@@ -123,6 +123,16 @@ export default async function handler(req, res) {
     }
 
     // ---------- Student side ----------
+    // The doubts chat is part of the course: only students with a subject that
+    // is switched on and not paused can use it.
+    const access = await getAccess(person.email);
+    const active = access.plan === 'course'
+      && (access.subjects || []).some((s) => !(access.paused || []).includes(s));
+    if (!active) {
+      res.status(403).json({ error: 'The doubts chat opens once your course access is switched on.' });
+      return;
+    }
+
     if (body.action === 'thread') {
       const messages = await readThread(person.email);
       let unread = 0;

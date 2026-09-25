@@ -1489,11 +1489,11 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
 
   // Unread replies, for the badge on the Doubts tab.
   usePolling(() => {
-    if (activeTab === 'doubts') return;
+    if (activeTab === 'doubts' || allowed.length === 0) return;
     api('/api/messages', { action: 'thread' }, user.idToken)
       .then((data) => setUnread(data.unread || 0))
       .catch(() => {});
-  }, 60000, [activeTab]);
+  }, 60000, [activeTab, accessKey]);
 
   // Scores stay at zero until tests are taken on the site.
   const subjects = React.useMemo(
@@ -1514,8 +1514,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const enroll = () => onGoPublic('enroll');
 
   const doubtsTab = { id: 'doubts', label: 'Doubts', icon: MessageCircle, badge: unread };
+  // The doubts chat is part of the course, so it appears with course access.
   const tabs = allowed.length === 0
-    ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, doubtsTab]
+    ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }]
     : [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'resources', label: 'Notes', icon: FileText },
