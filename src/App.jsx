@@ -444,7 +444,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <button onClick={() => setAuthMode('book')} className={btnPrimary}>Book a consultation</button>
-              <a href="#pricing" className={btnGhost}>See the course</a>
+              <a href="#subjects" className={btnGhost}>See the course</a>
             </div>
             <div className="mt-10 flex items-center gap-8 text-sm text-muted">
               <div><span className="block text-2xl font-extrabold text-ink">500+</span>students trained</div>

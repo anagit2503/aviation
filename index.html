@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script>
-      // Apply the saved light/dark choice before anything is drawn.
-      try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'; }
-      catch { document.documentElement.dataset.theme = 'light'; }
+      // Dark by default; light only if the visitor switched to it. Applied before anything is drawn.
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; }
+      catch { document.documentElement.dataset.theme = 'dark'; }
     </script>
   </head>
   <body>
