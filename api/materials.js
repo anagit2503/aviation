@@ -9,7 +9,7 @@
 //   { action: 'list' }                                  → instructor: everything; student: what they may open
 //   { action: 'open', id }                              → a short-lived link to one file
 //   { action: 'delete', id }                            → instructor: remove a file
-import { handleUpload } from '@vercel/blob/client';
+import { handleUpload, handleUploadPresigned } from '@vercel/blob/client';
 import { head, del, issueSignedToken, presignUrl } from '@vercel/blob';
 import {
   redis, verifyIdToken, isInstructorEmail, getAccess, storageReady, readJsonBody,
@@ -42,8 +42,11 @@ const LINK_MINUTES = 15;
 // Every read-write key starts with vercel_blob_rw_, so find it by that instead.
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN
   || Object.values(process.env).find((v) => typeof v === 'string' && v.startsWith('vercel_blob_rw_'))
-  || '';
-const blobReady = Boolean(BLOB_TOKEN);
+  || undefined;
+// Newer stores connect without any key: Vercel only sets BLOB_STORE_ID and the
+// function signs in to the store by itself (OIDC). Uploads then use presigned URLs.
+const uploadMode = BLOB_TOKEN ? 'token' : process.env.BLOB_STORE_ID ? 'presigned' : null;
+const blobReady = Boolean(uploadMode);
 // Names only, never values: shown to instructors when storage is not working,
 // so they can see what Vercel actually gave the site.
 const blobSettingNames = () => Object.keys(process.env).filter((k) => /BLOB/i.test(k)).sort();
@@ -86,24 +89,41 @@ export default async function handler(req, res) {
       res.status(503).json({ error: 'File storage is not switched on yet (Vercel → Storage → Blob).' });
       return;
     }
+    const checkUploader = async (pathname, clientPayload) => {
+      let payload = {};
+      try { payload = JSON.parse(clientPayload || '{}'); } catch { /* treated as signed out */ }
+      const person = await verifyIdToken(payload.idToken);
+      if (!person || !isInstructorEmail(person.email)) throw new Error('Only instructors can upload.');
+      if (!pathname.startsWith('materials/')) throw new Error('Wrong folder.');
+    };
     try {
-      const result = await handleUpload({
-        token: BLOB_TOKEN,
-        body,
-        request: req,
-        onBeforeGenerateToken: async (pathname, clientPayload) => {
-          let payload = {};
-          try { payload = JSON.parse(clientPayload || '{}'); } catch { /* treated as signed out */ }
-          const person = await verifyIdToken(payload.idToken);
-          if (!person || !isInstructorEmail(person.email)) throw new Error('Only instructors can upload.');
-          if (!pathname.startsWith('materials/')) throw new Error('Wrong folder.');
-          return {
-            allowedContentTypes: ALLOWED_CONTENT_TYPES,
-            maximumSizeInBytes: MAX_BYTES,
-            addRandomSuffix: true,
-          };
-        },
-      });
+      const result = uploadMode === 'token'
+        ? await handleUpload({
+          token: BLOB_TOKEN,
+          body,
+          request: req,
+          onBeforeGenerateToken: async (pathname, clientPayload) => {
+            await checkUploader(pathname, clientPayload);
+            return { allowedContentTypes: ALLOWED_CONTENT_TYPES, maximumSizeInBytes: MAX_BYTES };
+          },
+        })
+        : await handleUploadPresigned({
+          body,
+          request: req,
+          // Only used to verify upload-finished callbacks, which this site never asks for.
+          webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY || 'unused',
+          getSignedToken: async (pathname, clientPayload) => {
+            await checkUploader(pathname, clientPayload);
+            const token = await issueSignedToken({
+              pathname,
+              operations: ['put'],
+              allowedContentTypes: ALLOWED_CONTENT_TYPES,
+              maximumSizeInBytes: MAX_BYTES,
+              validUntil: Date.now() + 60 * 60 * 1000,
+            });
+            return { token, urlOptions: { allowedContentTypes: ALLOWED_CONTENT_TYPES, maximumSizeInBytes: MAX_BYTES } };
+          },
+        });
       res.status(200).json(result);
     } catch (err) {
       res.status(400).json({ error: err?.message || 'Upload was refused.' });
@@ -126,7 +146,7 @@ export default async function handler(req, res) {
     if (body.action === 'list') {
       const materials = await allMaterials();
       if (instructor) {
-        res.status(200).json({ materials, blobReady, blobSettings: blobReady ? [] : blobSettingNames() });
+        res.status(200).json({ materials, blobReady, uploadMode, blobSettings: blobReady ? [] : blobSettingNames() });
         return;
       }
       const access = await getAccess(person.email);

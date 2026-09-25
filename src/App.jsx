@@ -1448,6 +1448,7 @@ function UploadMaterial({ user }) {
   const [materials, setMaterials] = useState([]);
   const [blobReady, setBlobReady] = useState(true);
   const [blobSettings, setBlobSettings] = useState([]);
+  const [uploadMode, setUploadMode] = useState('token');
   const fileInput = React.useRef(null);
 
   const load = async () => {
@@ -1456,6 +1457,7 @@ function UploadMaterial({ user }) {
       setMaterials(data.materials || []);
       setBlobReady(data.blobReady !== false);
       setBlobSettings(data.blobSettings || []);
+      if (data.uploadMode) setUploadMode(data.uploadMode);
     } catch (err) {
       setError(err.message);
     }
@@ -1479,11 +1481,14 @@ function UploadMaterial({ user }) {
 
     setProgress(0);
     try {
-      const { upload } = await import('@vercel/blob/client');
+      const { upload, uploadPresigned } = await import('@vercel/blob/client');
+      const send = uploadMode === 'presigned' ? uploadPresigned : upload;
       const idToken = (await currentIdToken()) || user.idToken;
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120);
       const slug = subject.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const blob = await upload(`materials/${slug}/${safeName}`, file, {
+      // A short random prefix keeps two files with the same name apart.
+      const unique = Math.random().toString(36).slice(2, 8);
+      const blob = await send(`materials/${slug}/${unique}-${safeName}`, file, {
         access: 'private',
         handleUploadUrl: '/api/materials',
         clientPayload: JSON.stringify({ idToken }),
