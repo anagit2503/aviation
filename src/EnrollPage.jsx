@@ -138,7 +138,7 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
               </h1>
               <p className="mt-2 text-muted">
                 {step === 'pay'
-                  ? 'Pay with any UPI app, then tell us you have paid.'
+                  ? 'Pay with any UPI app, get started on your journey.'
                   : `${money(SUBJECT_PRICE)} per subject, per month. Pick only the ones you need; you can add more any time.`}
               </p>
             </div>

@@ -988,6 +988,9 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
 }
 
 // ============= SHARED PORTAL PIECES =============
+// Where students write about payments. Keep in sync with BOOKING_EMAIL in api/_lib.js.
+const BOOKING_CONTACT = 'samarthya.s02@gmail.com';
+
 // Every portal call carries a current Google token; the one from sign-in
 // expires after an hour.
 async function api(endpoint, body, fallbackToken) {
@@ -1501,7 +1504,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .catch(() => {});
   }, [accessKey]);
   const pending = payments.filter((p) => p.status === 'awaiting' || p.status === 'claimed');
-  const rejected = payments.find((p) => p.status === 'rejected' && !pending.length);
+  // Only the latest request matters: an old decline is irrelevant once a newer payment went through.
+  const rejected = !pending.length && payments[0]?.status === 'rejected' ? payments[0] : null;
   const pendingNames = [...new Set(pending.flatMap((p) => p.subjects))];
 
   const checkAgain = async () => {
@@ -1561,6 +1565,18 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
     </div>
   );
 
+  const rejectedNote = rejected && (
+    <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-left text-sm leading-relaxed text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+      <p className="font-semibold">We’re sorry, we couldn’t confirm your payment for {rejected.subjects.join(', ')} yet.</p>
+      <p className="mt-1">
+        Apologies for the inconvenience. If you have already paid and still see this message, please email us at{' '}
+        <a href={`mailto:${BOOKING_CONTACT}?subject=${encodeURIComponent('My flywithsam payment')}`} className="font-semibold underline">{BOOKING_CONTACT}</a>{' '}
+        with your UPI transaction ID, and we will sort it out straight away.
+      </p>
+      {rejected.note && <p className="mt-2">Note from your instructor: {rejected.note}</p>}
+    </div>
+  );
+
   const pendingNote = pending.length > 0 && (
     <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
       <Hourglass className="mt-0.5 h-5 w-5 shrink-0" />
@@ -1590,7 +1606,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                   ? `${pausedSubjects.map((s) => s.name).join(', ')} ${pausedSubjects.length === 1 ? 'is' : 'are'} on hold until this month is paid.`
                   : `Pick the subjects you need, ₹${SUBJECT_PRICE.toLocaleString('en-IN')} each per month. Notes, questions and tests appear here once you have paid.`}
             </p>
-            {rejected?.note && <p className="mt-3 rounded-xl bg-mist p-3 text-sm text-muted">About your last payment: {rejected.note}</p>}
+            {rejectedNote}
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               {!pending.length && (
                 <button onClick={enroll} className={btnPrimary}>
@@ -1613,6 +1629,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       {activeTab === 'overview' && allowed.length > 0 && (
         <div className="space-y-8">
           {pendingNote}
+          {rejectedNote}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold text-ink">Your subjects</h2>
@@ -2887,7 +2904,10 @@ function AdminPortal({ user, onLogout }) {
   };
 
   const rejectPayment = async (request) => {
-    const note = window.prompt('Why? The student sees this note (for example: "Payment not received, please try again").', 'Payment not received yet. Please check and try again.');
+    const note = window.prompt(
+      'Mark as not received? The student sees an apology and the contact email. Add a note for them if you like (optional):',
+      '',
+    );
     if (note === null) return;
     setPaymentBusy(request.id);
     try {
