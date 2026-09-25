@@ -1,71 +1,89 @@
-// Splits a question paper into separate questions.
+// Splits a question paper into separate questions: "12." starts a question,
+// "a)", "b." or "(c)" starts an option, "Ans: b" after a question sets its
+// answer, and an "Answer Key" section at the end is read if filled in.
 //
-// Rules: a line starting with a number ("1.", "2)") is a new question; a line
-// starting with a letter a–h ("a)", "b.", "(c)") is an option. Expected layout:
-//   12. Question text, which may wrap
-//       onto a second line
-//   a) First option
-//   b) Second option, which may also wrap
-//   Ans: b                      ← optional
-// An "Answer Key" section at the end ("1. b", "2. c", …) is read if filled in and
-// ignored if blank. Anything before question 1, like the paper's title, is skipped.
+// Splitting reads the text as one stream, so it works the same whether line
+// breaks survived (PDF) or not (text pasted from a PDF viewer). A marker only
+// counts when it is the one expected next:
+//   - a question number must be the next in sequence (15 → 16), or 1 when the
+//     numbering restarts, so "2", "2.5" or "24 hr" inside an option never
+//     start a question;
+//   - an option letter must be the next letter (a → b → c), so a stray "b."
+//     in the middle of a sentence is ignored.
+const MARKER = /(^|\s)(?:(?:Q\.?\s*)?(\d{1,4})\s*[.)]|\(?([a-hA-H])\s*[).])(?=\s|$)/g;
+const INLINE_ANSWER = /\s*\b(?:ans(?:wer)?|correct(?:\s+answer)?)\s*[:.\-]?\s*\(?([a-h])\)?\.?\s*$/i;
+const KEY_HEADING = /\banswer\s*key\b/i;
 
-const QUESTION = /^(?:Q\.?\s*)?(\d{1,4})\s*[.)]\s+(.+)$/i;
-const OPTION = /^\(?([a-h])\s*[).]\s*(.*)$/i;
-const INLINE_ANSWER = /^(?:ans(?:wer)?|correct(?:\s+answer)?)\s*[:.-]?\s*\(?([a-h])\b/i;
-const KEY_HEADING = /^answer\s*key\b/i;
+const toIndex = (letter) => letter.toLowerCase().charCodeAt(0) - 97;
+const tidy = (text) => text.replace(/\s+/g, ' ').trim();
 
 export function parseQuestions(text) {
-  const lines = String(text || '').split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim());
-  const keyStart = lines.findIndex((l) => KEY_HEADING.test(l));
-  const body = keyStart >= 0 ? lines.slice(0, keyStart) : lines;
-  const keyText = keyStart >= 0 ? lines.slice(keyStart + 1).join(' ') : '';
+  const all = String(text || '');
+  const keyAt = all.search(KEY_HEADING);
+  const body = keyAt >= 0 ? all.slice(0, keyAt) : all;
+  const keyText = keyAt >= 0 ? all.slice(keyAt) : '';
 
   const questions = [];
   let current = null;
-  let last = null; // 'question' | 'option', so wrapped lines join the right part
+  let part = null; // { target: 'text' | option index, from: position }
 
-  for (const line of body) {
-    if (!line) continue;
+  const close = (upTo) => {
+    if (!current || !part) return;
+    const chunk = body.slice(part.from, upTo);
+    if (part.target === 'text') current.text += chunk;
+    else current.options[part.target] += chunk;
+  };
 
-    const answer = current && line.match(INLINE_ANSWER);
-    if (answer) {
-      current.answer = answer[1].toLowerCase().charCodeAt(0) - 97;
-      continue;
-    }
+  for (const m of body.matchAll(MARKER)) {
+    const at = m.index + m[1].length;
+    const number = m[2] ? Number(m[2]) : null;
+    const letter = m[3] ? m[3].toLowerCase() : null;
 
-    const option = current && line.match(OPTION);
-    if (option && option[2]) {
-      current.options.push(option[2]);
-      last = 'option';
-      continue;
-    }
+    // Right after "c)" the number is that option's text ("c) 3."), not a question.
+    const optionStillEmpty = part && part.target !== 'text' && !body.slice(part.from, at).trim();
+    const isNextQuestion = number !== null && !optionStillEmpty && (
+      !current
+      || number === current.number + 1
+      || (number === 1 && current.options.length >= 2)
+    );
+    const isNextOption = letter !== null && current && toIndex(letter) === current.options.length;
 
-    // Every numbered line ("1.", "2.", "3." …) starts a new question, even if
-    // the numbering restarts part-way through a file.
-    const question = line.match(QUESTION);
-    if (question) {
-      current = { number: Number(question[1]), text: question[2], options: [], answer: null };
+    if (isNextQuestion) {
+      close(at);
+      current = { number, text: '', options: [], answer: null };
       questions.push(current);
-      last = 'question';
-      continue;
+      part = { target: 'text', from: at + m[0].length - m[1].length };
+    } else if (isNextOption) {
+      close(at);
+      current.options.push('');
+      part = { target: current.options.length - 1, from: at + m[0].length - m[1].length };
     }
+  }
+  close(body.length);
 
-    if (!current) continue; // title or heading before question 1
-    if (last === 'option') current.options[current.options.length - 1] += ` ${line}`;
-    else current.text += ` ${line}`;
+  for (const q of questions) {
+    q.text = tidy(q.text);
+    q.options = q.options.map(tidy);
+    // "Ans: b" written after the last option (or after the question).
+    const lastIndex = q.options.length - 1;
+    const tail = lastIndex >= 0 ? q.options[lastIndex] : q.text;
+    const found = tail.match(INLINE_ANSWER);
+    if (found) {
+      q.answer = toIndex(found[1]);
+      if (lastIndex >= 0) q.options[lastIndex] = tidy(tail.slice(0, found.index));
+      else q.text = tidy(tail.slice(0, found.index));
+    }
   }
 
-  // A filled-in answer key: "1. b", "2) c", "3 - a" …
+  // A filled-in answer key: "1. b", "2) c", "3 - a" … (blank keys are ignored).
   for (const m of keyText.matchAll(/(\d{1,4})\s*[.)\-:]\s*\(?([a-h])(?![a-z0-9])/gi)) {
     const q = questions.find((x) => x.number === Number(m[1]) && x.answer === null);
-    if (q && q.answer === null) q.answer = m[2].toLowerCase().charCodeAt(0) - 97;
+    if (q) q.answer = toIndex(m[2]);
   }
 
-  return questions.map((q) => ({
-    ...q,
-    answer: q.answer !== null && q.answer < q.options.length ? q.answer : null,
-  }));
+  return questions
+    .filter((q) => q.text || q.options.length)
+    .map((q) => ({ ...q, answer: q.answer !== null && q.answer < q.options.length ? q.answer : null }));
 }
 
 // Problems worth a second look before saving.
@@ -101,12 +119,20 @@ export async function pdfToText(file) {
       const y = Math.round(item.transform[5]);
       const key = [...rows.keys()].find((k) => Math.abs(k - y) <= 2) ?? y;
       if (!rows.has(key)) rows.set(key, []);
-      rows.get(key).push({ x: item.transform[4], str: item.str });
+      rows.get(key).push({ x: item.transform[4], width: item.width || 0, str: item.str });
     }
     [...rows.entries()]
       .sort((a, b) => b[0] - a[0])
       .forEach(([, parts]) => {
-        out.push(parts.sort((a, b) => a.x - b.x).map((part) => part.str).join(' ').replace(/\s+/g, ' ').trim());
+        // Pieces that touch are one word ("requi" + "red"); a visible gap is a space.
+        let line = '';
+        let end = null;
+        for (const part of parts.sort((a, b) => a.x - b.x)) {
+          if (end !== null && part.x - end > 1) line += ' ';
+          line += part.str;
+          end = part.x + part.width;
+        }
+        out.push(line.replace(/\s+/g, ' ').trim());
       });
     out.push('');
   }

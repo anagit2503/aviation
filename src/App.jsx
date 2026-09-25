@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, Bookmark,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -17,7 +17,7 @@ const FIREBASE_CONFIG = {
   appId: "YOUR_APP_ID"
 };
 
-import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card } from './ui.jsx';
+import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card, SLOT_TIMES } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
 import { parseQuestions, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
@@ -2151,8 +2151,9 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
       if (!source) setSource(name);
       const text = /\.pdf$/i.test(file.name) ? await pdfToText(file) : await file.text();
       split(text, name);
-    } catch {
-      setError('Could not read that file. Try a PDF or .txt, or paste the text instead.');
+    } catch (err) {
+      console.error('Reading the question file failed:', err);
+      setError(`Could not read that file (${err?.message || 'unknown error'}). Try again, or paste the text instead.`);
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -2321,6 +2322,152 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   );
 }
 
+// ============= CONSULTATION CALENDAR (instructor) =============
+// Dates are in IST, like the booking page. Keep SLOT_TIMES in sync with ui.jsx.
+const IST_ZONE = 'Asia/Kolkata';
+const istNow = () => new Date(new Date().toLocaleString('en-US', { timeZone: IST_ZONE }));
+const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function weekDays(offset) {
+  const today = istNow();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7) + offset * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return {
+      key: dayKey(d),
+      weekday: d.toLocaleDateString('en-IN', { weekday: 'short' }),
+      dayMonth: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      isToday: dayKey(d) === dayKey(today),
+    };
+  });
+}
+
+function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
+  const [week, setWeek] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const days = weekDays(week);
+  const bySlot = new Map(bookings.map((b) => [`${b.date} ${b.time}`, b]));
+  const isPast = (date, time) => new Date(`${date}T${time}:00+05:30`).getTime() < Date.now();
+  const weekCount = days.reduce((n, d) => n + SLOT_TIMES.filter((t) => {
+    const b = bySlot.get(`${d.key} ${t}`);
+    return b && !b.blocked;
+  }).length, 0);
+
+  const click = (date, time) => {
+    const booking = bySlot.get(`${date} ${time}`);
+    if (booking?.blocked) { onCancel(booking, { quiet: true }); return; }
+    if (booking) { setPicked(booking); return; }
+    if (!isPast(date, time)) onBlock(date, time);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setWeek(week - 1)} className="rounded-full border border-line p-2 text-muted transition hover:text-ink" aria-label="Previous week">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button onClick={() => setWeek(0)} disabled={week === 0} className={`${btnGhost} px-4 py-2 text-sm disabled:opacity-50`}>This week</button>
+          <button onClick={() => setWeek(week + 1)} className="rounded-full border border-line p-2 text-muted transition hover:text-ink" aria-label="Next week">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <p className="ml-2 font-semibold text-ink">{days[0].dayMonth} – {days[6].dayMonth}</p>
+        </div>
+        <p className="text-sm text-muted">{weekCount} consultation{weekCount === 1 ? '' : 's'} this week</p>
+      </div>
+
+      <div className={`${card} overflow-x-auto`}>
+        <table className="w-full min-w-[760px] table-fixed border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="w-20 border-b border-line p-2 text-left text-xs font-semibold text-muted">IST</th>
+              {days.map((d) => (
+                <th key={d.key} className={`border-b border-l border-line p-2 text-center ${d.isToday ? 'bg-sky' : ''}`}>
+                  <span className="block text-xs font-medium text-muted">{d.weekday}</span>
+                  <span className="block font-bold text-ink">{d.dayMonth}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {SLOT_TIMES.map((time) => (
+              <tr key={time}>
+                <td className="border-b border-line p-2 text-xs font-semibold text-muted">{time}</td>
+                {days.map((d) => {
+                  const slot = `${d.key} ${time}`;
+                  const booking = bySlot.get(slot);
+                  const past = isPast(d.key, time);
+                  const busy = busySlot === slot;
+                  return (
+                    <td key={slot} className="border-b border-l border-line p-1">
+                      {booking && !booking.blocked ? (
+                        <button onClick={() => click(d.key, time)} title={`${booking.name} · ${booking.email}`}
+                          className={`block w-full truncate rounded-lg px-2 py-2 text-left text-xs font-semibold transition hover:opacity-85 ${
+                            booking.amount === 0 ? 'bg-go text-white' : 'bg-brand text-on-brand'} ${past ? 'opacity-50' : ''}`}>
+                          {booking.name?.split(' ')[0] || 'Booked'}
+                        </button>
+                      ) : booking?.blocked ? (
+                        <button onClick={() => click(d.key, time)} disabled={busy} title="Blocked by you. Click to open it again."
+                          className="block w-full rounded-lg bg-mist px-2 py-2 text-xs font-semibold text-muted transition hover:bg-sky"
+                          style={{ backgroundImage: 'repeating-linear-gradient(135deg, transparent 0 6px, rgba(128,128,128,0.15) 6px 12px)' }}>
+                          {busy ? '…' : 'Blocked'}
+                        </button>
+                      ) : past ? (
+                        <div className="h-8" />
+                      ) : (
+                        <button onClick={() => click(d.key, time)} disabled={busy} title="Free. Click to block it for yourself."
+                          className="group block h-8 w-full rounded-lg text-xs font-semibold text-transparent transition hover:bg-mist hover:text-muted">
+                          {busy ? '…' : 'Block'}
+                        </button>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs text-muted">
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-brand" /> Paid consultation</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-go" /> Free, course student</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-line bg-mist" /> Blocked by you</span>
+        <span>Click an empty slot to block it · click a booking for details</span>
+      </div>
+
+      {picked && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center" onClick={() => setPicked(null)}>
+          <div className={`${card} w-full max-w-md p-6`} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted">{picked.dayLabel || picked.date} · {picked.time} IST</p>
+                <p className="mt-1 text-xl font-bold text-ink">{picked.name}</p>
+              </div>
+              <button onClick={() => setPicked(null)} className="rounded-lg p-1 text-muted hover:text-ink" aria-label="Close"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="mt-4 space-y-1.5 text-sm">
+              <p><a href={`mailto:${picked.email}`} className="font-semibold text-brand">{picked.email}</a></p>
+              {picked.phone && <p className="text-ink">{picked.phone}</p>}
+              {picked.goal && <p className="rounded-xl bg-mist p-3 text-muted">{picked.goal}</p>}
+              <p className="pt-2 font-semibold text-ink">
+                {picked.amount === 0 ? 'Free · course student' : `₹${(picked.amount ?? 1999).toLocaleString('en-IN')} to collect`}
+                {picked.recording && ' · wants the recording'}
+              </p>
+            </div>
+            <button onClick={() => { onCancel(picked); setPicked(null); }}
+              className="mt-6 w-full rounded-full border border-red-200 px-6 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/50">
+              Cancel this consultation
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
@@ -2334,6 +2481,8 @@ function AdminPortal({ user, onLogout }) {
   const [instructors, setInstructors] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
+  const [bookingsView, setBookingsView] = useState('calendar');
+  const [busySlot, setBusySlot] = useState(null);
 
   const call = (body, endpoint = '/api/students') => api(endpoint, body, user.idToken);
 
@@ -2390,13 +2539,31 @@ function AdminPortal({ user, onLogout }) {
     }
   };
 
-  const cancelBooking = async (booking) => {
-    if (!window.confirm(`Free up ${booking.date} at ${booking.time}? The student is not told automatically.`)) return;
+  // `quiet`: opening up a slot you blocked yourself needs no warning.
+  const cancelBooking = async (booking, { quiet = false } = {}) => {
+    if (!quiet && !window.confirm(`Free up ${booking.date} at ${booking.time}? The student is not told automatically.`)) return;
+    setBusySlot(`${booking.date} ${booking.time}`);
     try {
       await call({ action: 'cancel', date: booking.date, time: booking.time }, '/api/bookings');
       setBookings((list) => list.filter((b) => !(b.date === booking.date && b.time === booking.time)));
     } catch (err) {
       setLoadError(err.message);
+    } finally {
+      setBusySlot(null);
+    }
+  };
+
+  // Keeps a slot for yourself, so students cannot book it.
+  const blockSlot = async (date, time) => {
+    setBusySlot(`${date} ${time}`);
+    try {
+      await call({ action: 'block', date, time }, '/api/bookings');
+      setBookings((list) => [...list, { date, time, blocked: true, name: 'Blocked by instructor' }]);
+    } catch (err) {
+      setLoadError(err.message);
+      loadBookings();
+    } finally {
+      setBusySlot(null);
     }
   };
 
@@ -2651,17 +2818,29 @@ function AdminPortal({ user, onLogout }) {
 
       {activeTab === 'bookings' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="font-bold text-ink">Upcoming consultations ({bookings.length})</h2>
-              <p className="text-sm text-muted">Cancelling frees the slot for someone else. The student is not emailed.</p>
+              <h2 className="font-bold text-ink">Upcoming consultations ({bookings.filter((b) => !b.blocked).length})</h2>
+              <p className="text-sm text-muted">Every booking appears here the moment it is made. Cancelling frees the slot; the student is not emailed.</p>
             </div>
-            <button onClick={loadBookings} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+            <div className="flex items-center gap-2">
+              {[['calendar', 'Calendar'], ['list', 'List']].map(([id, label]) => (
+                <button key={id} onClick={() => setBookingsView(id)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                    bookingsView === id ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
+                  }`}>{label}</button>
+              ))}
+              <button onClick={loadBookings} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+            </div>
           </div>
 
           {bookingsLoading && <div className={`${card} p-12 text-center text-muted`}>Loading calendar…</div>}
 
-          {!bookingsLoading && bookings.length === 0 && (
+          {!bookingsLoading && bookingsView === 'calendar' && (
+            <BookingsCalendar bookings={bookings} onCancel={cancelBooking} onBlock={blockSlot} busySlot={busySlot} />
+          )}
+
+          {!bookingsLoading && bookingsView === 'list' && bookings.length === 0 && (
             <div className={`${card} p-12 text-center`}>
               <CalendarClock className="mx-auto h-10 w-10 text-brand" />
               <p className="mt-4 font-bold text-ink">No consultations booked</p>
@@ -2669,7 +2848,7 @@ function AdminPortal({ user, onLogout }) {
             </div>
           )}
 
-          {!bookingsLoading && bookings.map((booking) => (
+          {!bookingsLoading && bookingsView === 'list' && bookings.map((booking) => (
             <div key={`${booking.date}-${booking.time}`} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
               <div className="w-32 shrink-0">
                 <p className="font-bold text-ink">{booking.time} IST</p>
