@@ -701,10 +701,10 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <p className="font-bold text-ink">1-on-1 consultation</p>
               <p className="mt-1 text-sm text-muted">For choosing a school, a country or your next step</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹1,999</p>
-              <p className="mt-1 text-sm text-muted">45 minutes, one session</p>
+              <p className="mt-1 text-sm text-muted">1 hour, and I don’t watch the clock</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
-                  '45 minutes 1-on-1 on Google Meet',
+                  '1 hour 1-on-1 on Google Meet, no clock-watching',
                   'Ask anything: schools, exams, costs, visas',
                   'A study and career plan made for you',
                   'Honest answers on money and timelines',
@@ -1629,7 +1629,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
-              access.plan === 'course' && { label: 'Book a free consultation', text: '45 minutes 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
+              access.plan === 'course' && { label: 'Book a free consultation', text: '1 hour 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
               { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
             ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>

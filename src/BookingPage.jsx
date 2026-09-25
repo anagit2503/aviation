@@ -7,8 +7,20 @@ import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES } from './ui.jsx
 const SESSION_PRICE = 1999;
 const RECORDING_PRICE = 400;
 
+// Examples only: the point is that nothing is off the table.
+const TALK_ABOUT = [
+  'DGCA exams',
+  'Choosing a flight school',
+  'US visa',
+  'What to carry with you',
+  'What every student pilot should have',
+  'Costs and timelines',
+  'Licence conversion',
+  'Life abroad during training',
+];
+
 const INCLUDED = [
-  { icon: Video, text: '45 minutes 1-on-1 on Google Meet' },
+  { icon: Video, text: '1 hour 1-on-1 on Google Meet' },
   { icon: MessageSquare, text: 'Open Q&A for all your doubts' },
   { icon: Map, text: 'A study and career plan made for you' },
   { icon: Clock, text: 'Notes and next steps after the call' },
@@ -165,7 +177,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             </div>
             <h1 className="mt-6 text-2xl font-extrabold text-ink">Your session is booked</h1>
             <p className="mt-3 text-muted">
-              {confirmed.dayLabel} at {confirmed.time} IST, for 45 minutes.
+              {confirmed.dayLabel} at {confirmed.time} IST, for about an hour. No need to watch the clock.
             </p>
             <div className="mt-6 rounded-2xl bg-mist p-5 text-left text-sm">
               <Row label="Session" value={money(sessionPrice)} />
@@ -201,6 +213,18 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               </li>
             ))}
           </ul>
+          <p className="mt-6 rounded-2xl bg-white/5 p-4 text-sm leading-relaxed text-neutral-300 ring-1 ring-white/10">
+            <b className="text-white">Don’t worry about the time.</b> The hour is a guide, not a limit. I won’t be
+            watching the clock, so we keep going until your questions are answered.
+          </p>
+          <div className="mt-6">
+            <p className="text-sm font-semibold text-white">Talk about anything and everything, for example:</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {TALK_ABOUT.map((topic) => (
+                <li key={topic} className="rounded-full bg-white/10 px-3 py-1.5 text-sm text-neutral-100">{topic}</li>
+              ))}
+            </ul>
+          </div>
           {free ? (
             <div className="mt-8">
               <p className="text-3xl font-extrabold">Free</p>
@@ -307,7 +331,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
             <p className="mb-1 font-bold text-ink">{free ? 'Your session' : 'Order summary'}</p>
             <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
-            <Row label="1-on-1 consultation (45 min)" value={money(sessionPrice)} />
+            <Row label="1-on-1 consultation (1 hour)" value={money(sessionPrice)} />
             {recording && <Row label="Add on: session recording" value={money(recordingPrice)} />}
             <Row label="Total" value={free ? '₹0' : money(total)} strong />
           </div>

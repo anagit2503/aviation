@@ -34,7 +34,7 @@ export async function sendBookingEmail(booking) {
 
   const lines = [
     `Date: ${booking.date} (${booking.dayLabel})`,
-    `Time: ${booking.time} IST (45 minutes)`,
+    `Time: ${booking.time} IST (1 hour)`,
     '',
     `Name: ${booking.name}`,
     `Email: ${booking.email}`,
@@ -88,7 +88,7 @@ export async function sendStudentConfirmation(booking) {
         text: [
           `Hi ${booking.name.split(' ')[0]},`,
           '',
-          `Your 45-minute consultation is booked for ${booking.dayLabel} at ${booking.time} IST.`,
+          `Your 1-hour consultation is booked for ${booking.dayLabel} at ${booking.time} IST. Don't worry about the time; we keep going until your questions are answered.`,
           '',
           ...(booking.amount === 0
             ? ['This session is free as part of your course.', 'We will reply with the Google Meet link.']
