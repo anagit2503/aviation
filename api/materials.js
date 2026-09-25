@@ -7,10 +7,11 @@
 //   { type: 'blob.generate-client-token', ... }        → upload handshake from the browser (instructor only)
 //   { action: 'add', pathname, subject, type, title }   → instructor: record an uploaded file
 //   { action: 'list' }                                  → instructor: everything; student: what they may open
-//   { action: 'open', id }                              → a short-lived link to one file
+//   { action: 'open', id }                              → a short-lived link to one file (not for student notes)
+//   { action: 'chunk', id, start, end }                 → bytes start..end of a file, for the protected viewer
 //   { action: 'delete', id }                            → instructor: remove a file
 import { handleUpload, handleUploadPresigned } from '@vercel/blob/client';
-import { head, del, issueSignedToken, presignUrl } from '@vercel/blob';
+import { head, del, get, issueSignedToken, presignUrl } from '@vercel/blob';
 import {
   redis, verifyIdToken, isInstructorEmail, getAccess, storageReady, readJsonBody,
 } from './_lib.js';
@@ -35,6 +36,36 @@ const ALLOWED_CONTENT_TYPES = [
   'video/mp4',
 ];
 const MAX_BYTES = 500 * 1024 * 1024;
+// Largest piece the viewer asks for at once (well under Vercel's 4.5 MB response limit).
+const MAX_CHUNK = 2 * 1024 * 1024;
+
+// PDFs and images open in the protected viewer, so students never get the file itself.
+export const viewable = (m) => /pdf|^image\//.test(m.contentType || '') || /\.(pdf|png|jpe?g)$/i.test(m.pathname || '');
+
+// Reads bytes [start, end) of a stored file. Asks the store for just that range;
+// if it sends the whole file anyway, skips to the part that is needed.
+async function readRange(pathname, start, end) {
+  const result = await get(pathname, {
+    access: 'private', token: BLOB_TOKEN, headers: { Range: `bytes=${start}-${end - 1}` },
+  });
+  if (!result?.stream) throw new Error('File not found.');
+  const partial = Boolean(result.headers.get('content-range'));
+  const reader = result.stream.getReader();
+  const out = new Uint8Array(end - start);
+  let offset = partial ? start : 0; // position in the file of the next byte read
+  let filled = 0;
+  while (filled < out.length) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    const from = Math.max(0, start - offset);
+    const to = Math.min(value.length, end - offset);
+    if (to > from) { out.set(value.subarray(from, to), offset + from - start); filled += to - from; }
+    offset += value.length;
+    if (offset >= end) break;
+  }
+  reader.cancel().catch(() => {});
+  return out.subarray(0, filled);
+}
 const LINK_MINUTES = 15;
 
 // Connecting a Blob store normally adds BLOB_READ_WRITE_TOKEN, but a custom
@@ -155,6 +186,30 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (body.action === 'chunk') {
+      const material = await getMaterial(body.id);
+      if (!material) {
+        res.status(404).json({ error: 'That file is no longer available.' });
+        return;
+      }
+      if (!instructor && !canOpen(await getAccess(person.email), material)) {
+        res.status(403).json({ error: 'This file is not part of your access.' });
+        return;
+      }
+      const size = Number(material.size) || 0;
+      const start = Math.max(0, Math.floor(Number(body.start) || 0));
+      const end = Math.min(size, start + MAX_CHUNK, Math.floor(Number(body.end) || size));
+      if (!(end > start)) {
+        res.status(416).json({ error: 'Nothing to read there.' });
+        return;
+      }
+      const bytes = await readRange(material.pathname, start, end);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(200).send(Buffer.from(bytes));
+      return;
+    }
+
     if (body.action === 'open') {
       const material = await getMaterial(body.id);
       if (!material) {
@@ -163,6 +218,11 @@ export default async function handler(req, res) {
       }
       if (!instructor && !canOpen(await getAccess(person.email), material)) {
         res.status(403).json({ error: 'This file is not part of your access.' });
+        return;
+      }
+      // Notes are read in the protected viewer only; there is no download link for students.
+      if (!instructor && viewable(material)) {
+        res.status(403).json({ error: 'Open this file in the viewer.' });
         return;
       }
       const validUntil = Date.now() + LINK_MINUTES * 60 * 1000;

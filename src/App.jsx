@@ -20,6 +20,7 @@ const FIREBASE_CONFIG = {
 import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card, SLOT_TIMES } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
 import EnrollPage, { SUBJECT_PRICE, rememberSubjectPick } from './EnrollPage.jsx';
+import NotesViewer, { isViewable } from './NotesViewer.jsx';
 import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
 
@@ -1051,7 +1052,7 @@ function MaterialRow({ material, onOpen, onDelete }) {
         </p>
       </div>
       <button onClick={() => onOpen(material)} className={`${btnPrimary} px-5 py-2 text-sm`}>
-        <ExternalLink className="h-4 w-4" /> Open
+        {isViewable(material) ? <><Eye className="h-4 w-4" /> View</> : <><ExternalLink className="h-4 w-4" /> Open</>}
       </button>
       {onDelete && (
         <button onClick={() => onDelete(material)}
@@ -1540,7 +1541,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   );
   const testsDone = subjects.reduce((sum, s) => sum + s.testsDone, 0);
 
-  const open = (material) => openMaterial(material, user.idToken);
+  // Notes (PDFs and images) open in the protected viewer; nothing is downloaded.
+  const [viewing, setViewing] = useState(null);
+  const open = (material) => (isViewable(material) ? setViewing(material) : openMaterial(material, user.idToken));
   const openSubject = (name) => { setSubjectFilter(name); setActiveTab('resources'); window.scrollTo(0, 0); };
   const enroll = () => onGoPublic('enroll');
 
@@ -1756,6 +1759,11 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       )}
 
       {activeTab === 'doubts' && <StudentDoubts user={user} onRead={() => setUnread(0)} />}
+
+      {viewing && (
+        <NotesViewer material={viewing} onClose={() => setViewing(null)}
+          getToken={async () => (await currentIdToken()) || user.idToken} />
+      )}
     </AppShell>
   );
 }
@@ -1876,6 +1884,7 @@ function InstructorInbox({ user, threads, loadThreads, error }) {
 // Uploads go straight from the browser to private Blob storage; the server only
 // hands out a one-time upload token after checking the instructor's sign-in.
 function UploadMaterial({ user }) {
+  const [viewing, setViewing] = useState(null);
   const [subject, setSubject] = useState('');
   const [type, setType] = useState('');
   const [title, setTitle] = useState('');
@@ -2081,10 +2090,14 @@ function UploadMaterial({ user }) {
           <div className={`${card} p-6 text-sm text-muted`}>Nothing uploaded yet.</div>
         ) : (
           materials.map((m) => (
-            <MaterialRow key={m.id} material={m} onOpen={(x) => openMaterial(x, user.idToken)} onDelete={remove} />
+            <MaterialRow key={m.id} material={m} onOpen={(x) => (isViewable(x) ? setViewing(x) : openMaterial(x, user.idToken))} onDelete={remove} />
           ))
         )}
       </div>
+      {viewing && (
+        <NotesViewer material={viewing} onClose={() => setViewing(null)}
+          getToken={async () => (await currentIdToken()) || user.idToken} />
+      )}
     </div>
   );
 }
