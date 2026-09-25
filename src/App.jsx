@@ -472,16 +472,65 @@ function LandingPage({ setAuthMode, signedIn = false }) {
         <div className="mx-auto max-w-3xl px-4 sm:px-6">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">I was exactly where you are now.</h2>
-            <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
-              <p>
-                I did my CPL at SkyDuo Aviation Academy in Miami. I could not find the right mentor, so even after paying for
-                expensive classes I worked most of it out alone.
+            <div className="mt-6 space-y-5 text-lg leading-relaxed text-muted">
+              <p>When I first entered aviation, I had to figure almost everything out myself.</p>
+              <ul className="space-y-2 border-l-2 border-line pl-5 text-ink">
+                {[
+                  'How to clear the DGCA exams.',
+                  'Where to find the right study material.',
+                  'How to choose a flight school.',
+                  'How the licensing process actually works.',
+                  'How to apply for a visa.',
+                  'What documents were required.',
+                  'What was worth paying for — and what wasn\'t.',
+                ].map((line) => <li key={line}>{line}</li>)}
+              </ul>
+              <p>And somewhere along the way, I realised something important:</p>
+              <p className="text-2xl font-bold leading-snug text-ink">
+                Aviation is expensive. But becoming a pilot doesn&apos;t have to be unnecessarily expensive.
               </p>
               <p>
-                I scored 90+ in every subject. A few papers took me two attempts, and those retakes showed me exactly where
-                students lose marks.
+                For someone entering aviation for the first time, the industry can be overwhelming. There are unfamiliar exams,
+                regulations, flight schools, licenses, documentation, visas, medicals and countless decisions to make. When
+                students and parents don&apos;t have a background in aviation, it is natural to look for someone who can simply
+                &ldquo;handle everything.&rdquo;
               </p>
-              <p>All of that is in these notes and questions, so you can clear every paper the first time.</p>
+              <p>That&apos;s where we believe transparency matters.</p>
+              <p>
+                There is a difference between paying for genuine expertise and paying someone simply because you don&apos;t
+                know how to navigate the system yourself.
+              </p>
+              <p className="text-xl font-bold text-ink">You don&apos;t need a middleman to enter aviation.</p>
+              <p>
+                I cleared my exams myself. I found my flight school myself. I handled my applications and visa myself. I
+                completed my CPL myself. And every step taught me something that I wish someone had explained clearly from the
+                beginning.
+              </p>
+              <p>This platform exists to put that knowledge in your hands.</p>
+              <p>
+                From DGCA notes and question banks to practice tests, mock exams, career guidance and practical advice about
+                flight training, our goal is simple: give you the information you need to make your own decisions.
+              </p>
+              <p>We don&apos;t want you to depend on us for every step.</p>
+              <p>We want you to understand the process well enough that you don&apos;t have to.</p>
+              <p>
+                Because your money should go toward becoming a pilot—not toward paying for information that should have been
+                accessible in the first place.
+              </p>
+              <p>
+                Flight training itself is a significant investment. There is no reason for the ground preparation and guidance
+                around it to become another unnecessary financial burden.
+              </p>
+              <p>So this isn&apos;t just another ground school.</p>
+              <p>It&apos;s a place to learn, prepare, understand the process and navigate aviation independently.</p>
+              <p>We built this because we went through it ourselves.</p>
+              <p>
+                And if our experience can save you from making an expensive mistake, paying for something you don&apos;t need,
+                or simply feeling lost at the beginning of your aviation journey, then we&apos;ve done what we set out to do.
+              </p>
+              <p className="border-t border-line pt-5 text-2xl font-extrabold tracking-tight text-ink">
+                Learn the system. Make your own decisions. Become the pilot.
+              </p>
             </div>
             <ul className="mt-8 flex flex-wrap gap-3">
               <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
@@ -1750,6 +1799,45 @@ function UploadMaterial({ user }) {
 
   const uploading = progress !== null;
 
+  const pickers = (
+    <div className="grid gap-5 sm:grid-cols-2">
+      <div>
+        <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+        <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
+          <option value="">Select a subject</option>
+          {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="mb-1.5 block text-sm font-semibold text-ink">Type</label>
+        <select className={input} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">Select type</option>
+          {MATERIAL_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+
+  // A question bank is not stored as a file: it is split into separate
+  // questions that students practise one by one.
+  if (type === 'questions') {
+    return (
+      <div className="space-y-5">
+        <div className={`${card} p-6 sm:p-8`}>
+          <h2 className="mb-1 text-lg font-bold text-ink">Upload a question bank</h2>
+          <p className="mb-6 text-sm text-muted">
+            Your paper is split into separate questions: every numbered line (<b>1.</b>, <b>2.</b>) is a question and every
+            lettered line (<b>a)</b>, <b>b)</b>) is an option. You mark answers and add topics before saving.
+          </p>
+          {pickers}
+        </div>
+        {subject
+          ? <QuestionBankAdmin key={subject} user={user} fixedSubject={subject} addOnly />
+          : <div className={`${card} p-8 text-center text-muted`}>Pick the subject to continue.</div>}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
       <div className={`${card} h-fit p-6 sm:p-8`}>
@@ -1772,22 +1860,7 @@ function UploadMaterial({ user }) {
           </div>
         )}
         <form onSubmit={submit} className="space-y-5">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
-              <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
-                <option value="">Select a subject</option>
-                {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Type</label>
-              <select className={input} value={type} onChange={(e) => setType(e.target.value)}>
-                <option value="">Select type</option>
-                {MATERIAL_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-              </select>
-            </div>
-          </div>
+          {pickers}
           <div>
             <label className="mb-1.5 block text-sm font-semibold text-ink">Title</label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
@@ -2010,7 +2083,9 @@ function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer
   );
 }
 
-function QuestionBankAdmin({ user }) {
+// `fixedSubject` / `addOnly`: used inside the Upload tab, where the subject is
+// already picked there and only the add-and-split flow is shown.
+function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   const [view, setView] = useState('add');
   const [saved, setSaved] = useState([]);
   const [error, setError] = useState('');
@@ -2018,7 +2093,8 @@ function QuestionBankAdmin({ user }) {
   const [busy, setBusy] = useState(false);
 
   // Adding
-  const [subject, setSubject] = useState('');
+  const [pickedSubject, setSubject] = useState('');
+  const subject = fixedSubject || pickedSubject;
   const [source, setSource] = useState('');
   const [pasted, setPasted] = useState('');
   const [draft, setDraft] = useState([]);
@@ -2126,6 +2202,7 @@ function QuestionBankAdmin({ user }) {
 
   return (
     <div className="space-y-5">
+      {!addOnly && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
           {[['add', 'Add questions'], ['saved', `All questions (${saved.length})`]].map(([id, label]) => (
@@ -2136,6 +2213,7 @@ function QuestionBankAdmin({ user }) {
           ))}
         </div>
       </div>
+      )}
       {error && <p className="text-sm font-medium text-red-600">{error}</p>}
       {notice && <p className="rounded-xl bg-go/10 p-3 text-sm font-medium text-go">{notice}</p>}
 
@@ -2149,6 +2227,7 @@ function QuestionBankAdmin({ user }) {
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
+            {!fixedSubject && (
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
               <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
@@ -2156,6 +2235,7 @@ function QuestionBankAdmin({ user }) {
                 {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
               </select>
             </div>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">Paper name <span className="font-normal text-muted">(optional)</span></label>
               <input className={input} value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. MET1" />
