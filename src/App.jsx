@@ -375,8 +375,35 @@ const FAQS = [
   },
 ];
 
+// Section links ("Subjects", "See the course" …) put the section's content in
+// the middle of the space below the sticky header, instead of pinning its top
+// edge (and its padding) under the header. Tall sections start at their heading.
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  const content = section.firstElementChild || section;
+  const header = document.querySelector('header');
+  const headerHeight = header ? header.getBoundingClientRect().height : 0;
+  const space = window.innerHeight - headerHeight;
+  const box = content.getBoundingClientRect();
+  const offset = box.height < space ? (space - box.height) / 2 : 24;
+  window.scrollTo({ top: window.scrollY + box.top - headerHeight - offset, behavior: 'smooth' });
+  window.history.replaceState(null, '', `#${id}`);
+}
+
 function LandingPage({ setAuthMode, signedIn = false }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      const link = e.target.closest?.('a[href^="#"]');
+      if (!link || link.getAttribute('href').length < 2) return;
+      e.preventDefault();
+      scrollToSection(link.getAttribute('href').slice(1));
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
   const [activeSubject, setActiveSubject] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
   const subject = SUBJECTS[activeSubject];
