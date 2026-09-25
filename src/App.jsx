@@ -393,6 +393,12 @@ function scrollToSection(id) {
 
 function LandingPage({ setAuthMode, signedIn = false }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // The logo takes you back to the top from anywhere on the page.
+  const backToTop = () => {
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.history.replaceState(null, '', window.location.pathname);
+  };
 
   useEffect(() => {
     const onClick = (e) => {
@@ -413,7 +419,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-line/70 bg-surface/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
-          <Logo />
+          <button onClick={backToTop} aria-label="Avero Aviation, back to top"><Logo /></button>
           <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
             <a href="#subjects" className="transition hover:text-ink">Subjects</a>
             <a href="#about" className="transition hover:text-ink">About</a>
@@ -823,7 +829,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       {/* Footer */}
       <footer className="border-t border-line py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row sm:px-6">
-          <Logo />
+          <button onClick={backToTop} aria-label="Avero Aviation, back to top"><Logo /></button>
           <p>&copy; {new Date().getFullYear()} Avero Aviation. All rights reserved.</p>
         </div>
       </footer>
