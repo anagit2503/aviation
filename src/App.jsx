@@ -1069,8 +1069,9 @@ function ChatThread({ messages, mine, onSend, placeholder, emptyText, loading })
             placeholder={placeholder}
             className={`${input} resize-none`}
           />
-          <button onClick={send} disabled={sending || !text.trim()} className={`${btnPrimary} h-12 w-12 shrink-0 p-0`} aria-label="Send">
-            {sending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          <button onClick={send} disabled={sending || !text.trim()} aria-label="Send" title="Send"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40">
+            {sending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5 -translate-x-px translate-y-px" />}
           </button>
         </div>
         <p className="mt-1.5 text-xs text-muted">Enter to send · Shift + Enter for a new line</p>
@@ -1080,13 +1081,22 @@ function ChatThread({ messages, mine, onSend, placeholder, emptyText, loading })
 }
 
 // Polls while the tab is visible, so replies show up without a refresh.
+// Hidden tabs pause (no wasted requests) and catch up the moment they are
+// shown again, instead of waiting for the next tick.
 function usePolling(fn, ms, deps) {
   useEffect(() => {
     let live = true;
     const run = () => { if (live && document.visibilityState === 'visible') fn(); };
     fn();
     const timer = setInterval(run, ms);
-    return () => { live = false; clearInterval(timer); };
+    document.addEventListener('visibilitychange', run);
+    window.addEventListener('focus', run);
+    return () => {
+      live = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', run);
+      window.removeEventListener('focus', run);
+    };
   }, deps);
 }
 
@@ -1108,7 +1118,7 @@ function StudentDoubts({ user, onRead }) {
     }
   };
 
-  usePolling(load, 15000, []);
+  usePolling(load, 5000, []);
 
   const send = async (text) => {
     const data = await api('/api/messages', { action: 'send', text }, user.idToken);
@@ -1629,7 +1639,7 @@ function InstructorInbox({ user, threads, loadThreads, error }) {
     loadThreads();
   };
 
-  usePolling(() => { if (selected) loadThread(selected, true).catch(() => {}); }, 15000, [selected]);
+  usePolling(() => { if (selected) loadThread(selected, true).catch(() => {}); }, 5000, [selected]);
 
   const reply = async (text) => {
     const data = await api('/api/messages', { action: 'reply', email: selected, text }, user.idToken);
@@ -2336,7 +2346,7 @@ function AdminPortal({ user, onLogout }) {
       setInboxError(err.message);
     }
   };
-  usePolling(loadThreads, 30000, []);
+  usePolling(loadThreads, 10000, []);
   const unreadDoubts = threads.reduce((sum, t) => sum + (t.unread || 0), 0);
 
   const deleteStudent = async (student) => {
