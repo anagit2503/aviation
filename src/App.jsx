@@ -431,14 +431,14 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <ThemeToggle />
+            <button onClick={() => setAuthMode('book')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
+              Book a consultation
+            </button>
             <button
               onClick={() => setAuthMode(signedIn ? 'dashboard' : 'login')}
               className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist"
             >
               {signedIn ? 'My dashboard' : 'Log in'}
-            </button>
-            <button onClick={() => setAuthMode('book')} className={`${btnPrimary} px-5 py-2.5 text-sm`}>
-              Book a consultation
             </button>
           </div>
           <div className="flex items-center gap-2 md:hidden">
@@ -1508,8 +1508,12 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .catch(() => {});
   }, [accessKey]);
   const pending = payments.filter((p) => p.status === 'awaiting' || p.status === 'claimed');
-  // Only the latest request matters: an old decline is irrelevant once a newer payment went through.
-  const rejected = !pending.length && payments[0]?.status === 'rejected' ? payments[0] : null;
+  // Show the apology only while it still applies: the latest request was
+  // declined AND the student still lacks at least one of those subjects. Once
+  // the subjects are switched on (by a later payment or by hand) it disappears.
+  const latest = payments[0];
+  const rejected = !pending.length && latest?.status === 'rejected'
+    && latest.subjects.some((s) => !allowed.some((a) => a.name === s)) ? latest : null;
   const pendingNames = [...new Set(pending.flatMap((p) => p.subjects))];
 
   const checkAgain = async () => {

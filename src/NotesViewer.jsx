@@ -16,19 +16,21 @@ const CHUNK = 2 * 1024 * 1024; // matches MAX_CHUNK in api/materials.js
 export const isViewable = (m) => /pdf|^image\//.test(m.contentType || '') || /\.(pdf|png|jpe?g)$/i.test(m.pathname || '');
 const isPdf = (m) => /pdf/.test(m.contentType || '') || /\.pdf$/i.test(m.pathname || '');
 
+// Two light diagonal lines per page, one in the upper half and one in the lower.
 function drawWatermark(ctx, width, height) {
   ctx.save();
-  ctx.globalAlpha = 0.09;
+  ctx.globalAlpha = 0.08;
   ctx.fillStyle = '#000';
-  const size = Math.max(18, Math.round(width / 16));
-  ctx.font = `800 ${size}px "Plus Jakarta Sans", system-ui, sans-serif`;
-  ctx.translate(width / 2, height / 2);
-  ctx.rotate(-Math.PI / 6);
-  const step = size * 5;
-  for (let y = -height; y < height; y += step) {
-    for (let x = -width; x < width; x += size * 10) {
-      ctx.fillText(WATERMARK, x + ((y / step) % 2) * size * 5, y);
-    }
+  const size = Math.max(12, Math.round(width / 28));
+  ctx.font = `700 ${size}px "Plus Jakarta Sans", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const at of [0.3, 0.72]) {
+    ctx.save();
+    ctx.translate(width / 2, height * at);
+    ctx.rotate(-Math.PI / 7);
+    ctx.fillText(WATERMARK, 0, 0);
+    ctx.restore();
   }
   ctx.restore();
 }
