@@ -22,7 +22,7 @@ export function Logo({ light = false, compact = false }) {
         <Plane className="h-5 w-5 -rotate-45" />
       </div>
       {!compact && (
-        <span className={`text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
+        <span className={`whitespace-nowrap text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
           Avero Aviation
         </span>
       )}

@@ -950,8 +950,8 @@ function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, ch
               <p className="text-xs text-muted">{subtitle}</p>
               <p className="text-sm font-semibold text-ink">{title}</p>
             </div>
-            <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:border-red-200 hover:bg-red-50 dark:hover:border-red-900 dark:hover:bg-red-950/50 hover:text-red-600">
-              <LogOut className="h-4 w-4" /> Log out
+            <button onClick={onLogout} aria-label="Log out" title="Log out" className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:border-red-200 hover:bg-red-50 dark:hover:border-red-900 dark:hover:bg-red-950/50 hover:text-red-600">
+              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Log out</span>
             </button>
           </div>
         </div>

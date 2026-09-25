@@ -111,7 +111,7 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <button onClick={goBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
-              <ArrowLeft className="h-4 w-4" /> My dashboard
+              <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">My dashboard</span><span className="sm:hidden">Back</span>
             </button>
           </div>
         </div>

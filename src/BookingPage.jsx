@@ -366,7 +366,7 @@ function TopBar({ goHome }) {
         <div className="flex items-center gap-4">
           <ThemeToggle />
           <button onClick={goHome} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
-            <ArrowLeft className="h-4 w-4" /> Back to home
+            <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to home</span><span className="sm:hidden">Home</span>
           </button>
         </div>
       </div>
