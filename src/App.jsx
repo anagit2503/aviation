@@ -1252,10 +1252,18 @@ function PracticeQuestions({ user, subjects }) {
   const tried = questions.filter((q) => progress[q.id]?.attempts).length;
   const right = questions.filter((q) => progress[q.id]?.everCorrect).length;
 
-  const start = () => { setSet(matching.map((q) => q.id)); setIndex(0); setResults({}); window.scrollTo(0, 0); };
+  const start = () => { setSet(matching.map((q) => q.id)); setIndex(0); setResults({}); setPicks({}); window.scrollTo(0, 0); };
 
-  const choose = async (q, choice) => {
+  // Picking an option only selects it; nothing is revealed until "Check".
+  const [picks, setPicks] = useState({});
+  const pick = (q, choice) => {
     if (results[q.id] || checking) return;
+    setPicks((p) => ({ ...p, [q.id]: choice }));
+  };
+
+  const check = async (q) => {
+    const choice = picks[q.id];
+    if (choice === undefined || results[q.id] || checking) return;
     setChecking(true);
     try {
       const data = await api('/api/questions', { action: 'answer', id: q.id, choice }, user.idToken);
@@ -1308,7 +1316,7 @@ function PracticeQuestions({ user, subjects }) {
             <p className="mt-1 text-muted">You finished this set.</p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               {done.some((r) => !r.correct) && (
-                <button onClick={() => { setSet(set.filter((id) => results[id] && !results[id].correct)); setIndex(0); setResults({}); }}
+                <button onClick={() => { setSet(set.filter((id) => results[id] && !results[id].correct)); setIndex(0); setResults({}); setPicks({}); }}
                   className={btnPrimary}>Retry the ones I got wrong</button>
               )}
               <button onClick={() => setSet(null)} className={btnGhost}>Pick another set</button>
@@ -1332,16 +1340,19 @@ function PracticeQuestions({ user, subjects }) {
               {q.options.map((option, i) => {
                 const isAnswer = result && i === result.answer;
                 const isWrongPick = result && i === result.choice && !result.correct;
+                const isPicked = !result && picks[q.id] === i;
                 return (
-                  <button key={i} onClick={() => choose(q, i)} disabled={Boolean(result) || checking}
+                  <button key={i} onClick={() => pick(q, i)} disabled={Boolean(result) || checking} aria-pressed={isPicked}
                     className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition ${
                       isAnswer ? 'border-go bg-go/10'
                         : isWrongPick ? 'border-red-400 bg-red-50 dark:bg-red-950/40'
                           : result ? 'border-line opacity-60'
-                            : 'border-line hover:border-brand hover:bg-sky'
+                            : isPicked ? 'border-brand bg-sky ring-2 ring-brand'
+                              : 'border-line hover:border-brand hover:bg-sky'
                     }`}>
                     <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${
-                      isAnswer ? 'border-go bg-go text-white' : isWrongPick ? 'border-red-500 bg-red-500 text-white' : 'border-line text-muted'
+                      isAnswer ? 'border-go bg-go text-white' : isWrongPick ? 'border-red-500 bg-red-500 text-white'
+                        : isPicked ? 'border-brand bg-brand text-on-brand' : 'border-line text-muted'
                     }`}>
                       {isAnswer ? <Check className="h-4 w-4" strokeWidth={3} /> : isWrongPick ? <X className="h-4 w-4" strokeWidth={3} /> : letter(i)}
                     </span>
@@ -1355,12 +1366,25 @@ function PracticeQuestions({ user, subjects }) {
                 {result.correct ? 'Correct!' : `Not quite. The answer is ${letter(result.answer)}.`}
               </p>
             )}
-            <div className="mt-6 flex justify-between gap-3">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <button onClick={() => setIndex(Math.max(0, index - 1))} disabled={index === 0}
                 className={`${btnGhost} px-5 py-2.5 text-sm disabled:opacity-50`}>Previous</button>
-              <button onClick={() => setIndex(index + 1)} className={`${btnPrimary} px-6 py-2.5 text-sm`}>
-                {index === set.length - 1 ? 'Finish' : result ? 'Next' : 'Skip'}
-              </button>
+              {result ? (
+                <button onClick={() => setIndex(index + 1)} className={`${btnPrimary} px-6 py-2.5 text-sm`}>
+                  {index === set.length - 1 ? 'Finish' : 'Next question'}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setIndex(index + 1)} className="px-3 py-2.5 text-sm font-semibold text-muted transition hover:text-ink">
+                    {index === set.length - 1 ? 'Finish' : 'Skip'}
+                  </button>
+                  <button onClick={() => check(q)} disabled={picks[q.id] === undefined || checking}
+                    className={`${btnPrimary} px-7 py-2.5 text-sm`}>
+                    {checking ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                    {picks[q.id] === undefined ? 'Pick an answer' : 'Check'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
