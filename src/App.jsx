@@ -3,6 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -308,8 +309,8 @@ const FAQS = [
     a: 'It depends on the country and the school, and prices change. That is exactly what the consultation is for: we go through the real numbers, including the fees most schools do not mention up front.',
   },
   {
-    q: 'Do I get access forever?',
-    a: 'Yes. One payment gives you lifetime access to all the notes, questions and mock exams, plus future updates.',
+    q: 'How does the monthly fee work?',
+    a: 'The course is ₹4,999 a month. While you are enrolled you get all the notes, questions and mock exams, plus free 1-on-1 consultations and the doubts chat. Stop whenever you have cleared your papers.',
   },
   {
     q: 'Should I book a call or buy the course?',
@@ -553,18 +554,18 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               What actually costs students their licence
             </h2>
-            <p className="mt-4 text-lg text-blue-100/75">
+            <p className="mt-4 text-lg text-neutral-300/75">
               Flying is the easy part. Most money and time is lost before you reach a cockpit.
             </p>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
             {PITFALLS.map(({ icon: Icon, title, text }) => (
               <div key={title} className="rounded-2xl bg-white/5 p-7 ring-1 ring-white/10">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-blue-200">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-neutral-300">
                   <Icon className="h-5 w-5" />
                 </div>
                 <p className="mt-5 text-lg font-bold text-white">{title}</p>
-                <p className="mt-2 leading-relaxed text-blue-100/70">{text}</p>
+                <p className="mt-2 leading-relaxed text-neutral-300/70">{text}</p>
               </div>
             ))}
           </div>
@@ -608,12 +609,14 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             </div>
 
             {/* Course */}
-            <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(47,91,224,0.35)]`}>
+            <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(0,0,0,0.35)]`}>
               <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">Most popular</span>
               <p className="font-bold text-ink">Full ground school course</p>
               <p className="mt-1 text-sm text-muted">Notes and questions for all six DGCA papers</p>
-              <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹4,999</p>
-              <p className="mt-1 text-sm text-muted">One-time payment, lifetime access</p>
+              <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">
+                ₹4,999<span className="text-lg font-semibold text-muted"> / month</span>
+              </p>
+              <p className="mt-1 text-sm text-muted">Billed monthly, stop any time</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   'Complete notes for all six subjects',
@@ -621,7 +624,8 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   'Topic tests and full mock exams',
                   'Study material you can download',
                   'Your marks tracked subject by subject',
-                  'Free updates when the syllabus changes',
+                  'Doubts chat with your instructor',
+                  'Free 1-on-1 consultations while enrolled',
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
@@ -670,7 +674,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <path d="M-20 250 C 200 60, 520 320, 820 40" fill="none" stroke="#6f8ff0" strokeWidth="2" strokeDasharray="6 10" />
           </svg>
           <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Your licence starts on the ground.</h2>
-          <p className="relative mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
+          <p className="relative mx-auto mt-4 max-w-xl text-lg text-neutral-300/80">
             Join 500+ students who studied with a clear plan and passed.
           </p>
           <button onClick={() => setAuthMode('signup')} className="relative mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
@@ -763,9 +767,9 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
         <button onClick={() => setAuthMode('landing')} className="relative w-fit"><Logo light /></button>
         <div className="relative max-w-md">
           <p className="text-3xl font-extrabold leading-tight">Everything you need for the CPL ground papers, in one place.</p>
-          <p className="mt-4 text-blue-100/70">Notes, 2000+ questions, topic tests and mock exams.</p>
+          <p className="mt-4 text-neutral-300/70">Notes, 2000+ questions, topic tests and mock exams.</p>
         </div>
-        <p className="relative text-sm text-blue-100/50">Trusted by 500+ student pilots</p>
+        <p className="relative text-sm text-neutral-300/50">Trusted by 500+ student pilots</p>
       </div>
       <div className="flex items-center justify-center bg-white px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
@@ -837,7 +841,7 @@ function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, ch
         </div>
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <nav className="-mb-px flex gap-1 overflow-x-auto">
-            {tabs.map(({ id, label, icon: Icon }) => (
+            {tabs.map(({ id, label, icon: Icon, badge }) => (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
@@ -846,6 +850,9 @@ function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, ch
                 }`}
               >
                 <Icon className="h-4 w-4" /> {label}
+                {badge > 0 && (
+                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">{badge}</span>
+                )}
               </button>
             ))}
           </nav>
@@ -864,12 +871,244 @@ function ProgressBar({ value, color = 'bg-brand', height = 'h-2' }) {
   );
 }
 
+// ============= SHARED PORTAL PIECES =============
+// Every portal call carries a current Google token; the one from sign-in
+// expires after an hour.
+async function api(endpoint, body, fallbackToken) {
+  const idToken = (await currentIdToken()) || fallbackToken;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, ...body }),
+  });
+  let data = {};
+  try { data = await res.json(); } catch { /* empty or non-JSON reply */ }
+  if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+  return data;
+}
+
+// Keep in sync with TYPES in api/materials.js.
+const MATERIAL_TYPES = [
+  { id: 'notes', label: 'Notes' },
+  { id: 'questions', label: 'Question bank' },
+  { id: 'test', label: 'Topic test' },
+  { id: 'mock', label: 'Mock exam' },
+];
+const typeLabel = (id) => MATERIAL_TYPES.find((t) => t.id === id)?.label || 'File';
+
+function fileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Opens a stored file. The tab is opened straight away, before the link is
+// fetched, because browsers block tabs opened after a wait.
+async function openMaterial(material, fallbackToken) {
+  const tab = window.open('', '_blank');
+  try {
+    const { url } = await api('/api/materials', { action: 'open', id: material.id }, fallbackToken);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+  } catch (err) {
+    if (tab) tab.close();
+    window.alert(err.message);
+  }
+}
+
+function MaterialRow({ material, onOpen, onDelete }) {
+  return (
+    <div className={`${card} flex flex-wrap items-center gap-4 p-5`}>
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky text-brand">
+        <FileText className="h-6 w-6" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-ink">{material.title}</p>
+        <p className="text-sm text-muted">
+          {material.subject} · {typeLabel(material.type)}{material.size ? ` · ${fileSize(material.size)}` : ''}
+        </p>
+      </div>
+      <button onClick={() => onOpen(material)} className={`${btnPrimary} px-5 py-2 text-sm`}>
+        <ExternalLink className="h-4 w-4" /> Open
+      </button>
+      {onDelete && (
+        <button onClick={() => onDelete(material)}
+          className="rounded-lg p-2 text-muted transition hover:bg-red-50 hover:text-red-600" aria-label="Delete">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+const chatTime = (iso) => new Date(iso).toLocaleString('en-IN', {
+  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+});
+
+// The conversation itself, used by both the student and the instructor.
+function ChatThread({ messages, mine, onSend, placeholder, emptyText, loading }) {
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const endRef = React.useRef(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [messages.length]);
+
+  const send = async () => {
+    const value = text.trim();
+    if (!value || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      await onSend(value);
+      setText('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="flex h-[min(70vh,640px)] flex-col">
+      <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
+        {loading && messages.length === 0 && <p className="text-center text-sm text-muted">Loading…</p>}
+        {!loading && messages.length === 0 && (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <MessageCircle className="h-10 w-10 text-brand" />
+            <p className="mt-3 max-w-sm text-muted">{emptyText}</p>
+          </div>
+        )}
+        {messages.map((m, i) => {
+          const own = m.from === mine;
+          return (
+            <div key={`${m.at}-${i}`} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${
+                own ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-mist text-ink'
+              }`}>
+                <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.text}</p>
+                <p className={`mt-1 text-xs ${own ? 'text-neutral-300' : 'text-muted'}`}>
+                  {m.from === 'instructor' && !own ? `${m.by?.split(' ')[0] || 'Instructor'} · ` : ''}
+                  {chatTime(m.at)}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={endRef} />
+      </div>
+      <div className="border-t border-line p-3 sm:p-4">
+        {error && <p className="mb-2 text-sm font-medium text-red-600">{error}</p>}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+            }}
+            rows={2}
+            maxLength={2000}
+            placeholder={placeholder}
+            className={`${input} resize-none`}
+          />
+          <button onClick={send} disabled={sending || !text.trim()} className={`${btnPrimary} h-12 w-12 shrink-0 p-0`} aria-label="Send">
+            {sending ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          </button>
+        </div>
+        <p className="mt-1.5 text-xs text-muted">Enter to send · Shift + Enter for a new line</p>
+      </div>
+    </div>
+  );
+}
+
+// Polls while the tab is visible, so replies show up without a refresh.
+function usePolling(fn, ms, deps) {
+  useEffect(() => {
+    let live = true;
+    const run = () => { if (live && document.visibilityState === 'visible') fn(); };
+    fn();
+    const timer = setInterval(run, ms);
+    return () => { live = false; clearInterval(timer); };
+  }, deps);
+}
+
+function StudentDoubts({ user, onRead }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    try {
+      const data = await api('/api/messages', { action: 'thread', markRead: true }, user.idToken);
+      setMessages(data.messages || []);
+      setError('');
+      onRead();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  usePolling(load, 15000, []);
+
+  const send = async (text) => {
+    const data = await api('/api/messages', { action: 'send', text }, user.idToken);
+    setMessages((list) => [...list, data.message]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-ink">Doubts and queries</h2>
+        <p className="text-sm text-muted">Ask anything about your subjects or training. Your instructor replies here.</p>
+      </div>
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+      <div className={card}>
+        <ChatThread
+          messages={messages}
+          mine="student"
+          onSend={send}
+          loading={loading}
+          placeholder="Type your doubt…"
+          emptyText="No questions yet. Ask your first doubt below and you will get a reply here."
+        />
+      </div>
+    </div>
+  );
+}
+
 // ============= STUDENT DASHBOARD =============
 function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [materials, setMaterials] = useState([]);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [unread, setUnread] = useState(0);
   // What this person can open is decided by the instructor, saved on the server.
   const access = user.access || { plan: 'none', subjects: [], questions: false, tests: false };
   const allowed = SUBJECTS.filter((s) => access.subjects?.includes(s.name));
+  const accessKey = [access.plan, access.questions, access.tests, ...(access.subjects || [])].join(',');
+
+  // The server only returns files this student is allowed to open.
+  useEffect(() => {
+    if (allowed.length === 0) { setMaterialsLoading(false); return; }
+    let live = true;
+    setMaterialsLoading(true);
+    api('/api/materials', { action: 'list' }, user.idToken)
+      .then((data) => { if (live) setMaterials(data.materials || []); })
+      .catch(() => { if (live) setMaterials([]); })
+      .finally(() => { if (live) setMaterialsLoading(false); });
+    return () => { live = false; };
+  }, [accessKey]);
+
+  // Unread replies, for the badge on the Doubts tab.
+  usePolling(() => {
+    if (activeTab === 'doubts') return;
+    api('/api/messages', { action: 'thread' }, user.idToken)
+      .then((data) => setUnread(data.unread || 0))
+      .catch(() => {});
+  }, 60000, [activeTab]);
 
   // Everyone starts at zero. Real progress will come from the database once
   // students' work is saved; nothing here is pre-filled.
@@ -881,19 +1120,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       topicsTotal: s.topics.length,
       testsDone: 0,
       bestScore: null,
+      files: materials.filter((m) => m.subject === s.name).length,
     })),
-    [access.subjects?.join(',')],
-  );
-
-  const resources = React.useMemo(
-    () => allowed.map((s, i) => ({
-      id: i + 1,
-      title: `${s.name} — complete notes`,
-      subject: s.name,
-      detail: 'PDF',
-      opened: false,
-    })),
-    [access.subjects?.join(',')],
+    [accessKey, materials],
   );
 
   const topicsDone = subjects.reduce((sum, s) => sum + s.topicsDone, 0);
@@ -901,19 +1130,38 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const overallPercentage = topicsTotal ? Math.round((topicsDone / topicsTotal) * 100) : 0;
   const testsDone = subjects.reduce((sum, s) => sum + s.testsDone, 0);
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'resources', label: 'Resources', icon: FileText },
-    ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
-    ...(access.tests ? [{ id: 'scores', label: 'Test scores', icon: BarChart3 }] : []),
-  ];
+  const open = (material) => openMaterial(material, user.idToken);
+  const openSubject = (name) => { setSubjectFilter(name); setActiveTab('resources'); window.scrollTo(0, 0); };
 
-  // Nobody gets course material until the instructor grants it.
-  if (allowed.length === 0) {
-    return (
-      <AppShell title={firstName(user)} subtitle="Welcome" onLogout={onLogout}
-        tabs={[{ id: 'overview', label: 'Overview', icon: LayoutDashboard }]}
-        activeTab="overview" setActiveTab={() => {}}>
+  const doubtsTab = { id: 'doubts', label: 'Doubts', icon: MessageCircle, badge: unread };
+  const tabs = allowed.length === 0
+    ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }, doubtsTab]
+    : [
+      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+      { id: 'resources', label: 'Resources', icon: FileText },
+      ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
+      ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
+      ...(access.plan === 'course' ? [{ id: 'book', label: 'Book a consultation', icon: CalendarClock }] : []),
+      doubtsTab,
+    ];
+
+  const shownMaterials = materials.filter((m) => subjectFilter === 'all' || m.subject === subjectFilter);
+  const questionBanks = materials.filter((m) => m.type === 'questions');
+  const tests = materials.filter((m) => m.type === 'test' || m.type === 'mock');
+
+  const emptyFiles = (text) => (
+    <div className={`${card} p-10 text-center`}>
+      <FileText className="mx-auto h-10 w-10 text-brand" />
+      <p className="mt-4 font-bold text-ink">Nothing here yet</p>
+      <p className="mt-1 text-muted">{text}</p>
+    </div>
+  );
+
+  return (
+    <AppShell title={firstName(user)} subtitle={allowed.length ? 'Welcome back' : 'Welcome'} onLogout={onLogout}
+      tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+      {/* Nobody gets course material until the instructor grants it. */}
+      {activeTab === 'overview' && allowed.length === 0 && (
         <div className={`${card} mx-auto max-w-xl p-10 text-center`}>
           <BookOpen className="mx-auto h-10 w-10 text-brand" />
           <h2 className="mt-5 text-xl font-bold text-ink">
@@ -935,13 +1183,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             Access just granted? Check again
           </button>
         </div>
-      </AppShell>
-    );
-  }
+      )}
 
-  return (
-    <AppShell title={firstName(user)} subtitle="Welcome back" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === 'overview' && (
+      {activeTab === 'overview' && allowed.length > 0 && (
         <div className="space-y-8">
           <div className={`${card} grid gap-6 p-6 sm:p-8 md:grid-cols-[auto_1fr] md:items-center md:gap-10`}>
             <div>
@@ -962,9 +1206,13 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             <h2 className="mb-4 text-lg font-bold text-ink">Your subjects</h2>
             <div className="grid gap-4 md:grid-cols-3">
               {subjects.map((subject) => (
-                <div key={subject.id} className={`${card} p-6`}>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
-                    <BookOpen className="h-5 w-5" />
+                <button key={subject.id} onClick={() => openSubject(subject.name)}
+                  className={`${card} group p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
                   </div>
                   <p className="mt-4 font-bold text-ink">{subject.name}</p>
                   <div className="mt-4 mb-1.5 flex justify-between text-sm">
@@ -976,9 +1224,11 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                   <ProgressBar value={Math.round((subject.topicsDone / subject.topicsTotal) * 100)} />
                   <div className="mt-4 flex justify-between border-t border-line pt-4 text-sm text-muted">
                     <span>{subject.topicsDone} of {subject.topicsTotal} topics</span>
-                    <span>{subject.testsDone === 0 ? 'No tests yet' : `${subject.testsDone} tests done`}</span>
+                    <span className="font-semibold text-brand">
+                      {materialsLoading ? 'Open' : subject.files === 0 ? 'No files yet' : `${subject.files} file${subject.files === 1 ? '' : 's'}`}
+                    </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -988,64 +1238,46 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       {activeTab === 'resources' && (
         <div className="space-y-3">
           <h2 className="mb-1 text-lg font-bold text-ink">Notes and question banks</h2>
-          <p className="mb-4 text-sm text-muted">These are the subjects you can access. Files are being uploaded now.</p>
-          {resources.map((item) => (
-            <div key={item.id} className={`${card} flex flex-wrap items-center gap-4 p-5`}>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky text-brand">
-                <FileText className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-ink">{item.title}</p>
-                <p className="text-sm text-muted">{item.subject} · {item.detail}</p>
-              </div>
-              {item.opened && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-go/10 px-3 py-1 text-sm font-semibold text-go">
-                  <Check className="h-4 w-4" /> Opened
-                </span>
-              )}
-              <button disabled className={`${btnGhost} cursor-not-allowed px-5 py-2 text-sm opacity-60`}>
-                Coming soon
+          <div className="mb-4 flex flex-wrap gap-2">
+            {['all', ...allowed.map((s) => s.name)].map((name) => (
+              <button key={name} onClick={() => setSubjectFilter(name)}
+                className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+                  subjectFilter === name ? 'border-brand bg-brand text-white' : 'border-line bg-white text-ink hover:border-brand'
+                }`}>
+                {name === 'all' ? 'All subjects' : name}
               </button>
-            </div>
-          ))}
+            ))}
+          </div>
+          {materialsLoading && <div className={`${card} p-10 text-center text-muted`}>Loading files…</div>}
+          {!materialsLoading && shownMaterials.length === 0 && emptyFiles(
+            subjectFilter === 'all'
+              ? 'Your instructor is uploading material now. It will appear here.'
+              : `Nothing uploaded for ${subjectFilter} yet. It will appear here as soon as it is.`,
+          )}
+          {!materialsLoading && shownMaterials.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
         </div>
       )}
 
       {activeTab === 'quizzes' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h2 className="mb-4 text-lg font-bold text-ink">Practice questions</h2>
-          <div className={`${card} p-8 text-center`}>
-            <ListChecks className="mx-auto h-10 w-10 text-brand" />
-            <p className="mt-4 font-bold text-ink">Questions are being added</p>
-            <p className="mt-1 text-muted">Your subjects are unlocked. The question bank goes live shortly.</p>
-          </div>
-          <div className="hidden">
-          {subjects.map((subject) => (
-            <div key={subject.id} className={`${card} p-6`}>
-              <p className="mb-4 font-bold text-ink">{subject.name}</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[1, 2, 3, 4].map((quiz) => (
-                  <button key={quiz} className="rounded-xl border border-line p-4 text-left transition hover:border-brand hover:bg-sky">
-                    <p className="font-bold text-ink">Quiz {quiz}</p>
-                    <p className="text-sm text-muted">10 questions</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          </div>
+          {!materialsLoading && questionBanks.length === 0 && emptyFiles('Your subjects are unlocked. The question bank goes live shortly.')}
+          {questionBanks.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
         </div>
       )}
 
       {activeTab === 'scores' && (
         <div className="space-y-4">
-          <h2 className="mb-4 text-lg font-bold text-ink">Test scores</h2>
+          <h2 className="text-lg font-bold text-ink">Topic tests and mock exams</h2>
+          {!materialsLoading && tests.length === 0 && emptyFiles('Tests appear here once your instructor uploads them.')}
+          {tests.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
+
+          <h2 className="pt-4 text-lg font-bold text-ink">Your scores</h2>
           {testsDone === 0 ? (
-            <div className={`${card} p-12 text-center`}>
+            <div className={`${card} p-8 text-center`}>
               <BarChart3 className="mx-auto h-10 w-10 text-brand" />
-              <p className="mt-4 font-bold text-ink">No tests taken yet</p>
+              <p className="mt-4 font-bold text-ink">No scores yet</p>
               <p className="mt-1 text-muted">Your best score in each subject will show up here.</p>
-              <button onClick={() => setActiveTab('quizzes')} className={`${btnPrimary} mt-6`}>Take your first test</button>
             </div>
           ) : (
             subjects.map((subject) => (
@@ -1066,6 +1298,17 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         </div>
       )}
 
+      {activeTab === 'book' && (
+        <BookingPage
+          free
+          embedded
+          account={{ name: user.name, email: user.email }}
+          getIdToken={async () => (await currentIdToken()) || user.idToken}
+          goHome={() => setActiveTab('overview')}
+        />
+      )}
+
+      {activeTab === 'doubts' && <StudentDoubts user={user} onRead={() => setUnread(0)} />}
     </AppShell>
   );
 }
@@ -1077,6 +1320,286 @@ const PLAN_LABELS = {
   course: 'Course student',
 };
 
+// Every student's doubts, newest first, with a reply box.
+function InstructorInbox({ user, threads, loadThreads, error }) {
+  const [selected, setSelected] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadThread = async (email, quiet = false) => {
+    if (!quiet) setLoading(true);
+    try {
+      const data = await api('/api/messages', { action: 'thread', email }, user.idToken);
+      setMessages(data.messages || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Opening a conversation marks it read, then the inbox refreshes its counts.
+  const pick = async (email) => {
+    setSelected(email);
+    setMessages([]);
+    await loadThread(email).catch(() => {});
+    loadThreads();
+  };
+
+  usePolling(() => { if (selected) loadThread(selected, true).catch(() => {}); }, 15000, [selected]);
+
+  const reply = async (text) => {
+    const data = await api('/api/messages', { action: 'reply', email: selected, text }, user.idToken);
+    setMessages((list) => [...list, data.message]);
+    loadThreads();
+  };
+
+  const current = threads.find((t) => t.email === selected);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="font-bold text-ink">Doubts inbox</h2>
+          <p className="text-sm text-muted">Questions students send from their portal. Your reply appears in their chat.</p>
+        </div>
+        <button onClick={loadThreads} className={`${btnGhost} px-4 py-2 text-sm`}>Refresh</button>
+      </div>
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+      {threads.length === 0 ? (
+        <div className={`${card} p-12 text-center`}>
+          <Inbox className="mx-auto h-10 w-10 text-brand" />
+          <p className="mt-4 font-bold text-ink">No doubts yet</p>
+          <p className="mt-1 text-muted">When a student asks something, it shows up here.</p>
+        </div>
+      ) : (
+        <div className={`${card} grid overflow-hidden md:grid-cols-[300px_1fr]`}>
+          <div className={`${selected ? 'hidden md:block' : ''} max-h-[min(70vh,640px)] overflow-y-auto border-line md:border-r`}>
+            {threads.map((t) => (
+              <button key={t.email} onClick={() => pick(t.email)}
+                className={`block w-full border-b border-line px-4 py-3.5 text-left transition hover:bg-mist ${
+                  selected === t.email ? 'bg-sky' : ''
+                }`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`truncate text-ink ${t.unread ? 'font-bold' : 'font-semibold'}`}>{t.name || t.email}</p>
+                  {t.unread > 0 && (
+                    <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">{t.unread}</span>
+                  )}
+                </div>
+                <p className="mt-0.5 truncate text-sm text-muted">
+                  {t.lastFrom === 'instructor' ? 'You: ' : ''}{t.lastText}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">{chatTime(t.lastAt)}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className={selected ? '' : 'hidden md:block'}>
+            {!selected ? (
+              <div className="flex h-[min(70vh,640px)] items-center justify-center p-6 text-center text-muted">
+                Pick a conversation on the left.
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+                  <button onClick={() => setSelected(null)} className="rounded-lg p-1 text-muted hover:text-ink md:hidden" aria-label="Back">
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-ink">{current?.name || selected}</p>
+                    <p className="truncate text-sm text-muted">{selected}</p>
+                  </div>
+                </div>
+                <ChatThread
+                  messages={messages}
+                  mine="instructor"
+                  onSend={reply}
+                  loading={loading}
+                  placeholder="Write your reply…"
+                  emptyText="No messages in this conversation."
+                />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Uploads go straight from the browser to private Blob storage; the server only
+// hands out a one-time upload token after checking the instructor's sign-in.
+function UploadMaterial({ user }) {
+  const [subject, setSubject] = useState('');
+  const [type, setType] = useState('');
+  const [title, setTitle] = useState('');
+  const [file, setFile] = useState(null);
+  const [dragging, setDragging] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [materials, setMaterials] = useState([]);
+  const [blobReady, setBlobReady] = useState(true);
+  const fileInput = React.useRef(null);
+
+  const load = async () => {
+    try {
+      const data = await api('/api/materials', { action: 'list' }, user.idToken);
+      setMaterials(data.materials || []);
+      setBlobReady(data.blobReady !== false);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  useEffect(() => { load(); }, []);
+
+  const choose = (picked) => {
+    if (!picked) return;
+    setFile(picked);
+    setError('');
+    setNotice('');
+    if (!title) setTitle(picked.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setNotice('');
+    if (!subject || !type) { setError('Pick a subject and a type.'); return; }
+    if (!file) { setError('Choose a file to upload.'); return; }
+
+    setProgress(0);
+    try {
+      const { upload } = await import('@vercel/blob/client');
+      const idToken = (await currentIdToken()) || user.idToken;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120);
+      const slug = subject.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const blob = await upload(`materials/${slug}/${safeName}`, file, {
+        access: 'private',
+        handleUploadUrl: '/api/materials',
+        clientPayload: JSON.stringify({ idToken }),
+        multipart: file.size > 20 * 1024 * 1024,
+        onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
+      });
+      const data = await api('/api/materials', {
+        action: 'add', pathname: blob.pathname, subject, type, title,
+      }, user.idToken);
+      setMaterials((list) => [data.material, ...list]);
+      setNotice(`"${data.material.title}" is uploaded. Students with ${subject} can open it now.`);
+      setFile(null);
+      setTitle('');
+      if (fileInput.current) fileInput.current.value = '';
+    } catch (err) {
+      setError(err.message || 'Upload failed. Please try again.');
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  const remove = async (material) => {
+    if (!window.confirm(`Delete "${material.title}"? Students lose access to it straight away.`)) return;
+    try {
+      await api('/api/materials', { action: 'delete', id: material.id }, user.idToken);
+      setMaterials((list) => list.filter((m) => m.id !== material.id));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const uploading = progress !== null;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className={`${card} h-fit p-6 sm:p-8`}>
+        <h2 className="mb-6 text-lg font-bold text-ink">Upload study material</h2>
+        {!blobReady && (
+          <p className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+            File storage is not switched on yet. In Vercel open Storage → Create → Blob, choose <b>Private</b>,
+            connect it to this project and redeploy.
+          </p>
+        )}
+        <form onSubmit={submit} className="space-y-5">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
+              <select className={input} value={subject} onChange={(e) => setSubject(e.target.value)}>
+                <option value="">Select a subject</option>
+                {SUBJECTS.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Type</label>
+              <select className={input} value={type} onChange={(e) => setType(e.target.value)}>
+                <option value="">Select type</option>
+                {MATERIAL_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-ink">Title</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Air Regulations - complete notes" className={input} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-semibold text-ink">File</label>
+            <label
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => { e.preventDefault(); setDragging(false); choose(e.dataTransfer.files?.[0]); }}
+              className={`block cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition ${
+                dragging ? 'border-brand bg-sky' : 'border-line bg-mist hover:border-brand hover:bg-sky'
+              }`}
+            >
+              <input
+                ref={fileInput}
+                type="file"
+                className="sr-only"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.png,.jpg,.jpeg,.mp4"
+                onChange={(e) => choose(e.target.files?.[0])}
+              />
+              <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
+              {file ? (
+                <>
+                  <p className="break-all font-semibold text-ink">{file.name}</p>
+                  <p className="text-sm text-muted">{fileSize(file.size)} · click to choose a different file</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-ink">Click to upload or drag a file here</p>
+                  <p className="text-sm text-muted">PDF, Word, PowerPoint, ZIP, images or MP4 · up to 500 MB</p>
+                </>
+              )}
+            </label>
+          </div>
+
+          {uploading && (
+            <div>
+              <ProgressBar value={progress} />
+              <p className="mt-1.5 text-sm text-muted">Uploading… {progress}%</p>
+            </div>
+          )}
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          {notice && <p className="rounded-xl bg-go/10 p-3 text-sm font-medium text-go">{notice}</p>}
+
+          <button type="submit" disabled={uploading} className={`${btnPrimary} w-full`}>
+            <Upload className="h-4 w-4" /> {uploading ? 'Uploading…' : 'Upload material'}
+          </button>
+        </form>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="font-bold text-ink">Your uploads ({materials.length})</h2>
+        {materials.length === 0 ? (
+          <div className={`${card} p-6 text-sm text-muted`}>Nothing uploaded yet.</div>
+        ) : (
+          materials.map((m) => (
+            <MaterialRow key={m.id} material={m} onOpen={(x) => openMaterial(x, user.idToken)} onDelete={remove} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AdminPortal({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
@@ -1085,22 +1608,39 @@ function AdminPortal({ user, onLogout }) {
   const [editing, setEditing] = useState(null); // email being edited
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [uploads, setUploads] = useState([]);
+  const [threads, setThreads] = useState([]);
+  const [inboxError, setInboxError] = useState('');
   const [instructors, setInstructors] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
-  const call = async (body, endpoint = '/api/students') => {
-    // Ask Firebase for a current token; the one from sign-in expires in an hour.
-    const idToken = (await currentIdToken()) || user.idToken;
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken, ...body }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
-    return data;
+  const call = (body, endpoint = '/api/students') => api(endpoint, body, user.idToken);
+
+  const loadThreads = async () => {
+    try {
+      const data = await call({ action: 'inbox' }, '/api/messages');
+      setThreads(data.threads || []);
+      setInboxError('');
+    } catch (err) {
+      setInboxError(err.message);
+    }
+  };
+  usePolling(loadThreads, 30000, []);
+  const unreadDoubts = threads.reduce((sum, t) => sum + (t.unread || 0), 0);
+
+  const deleteStudent = async (student) => {
+    if (!window.confirm(
+      `Delete ${student.name || student.email}? Their access and doubts chat are removed. `
+      + 'If they sign in again they come back as a new account with no access.',
+    )) return;
+    try {
+      await call({ action: 'delete', email: student.email });
+      setStudents((list) => list.filter((s) => s.email !== student.email));
+      setThreads((list) => list.filter((t) => t.email !== student.email));
+      if (editing === student.email) { setEditing(null); setDraft(null); }
+    } catch (err) {
+      setLoadError(err.message);
+    }
   };
 
   const loadStudents = async () => {
@@ -1179,6 +1719,7 @@ function AdminPortal({ user, onLogout }) {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
+    { id: 'inbox', label: 'Inbox', icon: Inbox, badge: unreadDoubts },
     { id: 'bookings', label: 'Consultations', icon: CalendarClock },
     { id: 'upload', label: 'Upload material', icon: Upload },
   ];
@@ -1280,6 +1821,11 @@ function AdminPortal({ user, onLogout }) {
                   >
                     {editing === student.email ? 'Close' : 'Manage access'}
                   </button>
+                  <button onClick={() => deleteStudent(student)}
+                    className="rounded-full p-2 text-muted transition hover:bg-red-50 hover:text-red-600"
+                    aria-label={`Delete ${student.email}`} title="Delete student">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
@@ -1341,7 +1887,7 @@ function AdminPortal({ user, onLogout }) {
                               type="checkbox"
                               checked={draft.subjects.includes(subject.name)}
                               onChange={() => toggleSubject(subject.name)}
-                              className="h-4 w-4 accent-[#2f5be0]"
+                              className="h-4 w-4 accent-black"
                             />
                             <span className="font-medium text-ink">{subject.name}</span>
                           </label>
@@ -1353,13 +1899,13 @@ function AdminPortal({ user, onLogout }) {
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
                           <input type="checkbox" checked={draft.questions}
                             onChange={(e) => setDraft({ ...draft, questions: e.target.checked })}
-                            className="h-4 w-4 accent-[#2f5be0]" />
+                            className="h-4 w-4 accent-black" />
                           <span className="font-medium text-ink">Question bank</span>
                         </label>
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
                           <input type="checkbox" checked={draft.tests}
                             onChange={(e) => setDraft({ ...draft, tests: e.target.checked })}
-                            className="h-4 w-4 accent-[#2f5be0]" />
+                            className="h-4 w-4 accent-black" />
                           <span className="font-medium text-ink">Topic tests and mock exams</span>
                         </label>
                       </div>
@@ -1417,7 +1963,7 @@ function AdminPortal({ user, onLogout }) {
               <div className="text-right">
                 {!booking.blocked && (
                   <p className="text-sm font-semibold text-ink">
-                    ₹{(booking.amount || 1999).toLocaleString('en-IN')}
+                    {booking.amount === 0 ? 'Free · course student' : `₹${(booking.amount ?? 1999).toLocaleString('en-IN')}`}
                     {booking.recording && ' · recording'}
                   </p>
                 )}
@@ -1430,74 +1976,11 @@ function AdminPortal({ user, onLogout }) {
         </div>
       )}
 
-      {activeTab === 'upload' && (
-        <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-          <div className={`${card} p-6 sm:p-8`}>
-            <h2 className="mb-6 text-lg font-bold text-ink">Upload study material</h2>
-            <form className="space-y-5">
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
-                  <select className={input}>
-                    <option>Select a subject</option>
-                    {SUBJECTS.map((s) => <option key={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold text-ink">Type</label>
-                  <select className={input}>
-                    <option>Select type</option>
-                    <option>Notes</option>
-                    <option>Question bank</option>
-                    <option>Topic test</option>
-                    <option>Mock exam</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-ink">Title</label>
-                <input type="text" placeholder="e.g. Air Regulations - complete notes" className={input} />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold text-ink">File</label>
-                <div className="cursor-pointer rounded-2xl border-2 border-dashed border-line bg-mist p-8 text-center transition hover:border-brand hover:bg-sky">
-                  <Upload className="mx-auto mb-2 h-7 w-7 text-brand" />
-                  <p className="font-semibold text-ink">Click to upload or drag a file here</p>
-                  <p className="text-sm text-muted">PDF, DOCX or ZIP</p>
-                </div>
-              </div>
-              <button type="submit" className={`${btnPrimary} w-full`}>
-                <Upload className="h-4 w-4" /> Upload material
-              </button>
-              <p className="text-center text-sm text-muted">
-                Uploading is not connected yet. Files will save once we switch on storage for material.
-              </p>
-            </form>
-          </div>
-
-          <div className={`${card} h-fit p-6`}>
-            <h2 className="mb-4 font-bold text-ink">Your uploads</h2>
-            {uploads.length === 0 ? (
-              <p className="text-sm text-muted">Nothing uploaded yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {uploads.map((upload) => (
-                  <div key={upload.id} className="flex items-center gap-3 rounded-xl bg-mist p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-ink">{upload.name}</p>
-                      <p className="text-sm text-muted">{upload.subject}</p>
-                    </div>
-                    <button onClick={() => setUploads(uploads.filter((u) => u.id !== upload.id))}
-                      className="rounded-lg p-2 text-muted transition hover:bg-white hover:text-red-600" aria-label="Delete">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      {activeTab === 'inbox' && (
+        <InstructorInbox user={user} threads={threads} loadThreads={loadThreads} error={inboxError} />
       )}
+
+      {activeTab === 'upload' && <UploadMaterial user={user} />}
     </AppShell>
   );
 }

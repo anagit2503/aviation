@@ -36,14 +36,19 @@ function buildDays(count = 21) {
   });
 }
 
-export default function BookingPage({ goHome }) {
+const money = (n) => (n === 0 ? 'Free' : `₹${n.toLocaleString('en-IN')}`);
+
+// `free` is the course-student version shown inside the portal: no price, the
+// name and email come from their Google account, and the server double-checks
+// their access before waiving the fee.
+export default function BookingPage({ goHome, free = false, embedded = false, account = null, getIdToken = null }) {
   const days = useMemo(() => buildDays(), []);
   const [dayIndex, setDayIndex] = useState(0);
   const [pageStart, setPageStart] = useState(0);
   const [time, setTime] = useState('');
   const [booked, setBooked] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', goal: '' });
+  const [form, setForm] = useState({ name: account?.name || '', email: account?.email || '', phone: '', goal: '' });
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState('idle'); // idle, saving, done
   const [error, setError] = useState('');
@@ -51,7 +56,9 @@ export default function BookingPage({ goHome }) {
   const [confirmed, setConfirmed] = useState(null);
 
   const day = days[dayIndex];
-  const total = SESSION_PRICE + (recording ? RECORDING_PRICE : 0);
+  const sessionPrice = free ? 0 : SESSION_PRICE;
+  const recordingPrice = free ? 0 : RECORDING_PRICE;
+  const total = sessionPrice + (recording ? recordingPrice : 0);
 
   useEffect(() => {
     let live = true;
@@ -80,10 +87,11 @@ export default function BookingPage({ goHome }) {
     return errors;
   };
 
-  const field = (name, placeholder, type = 'text') => (
+  const field = (name, placeholder, type = 'text', locked = false) => (
     <div>
       <input
-        className={`${input} ${fieldErrors[name] ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
+        disabled={locked}
+        className={`${input} ${locked ? 'bg-mist text-muted' : ''} ${fieldErrors[name] ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''}`}
         type={type}
         placeholder={placeholder}
         value={form[name]}
@@ -116,10 +124,11 @@ export default function BookingPage({ goHome }) {
 
     setStatus('saving');
     try {
+      const idToken = free && getIdToken ? await getIdToken() : undefined;
       const res = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, date: day.key, time, recording, amount: total }),
+        body: JSON.stringify({ ...form, date: day.key, time, recording, amount: total, idToken }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -137,11 +146,19 @@ export default function BookingPage({ goHome }) {
     }
   };
 
+  // Inside the portal the page sits in the dashboard frame, without its own header.
+  // Called as a function, not rendered as <Frame>, so the form is not rebuilt
+  // (and inputs do not lose focus) on every keystroke.
+  const frame = (children) => (embedded ? children : (
+    <div className="min-h-screen bg-mist">
+      <TopBar goHome={goHome} />
+      {children}
+    </div>
+  ));
+
   if (status === 'done' && confirmed) {
-    return (
-      <div className="min-h-screen bg-mist">
-        <TopBar goHome={goHome} />
-        <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
+    return frame(
+        <div className={`mx-auto max-w-xl ${embedded ? '' : 'px-4 py-16 sm:px-6'}`}>
           <div className={`${card} p-8 text-center sm:p-10`}>
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-go/10 text-go">
               <Check className="h-7 w-7" strokeWidth={3} />
@@ -151,43 +168,47 @@ export default function BookingPage({ goHome }) {
               {confirmed.dayLabel} at {confirmed.time} IST, for 45 minutes.
             </p>
             <div className="mt-6 rounded-2xl bg-mist p-5 text-left text-sm">
-              <Row label="Session" value={`₹${SESSION_PRICE.toLocaleString('en-IN')}`} />
-              {recording && <Row label="Add on: recording" value={`₹${RECORDING_PRICE}`} />}
-              <Row label="Total" value={`₹${confirmed.total.toLocaleString('en-IN')}`} strong />
+              <Row label="Session" value={money(sessionPrice)} />
+              {recording && <Row label="Add on: recording" value={money(recordingPrice)} />}
+              <Row label="Total" value={free ? '₹0 · included in your course' : money(confirmed.total)} strong />
             </div>
             <p className="mt-6 text-sm text-muted">
-              You will get the Google Meet link and payment details by email at {form.email}.
+              You will get the Google Meet link{free ? '' : ' and payment details'} by email at {form.email}.
             </p>
-            <button onClick={goHome} className={`${btnPrimary} mt-8`}>Back to home</button>
+            <button onClick={goHome} className={`${btnPrimary} mt-8`}>{embedded ? 'Back to overview' : 'Back to home'}</button>
           </div>
-        </div>
-      </div>
+        </div>,
     );
   }
 
-  return (
-    <div className="min-h-screen bg-mist">
-      <TopBar goHome={goHome} />
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_1.25fr]">
+  return frame(
+      <div className={`mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_1.25fr] ${embedded ? '' : 'px-4 py-10 sm:px-6'}`}>
         {/* What you get */}
         <div className="h-fit rounded-3xl bg-night p-7 text-white sm:p-8">
-          <p className="text-sm font-semibold text-blue-200/80">1-on-1 consultation</p>
+          <p className="text-sm font-semibold text-neutral-300/80">1-on-1 consultation</p>
           <h1 className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">
             Get your flight training questions answered
           </h1>
-          <p className="mt-4 leading-relaxed text-blue-100/75">
+          <p className="mt-4 leading-relaxed text-neutral-300/75">
             Bring your doubts about DGCA exams, choosing a flight school, costs and timelines. You leave with a plan
             written for your situation.
           </p>
           <ul className="mt-7 space-y-4 border-t border-white/10 pt-7">
             {INCLUDED.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3">
-                <Icon className="h-5 w-5 shrink-0 text-blue-300" />
-                <span className="text-blue-50">{text}</span>
+                <Icon className="h-5 w-5 shrink-0 text-neutral-400" />
+                <span className="text-neutral-50">{text}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-8 text-3xl font-extrabold">₹{SESSION_PRICE.toLocaleString('en-IN')}</p>
+          {free ? (
+            <div className="mt-8">
+              <p className="text-3xl font-extrabold">Free</p>
+              <p className="mt-1 text-sm text-neutral-300/75">Included with your course</p>
+            </div>
+          ) : (
+            <p className="mt-8 text-3xl font-extrabold">₹{SESSION_PRICE.toLocaleString('en-IN')}</p>
+          )}
         </div>
 
         {/* Booking form */}
@@ -265,30 +286,30 @@ export default function BookingPage({ goHome }) {
           <h2 className="mt-7 font-bold text-ink">Your details</h2>
           <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
             {field('name', 'Full name')}
-            {field('email', 'Email', 'email')}
+            {field('email', 'Email', 'email', Boolean(account?.email))}
             {field('phone', 'Phone (optional)', 'tel')}
             {field('goal', 'Where are you in your training?')}
           </div>
 
           <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">
             <input type="checkbox" checked={recording} onChange={(e) => setRecording(e.target.checked)}
-              className="mt-0.5 h-5 w-5 rounded accent-[#2f5be0]" />
+              className="mt-0.5 h-5 w-5 rounded accent-black" />
             <span>
               <span className="flex items-center gap-2 font-semibold text-ink">
                 <Circle className="h-4 w-4 text-red-500" /> Add the session recording
               </span>
               <span className="mt-0.5 block text-sm text-muted">
-                ₹{RECORDING_PRICE} · rewatch the call whenever you need it
+                {free ? 'Free for course students' : `₹${RECORDING_PRICE}`} · rewatch the call whenever you need it
               </span>
             </span>
           </label>
 
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
-            <p className="mb-1 font-bold text-ink">Order summary</p>
+            <p className="mb-1 font-bold text-ink">{free ? 'Your session' : 'Order summary'}</p>
             <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
-            <Row label="1-on-1 consultation (45 min)" value={`₹${SESSION_PRICE.toLocaleString('en-IN')}`} />
-            {recording && <Row label="Add on: session recording" value={`₹${RECORDING_PRICE}`} />}
-            <Row label="Total" value={`₹${total.toLocaleString('en-IN')}`} strong />
+            <Row label="1-on-1 consultation (45 min)" value={money(sessionPrice)} />
+            {recording && <Row label="Add on: session recording" value={money(recordingPrice)} />}
+            <Row label="Total" value={free ? '₹0' : money(total)} strong />
           </div>
 
           {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
@@ -297,11 +318,10 @@ export default function BookingPage({ goHome }) {
             {status === 'saving' ? 'Booking your slot…' : 'Confirm booking'}
           </button>
           <p className="mt-3 text-center text-sm text-muted">
-            We will email you the meeting link and payment details.
+            We will email you the meeting link{free ? '.' : ' and payment details.'}
           </p>
         </form>
-      </div>
-    </div>
+      </div>,
   );
 }
 

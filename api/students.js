@@ -1,11 +1,12 @@
 // POST /api/students → instructor-only. Two actions:
 //   { action: 'list' }                       → everyone who has signed in
 //   { action: 'update', email, access }      → change one person's access
+//   { action: 'delete', email }              → remove an account, its access and its doubts chat
 //
 // Every call carries the instructor's Google token, and the server checks both
 // that the token is real and that the email belongs to an instructor.
 import {
-  verifyIdToken, isInstructorEmail, listAccounts, getProfile, saveAccess,
+  redis, verifyIdToken, isInstructorEmail, listAccounts, getProfile, saveAccess,
   emptyAccess, storageReady, readJsonBody,
 } from './_lib.js';
 
@@ -77,6 +78,25 @@ export default async function handler(req, res) {
       };
       await saveAccess(target, next);
       res.status(200).json({ ok: true, student: { ...profile, access: next } });
+      return;
+    }
+
+    if (action === 'delete') {
+      const target = String(email || '').trim().toLowerCase();
+      if (!target || isInstructorEmail(target)) {
+        res.status(400).json({ error: 'That account cannot be removed here.' });
+        return;
+      }
+      // If they sign in again they come back as a new account with no access.
+      await Promise.all([
+        redis(['HDEL', 'accounts', target]),
+        redis(['HDEL', 'access', target]),
+        redis(['DEL', `thread:${target}`]),
+        redis(['HDEL', 'inbox:threads', target]),
+        redis(['HDEL', 'inbox:unread', target]),
+        redis(['HDEL', 'inbox:studentUnread', target]),
+      ]);
+      res.status(200).json({ ok: true });
       return;
     }
 

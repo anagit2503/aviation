@@ -1,7 +1,7 @@
 // POST /api/book → claim a slot (first booking wins) and email the instructor.
 import {
   redis, storageReady, emailReady, sendBookingEmail, sendStudentConfirmation, bumpCounter,
-  isValidDate, readJsonBody, SLOT_TIMES,
+  isValidDate, readJsonBody, SLOT_TIMES, verifyIdToken, isInstructorEmail, getAccess,
 } from './_lib.js';
 
 // Prices live on the server. The browser is never trusted with them.
@@ -18,7 +18,31 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { date, time, name, email, phone, goal, recording } = readJsonBody(req);
+  const { date, time, name, phone, goal, recording, idToken } = readJsonBody(req);
+  let { email } = readJsonBody(req);
+
+  // Course students book from inside the portal, free of charge. The server
+  // checks their sign-in and access itself; the browser only says "I am signed in".
+  let courseStudent = false;
+  if (idToken) {
+    const person = await verifyIdToken(idToken);
+    if (!person) {
+      res.status(401).json({ error: 'Please sign in again.' });
+      return;
+    }
+    if (storageReady && !isInstructorEmail(person.email)) {
+      try {
+        courseStudent = (await getAccess(person.email)).plan === 'course';
+      } catch {
+        courseStudent = false;
+      }
+    }
+    if (!courseStudent) {
+      res.status(403).json({ error: 'Free sessions are for course students. Book from the website instead.' });
+      return;
+    }
+    email = person.email;
+  }
 
   if (!isValidDate(date) || !SLOT_TIMES.includes(time)) {
     res.status(400).json({ error: 'Pick a date and time from the list.' });
@@ -71,8 +95,9 @@ export default async function handler(req, res) {
     phone: String(phone || '').trim().slice(0, 40),
     goal: String(goal || '').trim().slice(0, 2000),
     recording: Boolean(recording),
-    amount: SESSION_PRICE + (recording ? RECORDING_PRICE : 0),
-    paymentStatus: 'to be collected — no online payment yet',
+    amount: courseStudent ? 0 : SESSION_PRICE + (recording ? RECORDING_PRICE : 0),
+    paymentStatus: courseStudent ? 'free, course student' : 'to be collected — no online payment yet',
+    courseStudent,
     createdAt: new Date().toISOString(),
   };
 

@@ -10,7 +10,7 @@ import { readJsonBody } from './_lib.js';
 
 const PRODUCTS = {
   consultation: { label: '1-on-1 consultation (45 minutes)', amount: 199900 }, // paise
-  course: { label: 'Full ground school course', amount: 499900 },
+  course: { label: 'Full ground school course (one month)', amount: 499900 },
 };
 
 const keyId = process.env.RAZORPAY_KEY_ID;

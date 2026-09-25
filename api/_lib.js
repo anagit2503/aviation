@@ -90,12 +90,46 @@ export async function sendStudentConfirmation(booking) {
           '',
           `Your 45-minute consultation is booked for ${booking.dayLabel} at ${booking.time} IST.`,
           '',
-          `Amount to pay: Rs ${booking.amount}${booking.recording ? ' (includes the session recording)' : ''}.`,
-          'We will reply with the Google Meet link and payment details.',
+          ...(booking.amount === 0
+            ? ['This session is free as part of your course.', 'We will reply with the Google Meet link.']
+            : [
+              `Amount to pay: Rs ${booking.amount}${booking.recording ? ' (includes the session recording)' : ''}.`,
+              'We will reply with the Google Meet link and payment details.',
+            ]),
           '',
           'If you need to change the time, just reply to this email.',
           '',
           'flywithsam',
+        ].join('\n'),
+      }),
+    });
+    return { sent: res.ok };
+  } catch {
+    return { sent: false };
+  }
+}
+
+// Tells the instructors a student has asked something in the doubts chat.
+// Never throws: the question is already saved either way.
+export async function sendDoubtNotification({ name, email, text }) {
+  if (!emailReady) return { sent: false };
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.BOOKING_FROM || 'flywithsam <onboarding@resend.dev>',
+        to: [BOOKING_EMAIL],
+        subject: `New doubt from ${name || email}`,
+        text: [
+          `${name || email} (${email}) asked:`,
+          '',
+          text,
+          '',
+          'Reply from the Inbox tab in the instructor portal so it reaches their chat.',
         ].join('\n'),
       }),
     });

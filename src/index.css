@@ -2,14 +2,14 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #0f1733;
-  --color-muted: #5b6478;
-  --color-brand: #2f5be0;
-  --color-brand-dark: #1f43b5;
-  --color-sky: #eef4fe;
-  --color-mist: #f6f8fb;
-  --color-line: #e3e8f0;
-  --color-night: #0a1433;
+  --color-ink: #111111;
+  --color-muted: #5c5c5c;
+  --color-brand: #111111;
+  --color-brand-dark: #333333;
+  --color-sky: #f1f1f1;
+  --color-mist: #f7f7f7;
+  --color-line: #e5e5e5;
+  --color-night: #0b0b0b;
   --color-go: #0fb872;
 }
 

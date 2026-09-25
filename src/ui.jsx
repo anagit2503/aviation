@@ -2,7 +2,7 @@ import React from 'react';
 import { Plane } from 'lucide-react';
 
 export const btnPrimary =
-  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-white shadow-[0_6px_20px_-6px_rgba(47,91,224,0.55)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-white shadow-[0_6px_20px_-6px_rgba(0,0,0,0.55)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60';
 export const btnGhost =
   'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand';
 export const input =
