@@ -17,7 +17,7 @@ const FIREBASE_CONFIG = {
   appId: "YOUR_APP_ID"
 };
 
-import { Logo, btnPrimary, btnGhost, input, card } from './ui.jsx';
+import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
 
@@ -139,7 +139,7 @@ export default function AviationGroundSchool() {
 
   if (restoring) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="flex items-center gap-3 text-muted">
           <Plane className="h-5 w-5 -rotate-45 animate-pulse text-brand" />
           Loading…
@@ -149,7 +149,7 @@ export default function AviationGroundSchool() {
   }
 
   return (
-    <div className="bg-white">
+    <div className="bg-surface">
       {/* The public pages stay reachable while signed in. */}
       {authMode === 'landing' && user ? (
         <LandingPage setAuthMode={setAuthMode} signedIn />
@@ -222,8 +222,8 @@ const REASONS = [
   { icon: Compass, title: 'Always know what is next', text: 'Material in a set order, topic by topic.' },
   { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
   { icon: Clock, title: 'Study on your schedule', text: 'Study anytime, on any device.' },
-  { icon: InfinityIcon, title: 'Yours for good', text: 'Pay once, keep it forever.' },
-  { icon: Wallet, title: 'Fairly priced', text: 'One fee for all six subjects.' },
+  { icon: MessageCircle, title: 'Never stuck on a doubt', text: 'Ask in the chat and your instructor replies.' },
+  { icon: Wallet, title: 'Fairly priced', text: 'One monthly fee for all six subjects.' },
 ];
 
 const PITFALLS = [
@@ -325,9 +325,9 @@ function LandingPage({ setAuthMode, signedIn = false }) {
   const subject = SUBJECTS[activeSubject];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-surface">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-line/70 bg-white/85 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-line/70 bg-surface/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
           <Logo />
           <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
@@ -339,6 +339,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
           </nav>
           <div className="hidden items-center gap-2 md:flex">
+            <ThemeToggle />
             <button
               onClick={() => setAuthMode(signedIn ? 'dashboard' : 'login')}
               className="rounded-full px-4 py-2 font-semibold text-ink transition hover:bg-mist"
@@ -349,12 +350,15 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               Book a consultation
             </button>
           </div>
-          <button className="rounded-lg p-2 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
+            <button className="rounded-lg p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
         {mobileMenuOpen && (
-          <div className="space-y-1 border-t border-line bg-white px-4 py-4 md:hidden">
+          <div className="space-y-1 border-t border-line bg-surface px-4 py-4 md:hidden">
             {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why flywithsam'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
                 {label}
@@ -369,10 +373,10 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-sky to-white">
+      <section className="relative overflow-hidden bg-gradient-to-b from-sky to-surface">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
           <div>
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-brand shadow-sm ring-1 ring-line">
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 text-sm font-semibold text-brand shadow-sm ring-1 ring-line">
               <Plane className="h-4 w-4 -rotate-45" /> CPL ground school, online
             </p>
             <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-[3.6rem]">
@@ -402,9 +406,9 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <img
               src="/about/ramp.jpg"
               alt="On the ramp in uniform next to a training aircraft"
-              className="absolute bottom-0 right-0 aspect-[3/4] w-[42%] rounded-2xl border-[6px] border-white object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
+              className="absolute bottom-0 right-0 aspect-[3/4] w-[42%] rounded-2xl border-[6px] border-surface object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
             />
-            <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3.5 py-1.5 text-sm font-bold text-ink shadow-sm">
+            <span className="absolute left-4 top-4 rounded-full bg-surface/95 px-3.5 py-1.5 text-sm font-bold text-ink shadow-sm">
               90+ in all six DGCA papers
             </span>
           </div>
@@ -425,7 +429,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                 key={s.name}
                 onClick={() => setActiveSubject(i)}
                 className={`whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition ${
-                  activeSubject === i ? 'bg-white text-ink shadow-sm' : 'text-muted hover:text-ink'
+                  activeSubject === i ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'
                 }`}
               >
                 {s.tab}
@@ -451,7 +455,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               {FEATURES.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="rounded-2xl bg-white p-5">
+                <div key={title} className="rounded-2xl bg-surface p-5">
                   <Icon className="h-6 w-6 text-brand" />
                   <p className="mt-3 font-bold text-ink">{title}</p>
                   <p className="mt-1 text-sm leading-relaxed text-muted">{text}</p>
@@ -503,7 +507,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {REASONS.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="rounded-2xl bg-white p-6 ring-1 ring-line">
+                <div key={title} className="rounded-2xl bg-surface p-6 ring-1 ring-line">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
                     <Icon className="h-5 w-5" />
                   </div>
@@ -525,7 +529,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           </div>
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {REVIEWS.map((r) => (
-              <figure key={r.name} className="flex h-full flex-col rounded-3xl bg-white p-6 shadow-[0_12px_30px_-18px_rgba(15,23,51,0.35)]">
+              <figure key={r.name} className="flex h-full flex-col rounded-3xl bg-surface p-6 shadow-[0_12px_30px_-18px_rgba(15,23,51,0.35)]">
                 <figcaption className="flex items-center gap-3.5">
                   <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${r.colour} text-lg font-bold text-white`}>
                     {r.name[0]}
@@ -570,7 +574,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <button onClick={() => setAuthMode('book')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
+            <button onClick={() => setAuthMode('book')} className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 font-semibold text-black transition hover:bg-neutral-200">
               <CalendarClock className="h-4 w-4" /> Talk it through with me
             </button>
           </div>
@@ -610,7 +614,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
 
             {/* Course */}
             <div className={`${card} relative flex flex-col p-8 ring-2 ring-brand shadow-[0_24px_60px_-24px_rgba(0,0,0,0.35)]`}>
-              <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-white">Most popular</span>
+              <span className="absolute -top-3 left-8 rounded-full bg-brand px-3 py-1 text-xs font-bold text-on-brand">Most popular</span>
               <p className="font-bold text-ink">Full ground school course</p>
               <p className="mt-1 text-sm text-muted">Notes and questions for all six DGCA papers</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">
@@ -647,7 +651,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           </div>
           <div className="space-y-3">
             {FAQS.map((f, i) => (
-              <div key={f.q} className="rounded-2xl bg-white ring-1 ring-line">
+              <div key={f.q} className="rounded-2xl bg-surface ring-1 ring-line">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
                   className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left font-semibold text-ink"
@@ -671,13 +675,13 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       <section className="px-4 py-20 sm:px-6">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-night px-6 py-16 text-center sm:px-12">
           <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-30" aria-hidden preserveAspectRatio="none" viewBox="0 0 800 300">
-            <path d="M-20 250 C 200 60, 520 320, 820 40" fill="none" stroke="#6f8ff0" strokeWidth="2" strokeDasharray="6 10" />
+            <path d="M-20 250 C 200 60, 520 320, 820 40" fill="none" stroke="#8a8a8a" strokeWidth="2" strokeDasharray="6 10" />
           </svg>
           <h2 className="relative text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Your licence starts on the ground.</h2>
           <p className="relative mx-auto mt-4 max-w-xl text-lg text-neutral-300/80">
             Join 500+ students who studied with a clear plan and passed.
           </p>
-          <button onClick={() => setAuthMode('signup')} className="relative mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-ink transition hover:bg-sky">
+          <button onClick={() => setAuthMode('signup')} className="relative mt-8 inline-flex items-center justify-center rounded-full bg-white px-6 py-3 font-semibold text-black transition hover:bg-neutral-200">
             Create your account
           </button>
         </div>
@@ -740,7 +744,7 @@ function GoogleButton({ onGoogleUser, label }) {
         type="button"
         onClick={click}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:bg-mist disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-3 rounded-full border border-line bg-surface px-6 py-3 font-semibold text-ink transition hover:bg-mist disabled:opacity-60"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
           <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.4a5.5 5.5 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.8z" />
@@ -762,7 +766,7 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden overflow-hidden bg-night p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-25" aria-hidden preserveAspectRatio="none" viewBox="0 0 400 600">
-          <path d="M-10 520 C 120 380, 260 520, 420 120" fill="none" stroke="#6f8ff0" strokeWidth="2" strokeDasharray="6 10" />
+          <path d="M-10 520 C 120 380, 260 520, 420 120" fill="none" stroke="#8a8a8a" strokeWidth="2" strokeDasharray="6 10" />
         </svg>
         <button onClick={() => setAuthMode('landing')} className="relative w-fit"><Logo light /></button>
         <div className="relative max-w-md">
@@ -771,11 +775,14 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
         </div>
         <p className="relative text-sm text-neutral-300/50">Trusted by 500+ student pilots</p>
       </div>
-      <div className="flex items-center justify-center bg-white px-4 py-12 sm:px-6">
+      <div className="flex items-center justify-center bg-surface px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <button onClick={() => setAuthMode('landing')} className="mb-8 inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
-            <ArrowLeft className="h-4 w-4" /> Back to home
-          </button>
+          <div className="mb-8 flex items-center justify-between">
+            <button onClick={() => setAuthMode('landing')} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
+              <ArrowLeft className="h-4 w-4" /> Back to home
+            </button>
+            <ThemeToggle />
+          </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-ink">{title}</h1>
           <p className="mt-2 text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
@@ -826,15 +833,16 @@ function AuthPage({ mode, setAuthMode, onGoogleUser }) {
 function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, children }) {
   return (
     <div className="min-h-screen bg-mist">
-      <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Logo />
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <div className="hidden text-right sm:block">
               <p className="text-xs text-muted">{subtitle}</p>
               <p className="text-sm font-semibold text-ink">{title}</p>
             </div>
-            <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:border-red-200 hover:bg-red-50 hover:text-red-600">
+            <button onClick={onLogout} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink transition hover:border-red-200 hover:bg-red-50 dark:hover:border-red-900 dark:hover:bg-red-950/50 hover:text-red-600">
               <LogOut className="h-4 w-4" /> Log out
             </button>
           </div>
@@ -933,7 +941,7 @@ function MaterialRow({ material, onOpen, onDelete }) {
       </button>
       {onDelete && (
         <button onClick={() => onDelete(material)}
-          className="rounded-lg p-2 text-muted transition hover:bg-red-50 hover:text-red-600" aria-label="Delete">
+          className="rounded-lg p-2 text-muted transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50" aria-label="Delete">
           <Trash2 className="h-4 w-4" />
         </button>
       )}
@@ -984,10 +992,10 @@ function ChatThread({ messages, mine, onSend, placeholder, emptyText, loading })
           return (
             <div key={`${m.at}-${i}`} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 sm:max-w-[70%] ${
-                own ? 'rounded-br-md bg-brand text-white' : 'rounded-bl-md bg-mist text-ink'
+                own ? 'rounded-br-md bg-brand text-on-brand' : 'rounded-bl-md bg-mist text-ink'
               }`}>
                 <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{m.text}</p>
-                <p className={`mt-1 text-xs ${own ? 'text-neutral-300' : 'text-muted'}`}>
+                <p className={`mt-1 text-xs ${own ? 'text-on-brand/70' : 'text-muted'}`}>
                   {m.from === 'instructor' && !own ? `${m.by?.split(' ')[0] || 'Instructor'} · ` : ''}
                   {chatTime(m.at)}
                 </p>
@@ -1242,7 +1250,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             {['all', ...allowed.map((s) => s.name)].map((name) => (
               <button key={name} onClick={() => setSubjectFilter(name)}
                 className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
-                  subjectFilter === name ? 'border-brand bg-brand text-white' : 'border-line bg-white text-ink hover:border-brand'
+                  subjectFilter === name ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
                 }`}>
                 {name === 'all' ? 'All subjects' : name}
               </button>
@@ -1439,6 +1447,7 @@ function UploadMaterial({ user }) {
   const [notice, setNotice] = useState('');
   const [materials, setMaterials] = useState([]);
   const [blobReady, setBlobReady] = useState(true);
+  const [blobSettings, setBlobSettings] = useState([]);
   const fileInput = React.useRef(null);
 
   const load = async () => {
@@ -1446,6 +1455,7 @@ function UploadMaterial({ user }) {
       const data = await api('/api/materials', { action: 'list' }, user.idToken);
       setMaterials(data.materials || []);
       setBlobReady(data.blobReady !== false);
+      setBlobSettings(data.blobSettings || []);
     } catch (err) {
       setError(err.message);
     }
@@ -1512,10 +1522,21 @@ function UploadMaterial({ user }) {
       <div className={`${card} h-fit p-6 sm:p-8`}>
         <h2 className="mb-6 text-lg font-bold text-ink">Upload study material</h2>
         {!blobReady && (
-          <p className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-            File storage is not switched on yet. In Vercel open Storage → Create → Blob, choose <b>Private</b>,
-            connect it to this project and redeploy.
-          </p>
+          <div className="mb-5 space-y-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+            <p className="font-semibold">File storage is not reaching the site yet.</p>
+            {blobSettings.length === 0 ? (
+              <p>
+                The site sees no Blob settings at all. In Vercel open your Blob store → <b>Projects</b>, and check this
+                project is connected with <b>Production</b> ticked. Then redeploy.
+              </p>
+            ) : (
+              <p>
+                The site sees <b>{blobSettings.join(', ')}</b> but no upload key. Open your Blob store in Vercel, copy
+                the <b>BLOB_READ_WRITE_TOKEN</b> value from its <b>.env.local</b> tab, add it under this project's
+                Settings → Environment Variables (Production), then redeploy.
+              </p>
+            )}
+          </div>
         )}
         <form onSubmit={submit} className="space-y-5">
           <div className="grid gap-5 sm:grid-cols-2">
@@ -1822,7 +1843,7 @@ function AdminPortal({ user, onLogout }) {
                     {editing === student.email ? 'Close' : 'Manage access'}
                   </button>
                   <button onClick={() => deleteStudent(student)}
-                    className="rounded-full p-2 text-muted transition hover:bg-red-50 hover:text-red-600"
+                    className="rounded-full p-2 text-muted transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50"
                     aria-label={`Delete ${student.email}`} title="Delete student">
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -1852,7 +1873,7 @@ function AdminPortal({ user, onLogout }) {
                           tests: value === 'course' ? draft.tests : false,
                         })}
                         className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                          draft.plan === value ? 'border-brand bg-brand text-white' : 'border-line text-ink hover:border-brand'
+                          draft.plan === value ? 'border-brand bg-brand text-on-brand' : 'border-line text-ink hover:border-brand'
                         }`}
                       >
                         {label}
@@ -1887,7 +1908,7 @@ function AdminPortal({ user, onLogout }) {
                               type="checkbox"
                               checked={draft.subjects.includes(subject.name)}
                               onChange={() => toggleSubject(subject.name)}
-                              className="h-4 w-4 accent-black"
+                              className="h-4 w-4 accent-brand"
                             />
                             <span className="font-medium text-ink">{subject.name}</span>
                           </label>
@@ -1899,13 +1920,13 @@ function AdminPortal({ user, onLogout }) {
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
                           <input type="checkbox" checked={draft.questions}
                             onChange={(e) => setDraft({ ...draft, questions: e.target.checked })}
-                            className="h-4 w-4 accent-black" />
+                            className="h-4 w-4 accent-brand" />
                           <span className="font-medium text-ink">Question bank</span>
                         </label>
                         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line p-3 text-sm transition hover:border-brand/60">
                           <input type="checkbox" checked={draft.tests}
                             onChange={(e) => setDraft({ ...draft, tests: e.target.checked })}
-                            className="h-4 w-4 accent-black" />
+                            className="h-4 w-4 accent-brand" />
                           <span className="font-medium text-ink">Topic tests and mock exams</span>
                         </label>
                       </div>

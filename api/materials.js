@@ -37,7 +37,16 @@ const ALLOWED_CONTENT_TYPES = [
 const MAX_BYTES = 500 * 1024 * 1024;
 const LINK_MINUTES = 15;
 
-const blobReady = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+// Connecting a Blob store normally adds BLOB_READ_WRITE_TOKEN, but a custom
+// prefix typed in Vercel's connect dialog renames it (e.g. FILES_READ_WRITE_TOKEN).
+// Every read-write key starts with vercel_blob_rw_, so find it by that instead.
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN
+  || Object.values(process.env).find((v) => typeof v === 'string' && v.startsWith('vercel_blob_rw_'))
+  || '';
+const blobReady = Boolean(BLOB_TOKEN);
+// Names only, never values: shown to instructors when storage is not working,
+// so they can see what Vercel actually gave the site.
+const blobSettingNames = () => Object.keys(process.env).filter((k) => /BLOB/i.test(k)).sort();
 
 // Which files a student may open, from the access the instructor granted.
 function canOpen(access, material) {
@@ -79,6 +88,7 @@ export default async function handler(req, res) {
     }
     try {
       const result = await handleUpload({
+        token: BLOB_TOKEN,
         body,
         request: req,
         onBeforeGenerateToken: async (pathname, clientPayload) => {
@@ -116,7 +126,7 @@ export default async function handler(req, res) {
     if (body.action === 'list') {
       const materials = await allMaterials();
       if (instructor) {
-        res.status(200).json({ materials, blobReady });
+        res.status(200).json({ materials, blobReady, blobSettings: blobReady ? [] : blobSettingNames() });
         return;
       }
       const access = await getAccess(person.email);
@@ -135,7 +145,9 @@ export default async function handler(req, res) {
         return;
       }
       const validUntil = Date.now() + LINK_MINUTES * 60 * 1000;
-      const signed = await issueSignedToken({ pathname: material.pathname, operations: ['get'], validUntil });
+      const signed = await issueSignedToken({
+        token: BLOB_TOKEN, pathname: material.pathname, operations: ['get'], validUntil,
+      });
       const { presignedUrl } = await presignUrl(signed, {
         operation: 'get', pathname: material.pathname, access: 'private', validUntil,
       });
@@ -159,7 +171,7 @@ export default async function handler(req, res) {
         return;
       }
       // Confirm the file really arrived in our store before listing it.
-      const blob = await head(pathname);
+      const blob = await head(pathname, { token: BLOB_TOKEN });
       const material = {
         id: crypto.randomUUID(),
         pathname: blob.pathname,
@@ -182,7 +194,7 @@ export default async function handler(req, res) {
         res.status(200).json({ ok: true });
         return;
       }
-      await del(material.pathname);
+      await del(material.pathname, { token: BLOB_TOKEN });
       await redis(['HDEL', 'materials', material.id]);
       res.status(200).json({ ok: true });
       return;

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map, Circle, Clock,
 } from 'lucide-react';
-import { Logo, btnPrimary, card, input, SLOT_TIMES } from './ui.jsx';
+import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES } from './ui.jsx';
 
 const SESSION_PRICE = 1999;
 const RECORDING_PRICE = 400;
@@ -270,7 +270,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
                     taken
                       ? 'cursor-not-allowed border-line bg-mist text-slate-400 line-through'
                       : active
-                        ? 'border-brand bg-brand text-white'
+                        ? 'border-brand bg-brand text-on-brand'
                         : 'border-line text-ink hover:border-brand hover:bg-sky'
                   }`}
                 >
@@ -293,7 +293,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
 
           <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">
             <input type="checkbox" checked={recording} onChange={(e) => setRecording(e.target.checked)}
-              className="mt-0.5 h-5 w-5 rounded accent-black" />
+              className="mt-0.5 h-5 w-5 rounded accent-brand" />
             <span>
               <span className="flex items-center gap-2 font-semibold text-ink">
                 <Circle className="h-4 w-4 text-red-500" /> Add the session recording
@@ -336,12 +336,15 @@ function Row({ label, value, strong = false }) {
 
 function TopBar({ goHome }) {
   return (
-    <header className="border-b border-line bg-white">
+    <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
         <button onClick={goHome}><Logo /></button>
-        <button onClick={goHome} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
-          <ArrowLeft className="h-4 w-4" /> Back to home
-        </button>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <button onClick={goHome} className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
+            <ArrowLeft className="h-4 w-4" /> Back to home
+          </button>
+        </div>
       </div>
     </header>
   );

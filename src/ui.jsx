@@ -1,13 +1,13 @@
-import React from 'react';
-import { Plane } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plane, Sun, Moon } from 'lucide-react';
 
 export const btnPrimary =
-  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-white shadow-[0_6px_20px_-6px_rgba(0,0,0,0.55)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-on-brand shadow-[0_6px_20px_-6px_rgba(0,0,0,0.55)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60';
 export const btnGhost =
-  'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand';
+  'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-6 py-3 font-semibold text-ink transition hover:border-brand hover:text-brand';
 export const input =
-  'w-full rounded-xl border border-line bg-white px-4 py-3 text-ink placeholder-slate-400 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10';
-export const card = 'rounded-2xl border border-line bg-white';
+  'w-full rounded-xl border border-line bg-surface px-4 py-3 text-ink placeholder-slate-400 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10';
+export const card = 'rounded-2xl border border-line bg-surface';
 
 // Session times in IST. Keep in sync with SLOT_TIMES in api/_lib.js.
 export const SLOT_TIMES = [
@@ -18,7 +18,7 @@ export const SLOT_TIMES = [
 export function Logo({ light = false, compact = false }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-on-brand">
         <Plane className="h-5 w-5 -rotate-45" />
       </div>
       {!compact && (
@@ -27,5 +27,27 @@ export function Logo({ light = false, compact = false }) {
         </span>
       )}
     </div>
+  );
+}
+
+// Light or dark. index.html applies the saved choice before the page draws, so
+// there is no white flash; this button flips it and remembers it on this device.
+export function ThemeToggle({ className = '' }) {
+  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark');
+  const flip = () => {
+    const next = dark ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch { /* private mode: still works for this visit */ }
+    setDark(!dark);
+  };
+  return (
+    <button
+      onClick={flip}
+      className={`rounded-full border border-line p-2 text-ink transition hover:border-brand ${className}`}
+      aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={dark ? 'Light theme' : 'Dark theme'}
+    >
+      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
   );
 }
