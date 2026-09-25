@@ -46,7 +46,7 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
   const [copied, setCopied] = useState(false);
 
   // Draw the QR for this exact amount once they choose to pay.
-  const link = request ? upiLink(request.amount, `flywithsam ${request.subjects.length} subject${request.subjects.length === 1 ? '' : 's'}`) : '';
+  const link = request ? upiLink(request.amount, `Avero Aviation ${request.subjects.length} subject${request.subjects.length === 1 ? '' : 's'}`) : '';
   useEffect(() => {
     if (!link) return;
     import('qrcode')

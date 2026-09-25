@@ -390,7 +390,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           <nav className="hidden items-center gap-8 text-[15px] font-medium text-muted md:flex">
             <a href="#subjects" className="transition hover:text-ink">Subjects</a>
             <a href="#about" className="transition hover:text-ink">About</a>
-            <a href="#why" className="transition hover:text-ink">Why flywithsam</a>
+            <a href="#why" className="transition hover:text-ink">Why Avero Aviation</a>
             <a href="#reviews" className="transition hover:text-ink">Reviews</a>
             <a href="#pricing" className="transition hover:text-ink">Pricing</a>
             <a href="#faq" className="transition hover:text-ink">FAQ</a>
@@ -416,7 +416,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
         </div>
         {mobileMenuOpen && (
           <div className="space-y-1 border-t border-line bg-surface px-4 py-4 md:hidden">
-            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why flywithsam'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
+            {[['#subjects', 'Subjects'], ['#about', 'About'], ['#why', 'Why Avero Aviation'], ['#reviews', 'Reviews'], ['#pricing', 'Pricing'], ['#faq', 'FAQ']].map(([href, label]) => (
               <a key={href} href={href} onClick={() => setMobileMenuOpen(false)} className="block rounded-lg px-3 py-2 font-medium text-ink hover:bg-mist">
                 {label}
               </a>
@@ -608,7 +608,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose flywithsam</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose Avero Aviation</h2>
               <p className="mt-5 text-lg text-muted">Six reasons students stay.</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -797,7 +797,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       <footer className="border-t border-line py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted sm:flex-row sm:px-6">
           <Logo />
-          <p>&copy; {new Date().getFullYear()} flywithsam Ground School. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Avero Aviation. All rights reserved.</p>
         </div>
       </footer>
     </div>
@@ -1570,7 +1570,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       <p className="font-semibold">We’re sorry, we couldn’t confirm your payment for {rejected.subjects.join(', ')} yet.</p>
       <p className="mt-1">
         Apologies for the inconvenience. If you have already paid and still see this message, please email us at{' '}
-        <a href={`mailto:${BOOKING_CONTACT}?subject=${encodeURIComponent('My flywithsam payment')}`} className="font-semibold underline">{BOOKING_CONTACT}</a>{' '}
+        <a href={`mailto:${BOOKING_CONTACT}?subject=${encodeURIComponent('My Avero Aviation payment')}`} className="font-semibold underline">{BOOKING_CONTACT}</a>{' '}
         with your UPI transaction ID, and we will sort it out straight away.
       </p>
       {rejected.note && <p className="mt-2">Note from your instructor: {rejected.note}</p>}

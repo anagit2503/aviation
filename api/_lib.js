@@ -56,7 +56,7 @@ export async function sendBookingEmail(booking) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.BOOKING_FROM || 'SkyMaster Bookings <onboarding@resend.dev>',
+      from: process.env.BOOKING_FROM || 'Avero Aviation <onboarding@resend.dev>',
       to: [BOOKING_EMAIL],
       reply_to: booking.email,
       subject: `New consultation: ${booking.name}, ${booking.dayLabel} at ${booking.time} IST`,
@@ -81,7 +81,7 @@ export async function sendStudentConfirmation(booking) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.BOOKING_FROM || 'flywithsam <onboarding@resend.dev>',
+        from: process.env.BOOKING_FROM || 'Avero Aviation <onboarding@resend.dev>',
         to: [booking.email],
         reply_to: BOOKING_EMAIL,
         subject: `Your consultation is booked: ${booking.dayLabel} at ${booking.time} IST`,
@@ -99,7 +99,7 @@ export async function sendStudentConfirmation(booking) {
           '',
           'If you need to change the time, just reply to this email.',
           '',
-          'flywithsam',
+          'Avero Aviation',
         ].join('\n'),
       }),
     });
@@ -121,7 +121,7 @@ export async function sendDoubtNotification({ name, email, text }) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: process.env.BOOKING_FROM || 'flywithsam <onboarding@resend.dev>',
+        from: process.env.BOOKING_FROM || 'Avero Aviation <onboarding@resend.dev>',
         to: [BOOKING_EMAIL],
         subject: `New doubt from ${name || email}`,
         text: [

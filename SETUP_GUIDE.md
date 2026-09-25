@@ -1,4 +1,4 @@
-# flywithsam Ground School - Complete Setup Guide
+# Avero Aviation - Complete Setup Guide
 
 ## Table of Contents
 1. [Quick Start (5 minutes)](#quick-start)
@@ -41,7 +41,7 @@ Firebase is perfect for India because:
 1. Go to [firebase.google.com](https://firebase.google.com)
 2. Click "Get Started" or "Go to Console"
 3. Click "Create a project"
-4. Project name: **flywithsam Ground School**
+4. Project name: **Avero Aviation**
 5. Analytics: You can disable this (optional)
 6. Click "Create Project"
 
@@ -76,7 +76,7 @@ Firebase is perfect for India because:
 2. Click "Project Settings"
 3. Scroll down to "Your apps"
 4. Click the "Web" icon (`</> `)
-5. Register app with name "flywithsam"
+5. Register app with name "Avero Aviation"
 6. Copy the entire config object that looks like:
 ```javascript
 const firebaseConfig = {
@@ -172,7 +172,7 @@ To use your own domain (e.g., skymaster.in):
 
 Edit the app file and search for these:
 
-**App Name:** Search for "flywithsam" and replace with your name
+**App Name:** Search for "Avero Aviation" and replace with your name
 **Colors:**
 - Blue (`#1e3a5f`, `#2563eb`) → Change to your colors
 - Amber (`#f59e0b`) → Change to your accent color
