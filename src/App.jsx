@@ -486,7 +486,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <div className="h-10 w-px bg-line" />
               <div><span className="block text-2xl font-extrabold text-ink">95%</span>pass rate</div>
               <div className="h-10 w-px bg-line" />
-              <div><span className="block text-2xl font-extrabold text-ink">₹5 lakhs</span>in potential savings</div>
+              <div><span className="block text-2xl font-extrabold text-go">₹5 lakhs</span>in potential savings</div>
             </div>
           </div>
 
@@ -673,7 +673,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             </h2>
             <p className="mt-4 text-lg text-neutral-300/75">
               Avero helps you understand the process, make informed decisions and avoid unnecessary expenses — potentially
-              saving you up to <b className="text-white">₹5 lakh</b>.
+              saving you up to <b className="text-go">₹5 lakh</b>.
             </p>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -703,7 +703,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-muted">
             The right information can save you from unnecessary expenses throughout your journey — potentially saving you
-            up to <b className="text-ink">₹5 lakh</b>.
+            up to <b className="text-go">₹5 lakh</b>.
           </p>
         </div>
       </section>
@@ -712,8 +712,18 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       <section id="pricing" className="scroll-mt-20 bg-mist py-20 sm:py-24">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">What we offer</h2>
-            <p className="mt-4 text-lg text-muted">A call when you need answers. A question bank and notes when you need to pass.</p>
+            <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Study at your pace. Pay as you go.</h2>
+            <div className="mt-5 space-y-4 text-lg leading-relaxed text-muted">
+              <p>
+                Our experience taught us that DGCA exams require focus, consistency and thorough preparation — not an
+                unnecessary year-long commitment.
+              </p>
+              <p>
+                Choose your subjects, make the most of the resources, and clear them one by one — so we&apos;ve made our
+                pricing monthly.
+              </p>
+              <p className="font-bold text-ink">Choose a subject. Prepare for it. Clear it. Move on.</p>
+            </div>
           </div>
 
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
@@ -726,7 +736,6 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                 <s className="text-xl font-semibold text-muted">{rupees(CONSULTATION.was)}</s>
                 <span className="rounded-full bg-go/10 px-2.5 py-1 text-xs font-bold text-go">Save {rupees(CONSULTATION.was - CONSULTATION.price)}</span>
               </p>
-              <p className="mt-1 text-sm text-muted">1 hour, and I don’t watch the clock</p>
               <p className="mt-3 rounded-xl bg-go/10 px-3 py-2 text-sm font-semibold text-go">
                 Course students pay just {rupees(CONSULTATION.coursePrice)} <s className="font-normal opacity-70">{rupees(CONSULTATION.price)}</s>
               </p>

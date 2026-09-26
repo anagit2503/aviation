@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map as MapIcon, Circle, Clock, CalendarDays, CalendarCheck,
+  ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map as MapIcon, Circle, Clock, CalendarDays, CalendarCheck, Wallet,
 } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES, MEET_LINK } from './ui.jsx';
 
@@ -33,6 +33,7 @@ const INCLUDED = [
   { icon: MessageSquare, text: 'Open Q&A for all your doubts' },
   { icon: MapIcon, text: 'A study and career plan made for you' },
   { icon: Clock, text: 'Notes and next steps after the call' },
+  { icon: Wallet, text: 'Honest talk about pricing and timelines' },
 ];
 
 // Dates are handled in IST, since that is where sessions are held.
@@ -310,7 +311,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               <p className="flex flex-wrap items-baseline gap-x-3">
                 <span className="text-3xl font-extrabold">{money(sessionPrice)}</span>
                 <s className="text-lg text-neutral-400">{money(wasPrice)}</s>
-                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-white">Save {money(wasPrice - sessionPrice)}</span>
+                <span className="rounded-full bg-go/20 px-2.5 py-1 text-xs font-bold text-go">Save {money(wasPrice - sessionPrice)}</span>
               </p>
               {free && <p className="mt-1 text-sm text-neutral-300/75">Course student price</p>}
             </div>
