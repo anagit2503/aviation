@@ -18,8 +18,38 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { date, time, name, phone, goal, recording, idToken } = readJsonBody(req);
-  let { email } = readJsonBody(req);
+  // { action: 'mine', idToken } → this student's upcoming sessions, for the reminder on the booking page.
+  if (readJsonBody(req).action === 'mine') {
+    const person = await verifyIdToken(readJsonBody(req).idToken);
+    if (!person) {
+      res.status(401).json({ error: 'Please sign in again.' });
+      return;
+    }
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const keys = ((await redis(['KEYS', 'bookings:*'])) || []).filter((k) => k.slice(9) >= today);
+      const days = await Promise.all(keys.map((k) => redis(['HGETALL', k])));
+      const bookings = [];
+      days.forEach((flat, i) => {
+        for (let j = 0; j < (flat || []).length; j += 2) {
+          try {
+            const b = JSON.parse(flat[j + 1]);
+            if (!b.blocked && String(b.email || '').toLowerCase() === person.email) {
+              bookings.push({ date: keys[i].slice(9), time: flat[j], dayLabel: b.dayLabel, kind: b.kind || 'consultation', subject: b.subject || '' });
+            }
+          } catch { /* skip unreadable rows */ }
+        }
+      });
+      bookings.sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+      res.status(200).json({ bookings });
+    } catch {
+      res.status(503).json({ error: 'Could not load your bookings.' });
+    }
+    return;
+  }
+
+  const { date, time, phone, goal, recording, idToken } = readJsonBody(req);
+  let { email, name } = readJsonBody(req);
   // 'doubt' = a doubt class on one subject, for course students only.
   const kind = readJsonBody(req).kind === 'doubt' ? 'doubt' : 'consultation';
   const requestedSubject = String(readJsonBody(req).subject || '');
@@ -50,6 +80,8 @@ export default async function handler(req, res) {
       return;
     }
     email = person.email;
+    // Signed-in students do not type their name; use the Google account's.
+    if (!String(name || '').trim()) name = person.name || person.email.split('@')[0];
   }
 
   if (kind === 'doubt' && !courseStudent) {

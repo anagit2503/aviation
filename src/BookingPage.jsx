@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map, Circle, Clock,
+  ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map as MapIcon, Circle, Clock, CalendarDays, CalendarCheck,
 } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES } from './ui.jsx';
 
@@ -22,14 +22,14 @@ const TALK_ABOUT = [
 const DOUBT_INCLUDED = [
   { icon: Video, text: '1 hour 1-on-1 on Google Meet' },
   { icon: MessageSquare, text: 'Bring the exact questions you are stuck on' },
-  { icon: Map, text: 'We go through it step by step until it clicks' },
+  { icon: MapIcon, text: 'We go through it step by step until it clicks' },
   { icon: Clock, text: 'Free with your course' },
 ];
 
 const INCLUDED = [
   { icon: Video, text: '1 hour 1-on-1 on Google Meet' },
   { icon: MessageSquare, text: 'Open Q&A for all your doubts' },
-  { icon: Map, text: 'A study and career plan made for you' },
+  { icon: MapIcon, text: 'A study and career plan made for you' },
   { icon: Clock, text: 'Notes and next steps after the call' },
 ];
 
@@ -41,7 +41,24 @@ function toKey(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function buildDays(count = 21) {
+// Bookable up to a year ahead.
+const DAYS_AHEAD = 366;
+const HELPER = 'This helps us understand your need and cater to it better.';
+const LOCAL_BOOKINGS = 'avero-bookings';
+
+// Bookings made on this device without signing in, so the page can remind
+// the visitor what they already booked.
+function readLocalBookings() {
+  try {
+    const today = toKey(istToday());
+    return JSON.parse(localStorage.getItem(LOCAL_BOOKINGS) || '[]').filter((b) => b.date >= today);
+  } catch { return []; }
+}
+function saveLocalBooking(b) {
+  try { localStorage.setItem(LOCAL_BOOKINGS, JSON.stringify([...readLocalBookings(), b].slice(-10))); } catch { /* not important */ }
+}
+
+function buildDays(count = DAYS_AHEAD) {
   const start = istToday();
   return Array.from({ length: count }, (_, i) => {
     const d = new Date(start);
@@ -67,6 +84,27 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
   const days = useMemo(() => buildDays(), []);
   const [dayIndex, setDayIndex] = useState(0);
   const [pageStart, setPageStart] = useState(0);
+  const [showMonth, setShowMonth] = useState(false);
+  const [mine, setMine] = useState(() => (getIdToken ? [] : readLocalBookings()));
+
+  // What this person has already booked, shown at the top of the page.
+  const loadMine = async () => {
+    if (!getIdToken) { setMine(readLocalBookings()); return; }
+    try {
+      const res = await fetch('/api/book', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mine', idToken: await getIdToken() }),
+      });
+      if (res.ok) setMine((await res.json()).bookings || []);
+    } catch { /* the reminder is optional */ }
+  };
+  useEffect(() => { loadMine(); }, []);
+
+  const pickDay = (index) => {
+    setDayIndex(index);
+    setPageStart(Math.max(0, Math.min(days.length - 5, index - (index % 5))));
+    setShowMonth(false);
+  };
   const [time, setTime] = useState('');
   const [booked, setBooked] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
@@ -96,6 +134,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
 
   const validate = () => {
     const errors = {};
+    if (account?.email) return errors; // signed in: name and email come from their account
     if (form.name.trim().length < 2) errors.name = 'Please enter your name.';
     if (!form.email.trim()) {
       errors.email = 'We need an email to send you the meeting link.';
@@ -151,7 +190,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
       const res = await fetch('/api/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, date: day.key, time, recording: doubt ? false : recording, amount: total, idToken, kind, subject }),
+        body: JSON.stringify({ ...form, name: form.name || account?.name || account?.email?.split('@')[0] || '', date: day.key, time, recording: doubt ? false : recording, amount: total, idToken, kind, subject }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -161,6 +200,8 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
         return;
       }
       setConfirmed({ ...data, total });
+      if (!getIdToken) saveLocalBooking({ date: day.key, time, dayLabel: data.dayLabel, kind, subject });
+      loadMine();
       setStatus('done');
       window.scrollTo(0, 0);
     } catch {
@@ -249,7 +290,30 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
 
         {/* Booking form */}
         <form onSubmit={submit} noValidate className={`${card} p-6 sm:p-8`}>
-          <h2 className="font-bold text-ink">When should we meet?</h2>
+          {mine.length > 0 && (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl bg-go/10 p-4 text-sm text-ink">
+              <CalendarCheck className="mt-0.5 h-5 w-5 shrink-0 text-go" />
+              <div>
+                <p className="font-semibold">You already have {mine.length === 1 ? 'a session' : `${mine.length} sessions`} booked</p>
+                <ul className="mt-1 space-y-0.5 text-muted">
+                  {mine.slice(0, 5).map((b) => (
+                    <li key={`${b.date}-${b.time}`}>
+                      {b.kind === 'doubt' ? `Doubt class${b.subject ? ` (${b.subject})` : ''}` : 'Consultation'}: {b.dayLabel || b.date} at {b.time} IST
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-muted">You can still book another one below.</p>
+              </div>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-bold text-ink">When should we meet?</h2>
+            <button type="button" onClick={() => setShowMonth(!showMonth)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-sm font-semibold text-ink transition hover:border-brand">
+              <CalendarDays className="h-4 w-4" /> {showMonth ? 'Close calendar' : 'Pick a date'}
+            </button>
+          </div>
+          {showMonth && <MonthPicker days={days} selected={days[dayIndex].key} onPick={pickDay} />}
           <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
@@ -319,17 +383,21 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             <p className="mt-3 text-sm text-muted">Crossed-out times are already booked.</p>
           )}
 
-          <h2 className="mt-7 font-bold text-ink">Your details</h2>
-          <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
-            {field('name', 'Full name')}
-            {field('email', 'Email', 'email', Boolean(account?.email))}
-            {field('phone', 'Phone (optional)', 'tel')}
-            {field('goal', doubt ? 'What are you stuck on?' : 'Where are you in your training?')}
-          </div>
+          {/* Signed-in students are already known, so they only see what matters. */}
+          {!account?.email && (
+            <>
+              <h2 className="mt-7 font-bold text-ink">Your details</h2>
+              <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
+                {field('name', 'Full name')}
+                {field('email', 'Email', 'email')}
+                {field('phone', 'Phone (optional)', 'tel')}
+              </div>
+            </>
+          )}
 
           {doubt && (
-            <div className="mt-5">
-              <p className="mb-2 font-bold text-ink">Which subject?</p>
+            <div className="mt-7">
+              <p className="mb-2 font-bold text-ink">Choose the subject</p>
               <div className="flex flex-wrap gap-2">
                 {subjects.map((name) => (
                   <button type="button" key={name} onClick={() => setSubject(name)}
@@ -340,6 +408,16 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               </div>
             </div>
           )}
+
+          <div className="mt-7">
+            <label htmlFor="goal" className="font-bold text-ink">
+              {doubt ? 'Anything you would like to go through? (optional)' : 'What do you want to talk about?'}
+            </label>
+            <textarea id="goal" rows={4} value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })}
+              maxLength={2000} className={`${input} mt-3 resize-y`}
+              placeholder={doubt ? 'A topic, a chapter, or a few questions you keep getting wrong…' : 'Schools, countries, exams, visas, costs, anything at all…'} />
+            <p className="mt-1.5 text-sm text-muted">{HELPER}</p>
+          </div>
 
           {!doubt && <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-line p-4 transition hover:border-brand/60">
             <input type="checkbox" checked={recording} onChange={(e) => setRecording(e.target.checked)}
@@ -397,5 +475,53 @@ function TopBar({ goHome }) {
         </div>
       </div>
     </header>
+  );
+}
+
+// A month-by-month calendar for picking any date up to a year ahead.
+function MonthPicker({ days, selected, onPick }) {
+  const first = days[0].key;
+  const last = days[days.length - 1].key;
+  const [month, setMonth] = useState(() => selected.slice(0, 7)); // "YYYY-MM"
+  const [y, m] = month.split('-').map(Number);
+  const start = new Date(y, m - 1, 1);
+  const lead = (start.getDay() + 6) % 7; // Monday first
+  const count = new Date(y, m, 0).getDate();
+  const shift = (n) => {
+    const d = new Date(y, m - 1 + n, 1);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const index = new Map(days.map((d, i) => [d.key, i]));
+  return (
+    <div className="mt-4 rounded-2xl border border-line p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <button type="button" onClick={() => shift(-1)} disabled={month <= first.slice(0, 7)}
+          className="rounded-full border border-line p-2 text-muted transition hover:text-ink disabled:opacity-40" aria-label="Previous month">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <p className="font-bold text-ink">{start.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</p>
+        <button type="button" onClick={() => shift(1)} disabled={month >= last.slice(0, 7)}
+          className="rounded-full border border-line p-2 text-muted transition hover:text-ink disabled:opacity-40" aria-label="Next month">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted">
+        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d) => <span key={d} className="py-1">{d}</span>)}
+        {Array.from({ length: lead }, (_, i) => <span key={`b${i}`} />)}
+        {Array.from({ length: count }, (_, i) => {
+          const key = `${month}-${String(i + 1).padStart(2, '0')}`;
+          const at = index.get(key);
+          const on = key === selected;
+          return (
+            <button type="button" key={key} disabled={at === undefined} onClick={() => onPick(at)}
+              className={`rounded-lg py-2 text-sm transition ${
+                on ? 'bg-brand font-bold text-on-brand' : at === undefined ? 'text-line' : 'text-ink hover:bg-sky'
+              }`}>
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

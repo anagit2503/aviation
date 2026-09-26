@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play, House,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -220,7 +220,7 @@ export default function AviationGroundSchool() {
           {authMode === 'signup' && <AuthPage mode="signup" setAuthMode={setAuthMode} onGoogleUser={handleGoogleUser} />}
         </>
       ) : isAdmin ? (
-        <AdminPortal user={user} onLogout={handleLogout} />
+        <AdminPortal user={user} onLogout={handleLogout} onHome={() => setAuthMode('landing')} />
       ) : (
         <StudentDashboard user={user} onLogout={handleLogout} onGoPublic={setAuthMode} onRefreshAccess={refreshAccess} />
       )}
@@ -276,12 +276,11 @@ const FEATURES = [
 ];
 
 const REASONS = [
-  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Learn from someone who has taken the exams, logged the hours, and earned the license.' },
-  { icon: Compass, title: 'Always know what is next', text: 'Material in a set order, topic by topic.' },
-  { icon: BarChart3, title: 'See your progress', text: 'Your marks update as you finish quizzes.' },
-  { icon: Clock, title: 'Study on your schedule', text: 'Study anytime, on any device.' },
-  { icon: MessageCircle, title: 'Never stuck on a doubt', text: 'Ask in the chat and your instructor replies.' },
-  { icon: Wallet, title: 'Fairly priced', text: 'Pay per subject, month by month.' },
+  { icon: GraduationCap, title: 'Taught by a CPL holder', text: 'Learn from someone who has taken the exams, flown the hours and earned the license.' },
+  { icon: Compass, title: 'Study with direction', text: 'Every topic is laid out in a clear sequence, so you can focus on learning instead of figuring out where to start.' },
+  { icon: Wallet, title: 'Fair to the student, and their parents', text: 'Pay for what you need. Choose the subjects, resources or consultations you actually need.' },
+  { icon: Clock, title: 'Study on your schedule', text: "Your schedule doesn't have to fit around studying. Learn whenever and wherever works for you." },
+  { icon: Plane, title: 'Your journey, your way', text: 'Learn, decide and move forward on your own terms — with guidance available whenever you need it.' },
 ];
 
 const PITFALLS = [
@@ -392,6 +391,8 @@ function scrollToSection(id) {
   window.history.replaceState(null, '', `#${id}`);
 }
 
+const heroChoice = 'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-6 py-3 font-semibold text-ink transition hover:border-brand hover:bg-brand hover:text-on-brand';
+
 function LandingPage({ setAuthMode, signedIn = false }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // The logo takes you back to the top from anywhere on the page.
@@ -467,18 +468,17 @@ function LandingPage({ setAuthMode, signedIn = false }) {
       <section className="relative overflow-hidden bg-gradient-to-b from-sky to-surface">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-4 pb-20 pt-16 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
           <div>
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 text-sm font-semibold text-brand shadow-sm ring-1 ring-line">
-              <Plane className="h-4 w-4 -rotate-45" /> CPL ground school, online
-            </p>
             <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-ink sm:text-5xl lg:text-[3.6rem]">
-              Pass your CPL ground exams without the guesswork.
+              Your journey to the cockpit starts on the ground.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Clear notes and 2000+ real exam questions, from a pilot who scored 90+ in all six papers.
+              Aviation training built by pilots who have sat the exams, flown the flights, and learned what it really takes
+              to get to the cockpit.
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
-              <button onClick={() => setAuthMode('book')} className={btnPrimary}>Book a consultation</button>
-              <a href="#subjects" className={btnGhost}>See the course</a>
+              {/* Two equal choices: neither is highlighted until you point at it. */}
+              <button onClick={() => setAuthMode('book')} className={heroChoice}>Book a consultation</button>
+              <a href="#subjects" className={heroChoice}>See the course</a>
             </div>
             <div className="mt-10 flex items-center gap-8 text-sm text-muted">
               <div><span className="block text-2xl font-extrabold text-ink">500+</span>students trained</div>
@@ -585,24 +585,13 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               </p>
               <p>
                 The goal is to give you the knowledge, resources and context to ask better questions, evaluate your options
-                and make your own decisions — so that when you reach the cockpit, you have a journey you can truly call your
-                own.
+                and make your own decisions — so that when you reach the cockpit,{' '}
+                <b className="text-ink">you have a journey you can truly call your own.</b>
               </p>
               <p className="border-t border-line pt-5 text-2xl font-extrabold tracking-tight text-ink">
                 Learn the system. Make your own decisions. Become the pilot.
               </p>
             </div>
-            <ul className="mt-8 flex flex-wrap gap-3">
-              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
-                <GraduationCap className="h-4 w-4 text-brand" /> CPL, SkyDuo Aviation Academy, Miami
-              </li>
-              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
-                <BarChart3 className="h-4 w-4 text-brand" /> 90+ in all DGCA subjects
-              </li>
-              <li className="inline-flex items-center gap-2 rounded-full bg-sky px-4 py-2 text-sm font-semibold text-ink">
-                <NotebookPen className="h-4 w-4 text-brand" /> Notes built from real flying
-              </li>
-            </ul>
           </div>
         </div>
       </section>
@@ -613,11 +602,22 @@ function LandingPage({ setAuthMode, signedIn = false }) {
           <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
             <div>
               <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">Why students choose Avero Aviation</h2>
-              <p className="mt-5 text-lg text-muted">Six reasons students stay.</p>
+              <div className="mt-5 space-y-4 text-lg leading-relaxed text-muted">
+                <p>
+                  When you&apos;re new to aviation, it&rsquo;s easy to assume that high cost of flight training can make every
+                  other expense — from applications and classes to exam preparation and guidance — seem justified.
+                </p>
+                <p className="font-semibold text-ink">But the cost of flight training doesn&apos;t determine the value of everything around it.</p>
+                <p>That&rsquo;s why Avero was built differently.</p>
+                <p>
+                  It&apos;s a place to learn, prepare, understand the process and navigate aviation independently — built by
+                  people who have been through it themselves.
+                </p>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              {REASONS.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="rounded-2xl bg-surface p-6 ring-1 ring-line">
+              {REASONS.map(({ icon: Icon, title, text }, i) => (
+                <div key={title} className={`rounded-2xl bg-surface p-6 ring-1 ring-line ${i === REASONS.length - 1 && REASONS.length % 2 ? 'sm:col-span-2' : ''}`}>
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
                     <Icon className="h-5 w-5" />
                   </div>
@@ -666,10 +666,11 @@ function LandingPage({ setAuthMode, signedIn = false }) {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              What actually costs students their licence
+              What Actually Costs Students More Than It Should
             </h2>
             <p className="mt-4 text-lg text-neutral-300/75">
-              Flying is the easy part. Most money and time is lost before you reach a cockpit.
+              Avero helps you understand the process, make informed decisions and avoid unnecessary expenses — potentially
+              saving you up to <b className="text-white">₹5 lakh</b>.
             </p>
           </div>
           <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -688,6 +689,19 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <CalendarClock className="h-4 w-4" /> Talk it through with me
             </button>
           </div>
+        </div>
+      </section>
+
+      {/* Savings */}
+      <section className="py-20 sm:py-24">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2 className="text-3xl font-extrabold tracking-tight text-ink sm:text-4xl">
+            What if becoming a pilot didn&apos;t have to cost as much as you thought?
+          </h2>
+          <p className="mt-5 text-lg leading-relaxed text-muted">
+            The right information can save you from unnecessary expenses throughout your journey — potentially saving you
+            up to <b className="text-ink">₹5 lakh</b>.
+          </p>
         </div>
       </section>
 
@@ -942,13 +956,19 @@ function AuthPage({ mode, setAuthMode, onGoogleUser, forEnroll = false }) {
 }
 
 // ============= APP SHELL (dashboards) =============
-function AppShell({ title, subtitle, onLogout, tabs, activeTab, setActiveTab, children }) {
+function AppShell({ title, subtitle, onLogout, onHome, tabs, activeTab, setActiveTab, children }) {
   return (
     <div className="min-h-screen bg-mist">
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Logo />
+          {/* The logo, and the Home page button, lead back to the main site. */}
+          <button onClick={onHome} aria-label="Avero Aviation home page"><Logo /></button>
           <div className="flex items-center gap-3">
+            {onHome && (
+              <button onClick={onHome} className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted transition hover:bg-mist hover:text-ink sm:inline-flex">
+                <House className="h-4 w-4" /> Home page
+              </button>
+            )}
             <ThemeToggle />
             <div className="hidden text-right sm:block">
               <p className="text-xs text-muted">{subtitle}</p>
@@ -1335,7 +1355,6 @@ function PracticeQuestions({ user, subjects }) {
               <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                 <span className="rounded-full bg-sky px-2.5 py-1 text-ink">Question {index + 1} of {set.length}</span>
                 {q.topic && <span className="rounded-full border border-line px-2.5 py-1 text-muted">{q.topic}</span>}
-                {q.subtopic && <span className="rounded-full border border-line px-2.5 py-1 text-muted">{q.subtopic}</span>}
               </div>
               <button onClick={() => bookmark(q)} className="rounded-full p-2 text-muted transition hover:text-ink"
                 aria-label={progress[q.id]?.bookmarked ? 'Remove bookmark' : 'Bookmark'}>
@@ -1418,7 +1437,7 @@ function PracticeQuestions({ user, subjects }) {
         </div>
       ) : (
         <div className={`${card} space-y-5 p-6`}>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">Subject</label>
               <select className={input} value={filter.subject} onChange={(e) => setFilter({ ...filter, subject: e.target.value, topic: '', subtopic: '' })}>
@@ -1427,18 +1446,10 @@ function PracticeQuestions({ user, subjects }) {
               </select>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Topic</label>
+              <label className="mb-1.5 block text-sm font-semibold text-ink">Chapter</label>
               <select className={input} value={filter.topic} onChange={(e) => setFilter({ ...filter, topic: e.target.value, subtopic: '' })}>
-                <option value="">All topics</option>
+                <option value="">All chapters</option>
                 {topics.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Subtopic</label>
-              <select className={input} value={filter.subtopic} onChange={(e) => setFilter({ ...filter, subtopic: e.target.value })}
-                disabled={subtopics.length === 0}>
-                <option value="">All subtopics</option>
-                {subtopics.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -1615,7 +1626,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   );
 
   return (
-    <AppShell title={firstName(user)} subtitle={allowed.length ? 'Welcome back' : 'Welcome'} onLogout={onLogout}
+    <AppShell title={firstName(user)} subtitle={allowed.length ? 'Welcome back' : 'Welcome'} onLogout={onLogout} onHome={() => onGoPublic('landing')}
       tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
       {/* Nobody gets course material until a payment is confirmed. */}
       {activeTab === 'overview' && allowed.length === 0 && (
@@ -2898,7 +2909,7 @@ function PaymentsAdmin({ requests, onApprove, onReject, busyId, error, onRefresh
   );
 }
 
-function AdminPortal({ user, onLogout }) {
+function AdminPortal({ user, onLogout, onHome }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -3096,7 +3107,7 @@ function AdminPortal({ user, onLogout }) {
   ];
 
   return (
-    <AppShell title={firstName(user)} subtitle="Instructor portal" onLogout={onLogout} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
+    <AppShell title={firstName(user)} subtitle="Instructor portal" onLogout={onLogout} onHome={onHome} tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab}>
       {activeTab === 'dashboard' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
