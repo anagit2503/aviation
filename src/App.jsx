@@ -754,7 +754,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   'Topic tests and full mock exams',
                   'Your marks tracked subject by subject',
                   'Doubts chat with your instructor',
-                  'Free 1-on-1 consultations while enrolled',
+                  'Free 1-on-1 consultations and doubt classes',
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
