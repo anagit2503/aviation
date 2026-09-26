@@ -285,6 +285,12 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               ? 'Pick the subject, tell me what is confusing you, and we work through it together, question by question.'
               : 'Bring your doubts about DGCA exams, choosing a flight school, costs and timelines. You leave with a plan written for your situation.'}
           </p>
+          {!doubt && (
+            <p className="mt-3 leading-relaxed text-neutral-300/75">
+              <b className="text-white">Starting from absolute zero?</b> That&apos;s completely fine. If you are just exploring
+              whether aviation is right for you, we start from the very beginning and walk you through how it all works.
+            </p>
+          )}
           <ul className="mt-7 space-y-4 border-t border-white/10 pt-7">
             {(doubt ? DOUBT_INCLUDED : INCLUDED).map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3">
