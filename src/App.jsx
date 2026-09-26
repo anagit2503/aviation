@@ -485,7 +485,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <div className="h-10 w-px bg-line" />
               <div><span className="block text-2xl font-extrabold text-ink">95%</span>pass rate</div>
               <div className="h-10 w-px bg-line" />
-              <div><span className="block text-2xl font-extrabold text-ink">₹5 lakh</span>potential savings (up to)</div>
+              <div><span className="block text-2xl font-extrabold text-ink">₹5 lakh</span>potential savings up to</div>
             </div>
           </div>
 
