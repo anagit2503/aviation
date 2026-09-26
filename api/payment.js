@@ -1,7 +1,8 @@
 // POST /api/payment → subject payments by UPI QR, checked by hand.
 //
 // Students:
-//   { action: 'create', subjects }     → "I want to pay for these" (price worked out here, never trusted from the browser)
+//   { action: 'create', subjects, bundle } → "I want to pay for these" (price worked out here from
+//                                        api/_pricing.js, never trusted from the browser)
 //   { action: 'claim', id, reference } → "I have paid", with an optional UPI transaction ID
 //   { action: 'mine' }                 → their own requests
 // Instructors:
@@ -13,12 +14,9 @@ import {
   storageReady, readJsonBody, bumpCounter,
 } from './_lib.js';
 
-// Keep in sync with SUBJECT_PRICE and SUBJECTS in src/App.jsx.
-const SUBJECT_PRICE = 5000;
-const SUBJECT_NAMES = [
-  'Air Navigation', 'Aviation Meteorology', 'Air Regulations',
-  'Technical General', 'Technical Specific', 'Radio Telephony (RTR)',
-];
+import { SUBJECT_PRICES, quote } from './_pricing.js';
+
+const SUBJECT_NAMES = Object.keys(SUBJECT_PRICES);
 const OPEN = ['awaiting', 'claimed'];
 
 function parseHash(flat) {
@@ -115,13 +113,14 @@ export default async function handler(req, res) {
       const requests = rows.map((r) => { try { return JSON.parse(r); } catch { return null; } })
         .filter(Boolean)
         .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-      res.status(200).json({ requests, price: SUBJECT_PRICE });
+      res.status(200).json({ requests });
       return;
     }
 
     if (body.action === 'create') {
-      const subjects = [...new Set((Array.isArray(body.subjects) ? body.subjects : [])
-        .filter((s) => SUBJECT_NAMES.includes(s)))];
+      const picked = (Array.isArray(body.subjects) ? body.subjects : []).filter((s) => SUBJECT_NAMES.includes(s));
+      const priced = quote(picked, Boolean(body.bundle));
+      const { subjects } = priced;
       if (subjects.length === 0) {
         res.status(400).json({ error: 'Pick at least one subject.' });
         return;
@@ -136,8 +135,9 @@ export default async function handler(req, res) {
         email: person.email,
         name: profile?.name || person.name || '',
         subjects,
-        pricePerSubject: SUBJECT_PRICE,
-        amount: SUBJECT_PRICE * subjects.length,
+        bundle: Boolean(body.bundle),
+        lines: priced.lines,
+        amount: priced.total,
         status: 'awaiting',
         createdAt: now,
       };

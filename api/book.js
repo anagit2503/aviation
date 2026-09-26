@@ -5,7 +5,9 @@ import {
 } from './_lib.js';
 
 // Prices live on the server. The browser is never trusted with them.
-const SESSION_PRICE = 1999;
+import { CONSULTATION } from './_pricing.js';
+
+const SESSION_PRICE = CONSULTATION.price;
 const RECORDING_PRICE = 400;
 
 // Nobody has a good reason to make many bookings in one day.

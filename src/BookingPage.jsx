@@ -4,7 +4,9 @@ import {
 } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES, MEET_LINK } from './ui.jsx';
 
-const SESSION_PRICE = 1999;
+import { CONSULTATION } from '../api/_pricing.js';
+
+const SESSION_PRICE = CONSULTATION.price; // what is charged is decided in api/book.js
 const RECORDING_PRICE = 400;
 
 // Examples only: the point is that nothing is off the table.
@@ -292,7 +294,11 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               <p className="mt-1 text-sm text-neutral-300/75">Included with your course</p>
             </div>
           ) : (
-            <p className="mt-8 text-3xl font-extrabold">₹{SESSION_PRICE.toLocaleString('en-IN')}</p>
+            <p className="mt-8 flex flex-wrap items-baseline gap-x-3">
+              <span className="text-3xl font-extrabold">₹{SESSION_PRICE.toLocaleString('en-IN')}</span>
+              <s className="text-lg text-neutral-400">₹{CONSULTATION.was.toLocaleString('en-IN')}</s>
+              <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-white">Save ₹{(CONSULTATION.was - SESSION_PRICE).toLocaleString('en-IN')}</span>
+            </p>
           )}
         </div>
 
@@ -449,7 +455,8 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
             <p className="mb-1 font-bold text-ink">{free ? 'Your session' : 'Order summary'}</p>
             <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
-            <Row label={doubt ? `Doubt class${subject ? ` · ${subject}` : ''} (1 hour)` : '1-on-1 consultation (1 hour)'} value={money(sessionPrice)} />
+            <Row label={doubt ? `Doubt class${subject ? ` · ${subject}` : ''} (1 hour)` : '1-on-1 consultation (1 hour)'}
+              value={free ? money(sessionPrice) : <><s className="mr-1.5 font-normal text-muted">{money(CONSULTATION.was)}</s>{money(sessionPrice)}</>} />
             {recording && <Row label="Add on: session recording" value={money(recordingPrice)} />}
             <Row label="Total" value={free ? '₹0' : money(total)} strong />
           </div>

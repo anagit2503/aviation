@@ -19,7 +19,8 @@ const FIREBASE_CONFIG = {
 
 import { Logo, ThemeToggle, btnPrimary, btnGhost, input, card, SLOT_TIMES } from './ui.jsx';
 import BookingPage from './BookingPage.jsx';
-import EnrollPage, { SUBJECT_PRICE, rememberSubjectPick } from './EnrollPage.jsx';
+import EnrollPage, { rememberSubjectPick } from './EnrollPage.jsx';
+import { SUBJECT_PRICES, BUNDLE, CONSULTATION, lowestPrice, rupees } from '../api/_pricing.js';
 import NotesViewer, { isViewable } from './NotesViewer.jsx';
 import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
@@ -367,7 +368,7 @@ const FAQS = [
   },
   {
     q: 'How does the monthly fee work?',
-    a: 'Each subject is ₹5,000 a month, and you only pay for the subjects you choose. While a subject is active you get its notes, questions and mock exams, plus free 1-on-1 consultations and the doubts chat. Stop a subject once you have cleared that paper.',
+    a: 'Each subject has its own monthly price, from ₹2,999, and you only pay for the subjects you choose. Navigation, Meteorology and Regulations also come as a 2-month bundle for ₹21,999. While a subject is active you get its notes, questions and mock exams, plus free 1-on-1 consultations and the doubts chat. Stop a subject once you have cleared that paper.',
   },
   {
     q: 'Should I book a call or buy the course?',
@@ -721,7 +722,11 @@ function LandingPage({ setAuthMode, signedIn = false }) {
             <div className={`${card} flex flex-col p-8`}>
               <p className="font-bold text-ink">1-on-1 consultation</p>
               <p className="mt-1 text-sm text-muted">For choosing a school, a country or your next step</p>
-              <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">₹1,999</p>
+              <p className="mt-6 flex flex-wrap items-baseline gap-x-3">
+                <span className="text-4xl font-extrabold tracking-tight text-ink">{rupees(CONSULTATION.price)}</span>
+                <s className="text-xl font-semibold text-muted">{rupees(CONSULTATION.was)}</s>
+                <span className="rounded-full bg-go/10 px-2.5 py-1 text-xs font-bold text-go">Save {rupees(CONSULTATION.was - CONSULTATION.price)}</span>
+              </p>
               <p className="mt-1 text-sm text-muted">1 hour, and I don’t watch the clock</p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
@@ -745,9 +750,30 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <p className="font-bold text-ink">Full ground school course</p>
               <p className="mt-1 text-sm text-muted">Pick only the DGCA subjects you need</p>
               <p className="mt-6 text-4xl font-extrabold tracking-tight text-ink">
-                ₹{SUBJECT_PRICE.toLocaleString('en-IN')}<span className="text-lg font-semibold text-muted"> / subject / month</span>
+                <span className="text-lg font-semibold text-muted">From </span>{rupees(lowestPrice)}
+                <span className="text-lg font-semibold text-muted"> / subject / month</span>
               </p>
               <p className="mt-1 text-sm text-muted">Add or pause subjects month by month</p>
+              <ul className="mt-6 divide-y divide-line rounded-2xl border border-line text-sm">
+                {Object.entries(SUBJECT_PRICES).map(([name, p]) => (
+                  <li key={name} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5">
+                    <span className="font-medium text-ink">{name}</span>
+                    <span className="flex items-center gap-2 whitespace-nowrap">
+                      {p.was && <s className="text-muted">{rupees(p.was)}</s>}
+                      <span className="font-bold text-ink">{rupees(p.price)}</span>
+                      {p.was && <span className="rounded-full bg-go/10 px-2 py-0.5 text-xs font-bold text-go">Save {rupees(p.was - p.price)}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 rounded-2xl bg-sky p-4 text-sm">
+                <p className="font-bold text-ink">Bundle: Navigation + Meteorology + Regulations, {BUNDLE.months} months</p>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2">
+                  <span className="text-lg font-extrabold text-ink">{rupees(BUNDLE.price)}</span>
+                  <s className="text-muted">{rupees(BUNDLE.was)}</s>
+                  <span className="rounded-full bg-go px-2 py-0.5 text-xs font-bold text-white">Save {rupees(BUNDLE.was - BUNDLE.price)}</span>
+                </p>
+              </div>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   'Complete notes for every subject you pick',
@@ -1646,7 +1672,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                 ? 'Your notes, questions and tests appear here once your payment is confirmed.'
                 : pausedSubjects.length
                   ? `${pausedSubjects.map((s) => s.name).join(', ')} ${pausedSubjects.length === 1 ? 'is' : 'are'} on hold until this month is paid.`
-                  : `Pick the subjects you need, ₹${SUBJECT_PRICE.toLocaleString('en-IN')} each per month. Notes, questions and tests appear here once you have paid.`}
+                  : `Pick the subjects you need, from ${rupees(lowestPrice)} a month each. Notes, questions and tests appear here once you have paid.`}
             </p>
             {rejectedNote}
             <div className="mt-7 flex flex-wrap justify-center gap-3">
@@ -1704,7 +1730,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                 </div>
                 <p className="mt-4 font-bold text-ink">{s.name}</p>
                 <p className="mt-1 flex-1 text-sm text-muted">Paused until this month is paid.</p>
-                <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">Renew · ₹{SUBJECT_PRICE.toLocaleString('en-IN')}</p>
+                <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">Renew · {rupees(SUBJECT_PRICES[s.name]?.price || 0)}</p>
               </button>
             ))}
           </div>
@@ -2855,6 +2881,7 @@ function PaymentsAdmin({ requests, onApprove, onReject, busyId, error, onRefresh
           <p className="font-bold text-ink">{r.name || r.email}</p>
           <p className="text-sm text-muted">{r.email}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
+            {r.bundle && <span className="rounded-full bg-go px-2.5 py-1 text-xs font-bold text-white">{BUNDLE.months}-month bundle</span>}
             {r.subjects.map((s) => <span key={s} className="rounded-full bg-sky px-2.5 py-1 text-xs font-semibold text-ink">{s}</span>)}
           </div>
         </div>

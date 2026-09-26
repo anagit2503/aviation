@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Check, Lock, Pause, LoaderCircle, BookOpen, Copy, Smartphone } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, btnGhost, card, input } from './ui.jsx';
 
-// Keep in sync with SUBJECT_PRICE in api/payment.js.
-export const SUBJECT_PRICE = 5000;
+// One price table for the website and the payment server.
+import { SUBJECT_PRICES, BUNDLE, quote } from '../api/_pricing.js';
 const money = (n) => `₹${n.toLocaleString('en-IN')}`;
 const PICK_STORE = 'flywithsam-enroll-pick';
 
@@ -65,19 +65,30 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
       .catch(() => {});
   }, []);
 
+  const [bundle, setBundle] = useState(false);
   const chosen = subjects.filter((s) => picked.has(s.name));
-  const total = chosen.length * SUBJECT_PRICE;
-  const toggle = (name) => setPicked((set) => {
-    const next = new Set(set);
-    if (next.has(name)) next.delete(name); else next.add(name);
-    return next;
-  });
+  const priced = quote(chosen.map((s) => s.name), bundle);
+  const total = priced.total;
+  const toggle = (name) => {
+    // Unticking a bundle subject ends the bundle; the others stay ticked.
+    if (bundle && BUNDLE.subjects.includes(name) && picked.has(name)) setBundle(false);
+    setPicked((set) => {
+      const next = new Set(set);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+  const toggleBundle = () => {
+    if (bundle) { setBundle(false); return; }
+    setBundle(true);
+    setPicked((set) => new Set([...set, ...BUNDLE.subjects.filter((s) => !active.includes(s))]));
+  };
 
   const payNow = async () => {
     setBusy(true);
     setError('');
     try {
-      const data = await api('/api/payment', { action: 'create', subjects: chosen.map((s) => s.name) });
+      const data = await api('/api/payment', { action: 'create', subjects: chosen.map((s) => s.name), bundle });
       setRequest(data.request);
       setStep('pay');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -139,7 +150,7 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
               <p className="mt-2 text-muted">
                 {step === 'pay'
                   ? 'Pay with any UPI app, get started on your journey.'
-                  : `${money(SUBJECT_PRICE)} per subject, per month. Pick only the ones you need; you can add more any time.`}
+                  : 'Each subject is priced per month. Pick only the ones you need; you can add more any time.'}
               </p>
             </div>
 
@@ -154,6 +165,26 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
               {/* Left: subjects, or the QR once they choose to pay */}
               {step === 'pick' ? (
                 <div className="grid gap-3 sm:grid-cols-2">
+                  <button type="button" onClick={toggleBundle}
+                    className={`${card} relative flex flex-col p-5 text-left transition sm:col-span-2 ${bundle ? 'border-brand ring-2 ring-brand' : 'hover:border-brand'}`}>
+                    <span className="absolute -top-3 left-5 rounded-full bg-go px-3 py-1 text-xs font-bold text-white">
+                      Best value · save {money(BUNDLE.was - BUNDLE.price)}
+                    </span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="mt-1 font-bold text-ink">{BUNDLE.name}</p>
+                        <p className="mt-1 text-sm text-muted">{BUNDLE.subjects.join(' + ')} for {BUNDLE.months} months</p>
+                      </div>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 ${bundle ? 'border-brand bg-brand text-on-brand' : 'border-line'}`}>
+                        {bundle && <Check className="h-4 w-4" strokeWidth={3} />}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm">
+                      <span className="text-lg font-extrabold text-ink">{money(BUNDLE.price)}</span>{' '}
+                      <s className="text-muted">{money(BUNDLE.was)}</s>
+                      <span className="text-muted"> for {BUNDLE.months} months</span>
+                    </p>
+                  </button>
                   {subjects.map((s) => {
                     const isActive = active.includes(s.name);
                     const isPaused = paused.includes(s.name);
@@ -178,11 +209,14 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
                         </div>
                         <p className="mt-4 font-bold text-ink">{s.name}</p>
                         <p className="mt-1 flex-1 text-sm text-muted">{s.blurb}</p>
-                        <p className="mt-4 text-sm font-semibold text-ink">
-                          {isActive ? 'You already have this' : isPaused
-                            ? <span className="inline-flex items-center gap-1.5"><Pause className="h-3.5 w-3.5" /> Paused · renew for {money(SUBJECT_PRICE)}</span>
-                            : `${money(SUBJECT_PRICE)} / month`}
-                        </p>
+                        {isActive ? (
+                          <p className="mt-4 text-sm font-semibold text-ink">You already have this</p>
+                        ) : (
+                          <div className="mt-4">
+                            {isPaused && <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-muted"><Pause className="h-3.5 w-3.5" /> Paused · renew below</p>}
+                            <PriceTag subject={s.name} />
+                          </div>
+                        )}
                       </button>
                     );
                   })}
@@ -229,14 +263,17 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
               {/* Right: running summary */}
               <aside className={`${card} h-fit p-6 lg:sticky lg:top-6`}>
                 <p className="font-bold text-ink">Your subjects</p>
-                {chosen.length === 0 ? (
+                {priced.lines.length === 0 ? (
                   <p className="mt-3 text-sm text-muted">Tick the subjects you want. The total adds up here.</p>
                 ) : (
                   <ul className="mt-3 space-y-2 text-sm">
-                    {chosen.map((s) => (
-                      <li key={s.name} className="flex justify-between gap-3">
-                        <span className="text-ink">{s.name}</span>
-                        <span className="font-semibold text-ink">{money(SUBJECT_PRICE)}</span>
+                    {priced.lines.map((l) => (
+                      <li key={l.label} className="flex justify-between gap-3">
+                        <span className="text-ink">{l.label}</span>
+                        <span className="whitespace-nowrap text-right">
+                          {l.was && <s className="mr-1.5 text-xs text-muted">{money(l.was)}</s>}
+                          <span className="font-semibold text-ink">{money(l.price)}</span>
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -245,14 +282,17 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
                   <span className="font-bold text-ink">Subtotal</span>
                   <span className="text-2xl font-extrabold text-ink">{money(total)}</span>
                 </div>
-                <p className="mt-1 text-xs text-muted">per month · {chosen.length} subject{chosen.length === 1 ? '' : 's'}</p>
+                {priced.saving > 0 && <p className="mt-1 text-sm font-semibold text-go">You save {money(priced.saving)}</p>}
+                <p className="mt-1 text-xs text-muted">
+                  {bundle ? `Bundle covers ${BUNDLE.months} months` : 'per month'} · {priced.subjects.length} subject{priced.subjects.length === 1 ? '' : 's'}
+                </p>
 
                 {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
                 {step === 'pick' ? (
-                  <button onClick={payNow} disabled={busy || chosen.length === 0} className={`${btnPrimary} mt-6 w-full py-3.5`}>
+                  <button onClick={payNow} disabled={busy || priced.lines.length === 0} className={`${btnPrimary} mt-6 w-full py-3.5`}>
                     {busy ? <LoaderCircle className="h-5 w-5 animate-spin" /> : <Lock className="h-4 w-4" />}
-                    {chosen.length === 0 ? 'Pick a subject' : `Pay now · ${money(total)}`}
+                    {priced.lines.length === 0 ? 'Pick a subject' : `Pay now · ${money(total)}`}
                   </button>
                 ) : (
                   <div className="mt-6 space-y-3">
@@ -275,5 +315,19 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
         )}
       </main>
     </div>
+  );
+}
+
+// "₹3,999 ~~₹5,999~~ /month  Save ₹2,000" for one subject.
+export function PriceTag({ subject, className = '' }) {
+  const p = SUBJECT_PRICES[subject];
+  if (!p) return null;
+  return (
+    <p className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm ${className}`}>
+      <span className="text-lg font-extrabold text-ink">{money(p.price)}</span>
+      {p.was && <s className="text-muted">{money(p.was)}</s>}
+      <span className="text-muted">/ month</span>
+      {p.was && <span className="rounded-full bg-go/10 px-2 py-0.5 text-xs font-bold text-go">Save {money(p.was - p.price)}</span>}
+    </p>
   );
 }
