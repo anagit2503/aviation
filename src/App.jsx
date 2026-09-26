@@ -1066,6 +1066,7 @@ const MATERIAL_TYPES = [
   { id: 'questions', label: 'Question bank' },
   { id: 'test', label: 'Topic test' },
   { id: 'mock', label: 'Mock exam' },
+  { id: 'pyq', label: 'Previous year paper' },
 ];
 const typeLabel = (id) => MATERIAL_TYPES.find((t) => t.id === id)?.label || 'File';
 
@@ -1591,7 +1592,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       blurb: s.blurb,
       testsDone: 0,
       bestScore: null,
-      files: materials.filter((m) => m.subject === s.name).length,
+      files: materials.filter((m) => m.subject === s.name && (m.type === 'notes' || m.type === 'questions')).length,
     })),
     [accessKey, materials],
   );
@@ -1608,19 +1609,20 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const tabs = allowed.length === 0
     ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }]
     : [
+      // Booking a consultation lives on the Overview page, not in the tabs.
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'resources', label: 'Notes', icon: FileText },
       ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
+      ...(access.questions || access.tests ? [{ id: 'pyq', label: 'Previous year tests', icon: ClipboardCheck }] : []),
       ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
-      ...(access.plan === 'course' ? [
-        { id: 'book', label: 'Book a consultation', icon: CalendarClock },
-        { id: 'doubtclass', label: 'Book a doubt class', icon: NotebookPen },
-      ] : []),
       doubtsTab,
     ];
 
-  const shownMaterials = materials.filter((m) => subjectFilter === 'all' || m.subject === subjectFilter);
+  // Each tab shows its own kind of file.
+  const noteFiles = materials.filter((m) => m.type === 'notes' || m.type === 'questions');
+  const shownMaterials = noteFiles.filter((m) => subjectFilter === 'all' || m.subject === subjectFilter);
   const tests = materials.filter((m) => m.type === 'test' || m.type === 'mock');
+  const pyqs = materials.filter((m) => m.type === 'pyq');
 
   const emptyFiles = (text) => (
     <div className={`${card} p-10 text-center`}>
@@ -1739,7 +1741,6 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             {[
               access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
               access.plan === 'course' && { label: 'Book a free consultation', text: '1 hour 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
-              access.plan === 'course' && { label: 'Book a doubt class', text: 'Work through a topic you are stuck on, 1-on-1.', icon: NotebookPen, tab: 'doubtclass' },
               { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
             ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>
@@ -1778,6 +1779,15 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       )}
 
       {activeTab === 'quizzes' && <PracticeQuestions user={user} subjects={allowed} />}
+
+      {activeTab === 'pyq' && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-bold text-ink">Previous year tests</h2>
+          <p className="mb-2 text-sm text-muted">Past DGCA papers for your subjects. They open in the viewer.</p>
+          {!materialsLoading && pyqs.length === 0 && emptyFiles('Previous year papers appear here once your instructor uploads them.')}
+          {pyqs.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
+        </div>
+      )}
 
       {activeTab === 'scores' && (
         <div className="space-y-4">

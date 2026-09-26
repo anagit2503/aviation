@@ -21,7 +21,7 @@ const SUBJECT_NAMES = [
   'Air Navigation', 'Aviation Meteorology', 'Air Regulations',
   'Technical General', 'Technical Specific', 'Radio Telephony (RTR)',
 ];
-const TYPES = ['notes', 'questions', 'test', 'mock'];
+const TYPES = ['notes', 'questions', 'pyq', 'test', 'mock'];
 
 const ALLOWED_CONTENT_TYPES = [
   'application/pdf',
@@ -89,6 +89,8 @@ function canOpen(access, material) {
   if (access.paused?.includes(material.subject)) return false;
   if (material.type === 'questions') return Boolean(access.questions);
   if (material.type === 'test' || material.type === 'mock') return Boolean(access.tests);
+  // Previous year papers come with either the question bank or the tests.
+  if (material.type === 'pyq') return Boolean(access.questions || access.tests);
   return true;
 }
 
