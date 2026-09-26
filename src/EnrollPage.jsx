@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Check, Lock, Pause, LoaderCircle, BookOpen, Copy, Smartphone } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Pause, LoaderCircle, BookOpen } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, btnGhost, card, input } from './ui.jsx';
+import UpiPay from './UpiPay.jsx';
 
 // One price table for the website and the payment server.
 import { SUBJECT_PRICES, BUNDLE, quote } from '../api/_pricing.js';
 const money = (n) => `₹${n.toLocaleString('en-IN')}`;
 const PICK_STORE = 'flywithsam-enroll-pick';
-
-// Where payments go (from the Paytm QR). The QR shown to students is made
-// from this with the exact amount filled in, so nobody pays the wrong sum.
-const UPI_ID = '9354833681@ptyes';
-const UPI_NAME = 'SAMARTHYA SINGH';
-const upiLink = (amount, note) => `upi://pay?${new URLSearchParams({
-  pa: UPI_ID, pn: UPI_NAME, am: String(amount), cu: 'INR', tn: note.slice(0, 50),
-}).toString().replace(/\+/g, '%20').replace('%40', '@')}`; // plain "@", like the Paytm QR
 
 // Remembers a subject chosen on the landing page ("Start this subject") so it
 // is already ticked after signing in.
@@ -41,24 +34,6 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState([]);
-  const [qr, setQr] = useState('');
-  const [showPaytmQr, setShowPaytmQr] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  // Draw the QR for this exact amount once they choose to pay.
-  const link = request ? upiLink(request.amount, `Avero Aviation ${request.subjects.length} subject${request.subjects.length === 1 ? '' : 's'}`) : '';
-  useEffect(() => {
-    if (!link) return;
-    import('qrcode')
-      .then((QR) => QR.toDataURL(link, { width: 520, margin: 1 }))
-      .then(setQr)
-      .catch(() => setShowPaytmQr(true));
-  }, [link]);
-
-  const copyUpi = async () => {
-    try { await navigator.clipboard.writeText(UPI_ID); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* select by hand */ }
-  };
-
   useEffect(() => {
     api('/api/payment', { action: 'mine' })
       .then((data) => setPending((data.requests || []).filter((r) => r.status === 'awaiting' || r.status === 'claimed')))
@@ -222,41 +197,9 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
                   })}
                 </div>
               ) : (
-                <div className={`${card} flex flex-col items-center p-6 text-center sm:p-10`}>
-                  <p className="text-sm font-semibold text-muted">Amount to pay</p>
-                  <p className="mt-1 text-4xl font-extrabold tracking-tight text-ink">{money(request.amount)}</p>
-                  {showPaytmQr ? (
-                    <img src="/payment-qr.png" alt="Paytm UPI QR code for SAMARTHYA SINGH"
-                      className="mt-6 w-64 max-w-full rounded-2xl bg-white ring-1 ring-line" />
-                  ) : qr ? (
-                    <img src={qr} alt={`UPI QR code to pay ${money(request.amount)}`}
-                      className="mt-6 w-64 max-w-full rounded-2xl bg-white p-3 ring-1 ring-line" />
-                  ) : (
-                    <div className="mt-6 flex h-64 w-64 items-center justify-center"><LoaderCircle className="h-8 w-8 animate-spin text-muted" /></div>
-                  )}
-                  <p className="mt-3 text-sm font-semibold text-ink">{UPI_NAME}</p>
-
-                  {/* On a phone they cannot scan their own screen: open the UPI app directly. */}
-                  <a href={link} className={`${btnPrimary} mt-5 w-full max-w-xs md:hidden`}>
-                    <Smartphone className="h-4 w-4" /> Pay {money(request.amount)} in a UPI app
-                  </a>
-
-                  <div className="mt-5 flex items-center gap-2 rounded-full border border-line py-1.5 pl-4 pr-1.5 text-sm">
-                    <span className="text-muted">UPI ID</span>
-                    <span className="font-semibold text-ink">{UPI_ID}</span>
-                    <button onClick={copyUpi} className="inline-flex items-center gap-1 rounded-full bg-mist px-3 py-1 font-semibold text-ink transition hover:bg-sky">
-                      {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Copied' : 'Copy'}
-                    </button>
-                  </div>
-
-                  <ol className="mt-6 space-y-1.5 text-left text-sm text-muted">
-                    <li>1. Scan with GPay, PhonePe, Paytm or any UPI app{' '}<span className="md:hidden">(or tap the button above)</span>.</li>
-                    <li>2. Check the amount is <b className="text-ink">{money(request.amount)}</b> and pay.</li>
-                    <li>3. Come back here and tap <b className="text-ink">I’ve paid</b>.</li>
-                  </ol>
-                  <button onClick={() => setShowPaytmQr(!showPaytmQr)} className="mt-4 text-sm font-semibold text-brand">
-                    {showPaytmQr ? 'Show the QR with the amount filled in' : 'QR not working? Use the Paytm QR instead'}
-                  </button>
+                <div className={`${card} p-6 sm:p-10`}>
+                  <UpiPay amount={request.amount}
+                    note={`Avero Aviation ${request.subjects.length} subject${request.subjects.length === 1 ? '' : 's'}`} />
                 </div>
               )}
 

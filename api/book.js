@@ -5,10 +5,10 @@ import {
 } from './_lib.js';
 
 // Prices live on the server. The browser is never trusted with them.
-import { CONSULTATION } from './_pricing.js';
+import { CONSULTATION, RECORDING_PRICE } from './_pricing.js';
 
-const SESSION_PRICE = CONSULTATION.price;
-const RECORDING_PRICE = 400;
+// Visitors pay CONSULTATION.price; students with an active course subject pay
+// CONSULTATION.coursePrice. Doubt classes are free for course students.
 
 // Nobody has a good reason to make many bookings in one day.
 const MAX_PER_IP_PER_DAY = 5;
@@ -77,10 +77,6 @@ export default async function handler(req, res) {
         courseStudent = false;
       }
     }
-    if (!courseStudent) {
-      res.status(403).json({ error: 'Free sessions are for course students. Book from the website instead.' });
-      return;
-    }
     email = person.email;
     // Signed-in students do not type their name; use the Google account's.
     if (!String(name || '').trim()) name = person.name || person.email.split('@')[0];
@@ -148,8 +144,10 @@ export default async function handler(req, res) {
     recording: kind === 'doubt' ? false : Boolean(recording),
     kind,
     subject,
-    amount: courseStudent ? 0 : SESSION_PRICE + (recording ? RECORDING_PRICE : 0),
-    paymentStatus: courseStudent ? 'free, course student' : 'to be collected — no online payment yet',
+    amount: kind === 'doubt' ? 0
+      : (courseStudent ? CONSULTATION.coursePrice : CONSULTATION.price) + (recording ? RECORDING_PRICE : 0),
+    paymentStatus: kind === 'doubt' ? 'free, course student'
+      : courseStudent ? 'course student price, pay by UPI' : 'pay by UPI',
     courseStudent,
     createdAt: new Date().toISOString(),
   };

@@ -486,8 +486,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <div className="h-10 w-px bg-line" />
               <div><span className="block text-2xl font-extrabold text-ink">95%</span>pass rate</div>
               <div className="h-10 w-px bg-line" />
-              {/* Reads top to bottom: "potential savings up to ₹5 lakhs". */}
-              <div>potential savings up to<span className="block text-2xl font-extrabold text-ink">₹5 lakhs</span></div>
+              <div><span className="block text-2xl font-extrabold text-ink">₹5 lakhs</span>in potential savings</div>
             </div>
           </div>
 
@@ -728,6 +727,9 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                 <span className="rounded-full bg-go/10 px-2.5 py-1 text-xs font-bold text-go">Save {rupees(CONSULTATION.was - CONSULTATION.price)}</span>
               </p>
               <p className="mt-1 text-sm text-muted">1 hour, and I don’t watch the clock</p>
+              <p className="mt-3 rounded-xl bg-go/10 px-3 py-2 text-sm font-semibold text-go">
+                Course students pay just {rupees(CONSULTATION.coursePrice)} <s className="font-normal opacity-70">{rupees(CONSULTATION.price)}</s>
+              </p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   '1 hour 1-on-1 on Google Meet, no clock-watching',
@@ -781,7 +783,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   'Topic tests and full mock exams',
                   'Your marks tracked subject by subject',
                   'Doubts chat with your instructor',
-                  'Free 1-on-1 consultations and doubt classes',
+                  `1-on-1 consultations for ${rupees(CONSULTATION.coursePrice)} instead of ${rupees(CONSULTATION.price)}`,
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
@@ -1612,8 +1614,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       // Booking a consultation lives on the Overview page, not in the tabs.
       { id: 'overview', label: 'Overview', icon: LayoutDashboard },
       { id: 'resources', label: 'Notes', icon: FileText },
-      ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
       ...(access.questions || access.tests ? [{ id: 'pyq', label: 'Previous year tests', icon: ClipboardCheck }] : []),
+      ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
       ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
       doubtsTab,
     ];
@@ -1740,7 +1742,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
-              access.plan === 'course' && { label: 'Book a free consultation', text: '1 hour 1-on-1, included with your course.', icon: CalendarClock, tab: 'book' },
+              access.plan === 'course' && { label: 'Book a consultation', text: `1 hour 1-on-1 for ${rupees(CONSULTATION.coursePrice)}, the course student price.`, icon: CalendarClock, tab: 'book' },
               { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
             ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>

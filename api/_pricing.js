@@ -23,8 +23,18 @@ export const BUNDLE = {
   was: 33994,
 };
 
-// 1-on-1 consultation (one session). The amount charged lives in api/book.js.
-export const CONSULTATION = { price: 1999, was: 3999 };
+// 1-on-1 consultation (one session). Visitors pay `price`; students with a
+// course pay `coursePrice`. api/book.js charges from here.
+export const CONSULTATION = { price: 1999, was: 3999, coursePrice: 499 };
+export const RECORDING_PRICE = 400;
+
+// Where payments go (from the Paytm QR).
+export const UPI = { id: '9354833681@ptyes', name: 'SAMARTHYA SINGH' };
+// A UPI payment link with the amount filled in. Plain "@" like the Paytm QR,
+// because some UPI apps misread "%40".
+export const upiLink = (amount, note) => `upi://pay?${new URLSearchParams({
+  pa: UPI.id, pn: UPI.name, am: String(amount), cu: 'INR', tn: String(note).slice(0, 50),
+}).toString().replace(/\+/g, '%20').replace('%40', '@')}`;
 
 export const priceOf = (subject) => SUBJECT_PRICES[subject]?.price ?? null;
 export const lowestPrice = Math.min(...Object.values(SUBJECT_PRICES).map((p) => p.price));

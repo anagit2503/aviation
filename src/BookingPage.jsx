@@ -4,10 +4,10 @@ import {
 } from 'lucide-react';
 import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES, MEET_LINK } from './ui.jsx';
 
-import { CONSULTATION } from '../api/_pricing.js';
+import { CONSULTATION, RECORDING_PRICE } from '../api/_pricing.js';
+import UpiPay from './UpiPay.jsx';
 
-const SESSION_PRICE = CONSULTATION.price; // what is charged is decided in api/book.js
-const RECORDING_PRICE = 400;
+// What is actually charged is decided in api/book.js from the same table.
 
 // Examples only: the point is that nothing is off the table.
 const TALK_ABOUT = [
@@ -118,8 +118,14 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
   const [confirmed, setConfirmed] = useState(null);
 
   const day = days[dayIndex];
-  const sessionPrice = free ? 0 : SESSION_PRICE;
-  const recordingPrice = free ? 0 : RECORDING_PRICE;
+  // `free` = signed-in course student: consultations at the course price,
+  // doubt classes free. Everyone else pays the normal consultation price.
+  const sessionPrice = doubt ? 0 : (free ? CONSULTATION.coursePrice : CONSULTATION.price);
+  const wasPrice = doubt ? null : (free ? CONSULTATION.price : CONSULTATION.was);
+  const recordingPrice = RECORDING_PRICE;
+  const priceWithWas = (value) => (wasPrice
+    ? <><s className="mr-1.5 font-normal text-muted">{money(wasPrice)}</s>{money(value)}</>
+    : money(value));
   const total = sessionPrice + (recording ? recordingPrice : 0);
 
   useEffect(() => {
@@ -234,10 +240,17 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               {confirmed.dayLabel} at {confirmed.time} IST, for about an hour. No need to watch the clock.
             </p>
             <div className="mt-6 rounded-2xl bg-mist p-5 text-left text-sm">
-              <Row label="Session" value={money(sessionPrice)} />
-              {recording && <Row label="Add on: recording" value={money(recordingPrice)} />}
-              <Row label="Total" value={free ? '₹0 · included in your course' : money(confirmed.total)} strong />
+              <Row label="Session" value={priceWithWas(sessionPrice)} />
+              {recording && !doubt && <Row label="Add on: recording" value={money(recordingPrice)} />}
+              <Row label="Total" value={(confirmed.amount ?? confirmed.total) === 0 ? '₹0 · included in your course' : money(confirmed.amount ?? confirmed.total)} strong />
             </div>
+            {(confirmed.amount ?? confirmed.total) > 0 && (
+              <div className="mt-6 rounded-2xl border border-line p-5">
+                <p className="mb-4 text-sm font-semibold text-ink">Pay for your session</p>
+                <UpiPay amount={confirmed.amount ?? confirmed.total} note="Avero Aviation consultation"
+                  lastStep="That’s it. We confirm the payment on our side." />
+              </div>
+            )}
             <div className="mt-6 rounded-2xl border border-line p-5">
               <p className="text-sm font-semibold text-ink">Your meeting link</p>
               <a href={MEET_LINK} target="_blank" rel="noreferrer" className={`${btnPrimary} mt-3 w-full`}>
@@ -246,7 +259,6 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               <p className="mt-2 break-all text-sm text-muted">{MEET_LINK.replace('https://', '')}</p>
               <p className="mt-2 text-xs text-muted">
                 The same link works for every session. Open it at your booked time.
-                {!free && ' Payment details will reach you by email.'}
               </p>
             </div>
             <button onClick={goHome} className={`${btnPrimary} mt-8`}>{embedded ? 'Back to overview' : 'Back to home'}</button>
@@ -288,17 +300,20 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               ))}
             </ul>
           </div>}
-          {free ? (
+          {sessionPrice === 0 ? (
             <div className="mt-8">
               <p className="text-3xl font-extrabold">Free</p>
               <p className="mt-1 text-sm text-neutral-300/75">Included with your course</p>
             </div>
           ) : (
-            <p className="mt-8 flex flex-wrap items-baseline gap-x-3">
-              <span className="text-3xl font-extrabold">₹{SESSION_PRICE.toLocaleString('en-IN')}</span>
-              <s className="text-lg text-neutral-400">₹{CONSULTATION.was.toLocaleString('en-IN')}</s>
-              <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-white">Save ₹{(CONSULTATION.was - SESSION_PRICE).toLocaleString('en-IN')}</span>
-            </p>
+            <div className="mt-8">
+              <p className="flex flex-wrap items-baseline gap-x-3">
+                <span className="text-3xl font-extrabold">{money(sessionPrice)}</span>
+                <s className="text-lg text-neutral-400">{money(wasPrice)}</s>
+                <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-white">Save {money(wasPrice - sessionPrice)}</span>
+              </p>
+              {free && <p className="mt-1 text-sm text-neutral-300/75">Course student price</p>}
+            </div>
           )}
         </div>
 
@@ -447,18 +462,18 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
                 <Circle className="h-4 w-4 text-red-500" /> Add the session recording
               </span>
               <span className="mt-0.5 block text-sm text-muted">
-                {free ? 'Free for course students' : `₹${RECORDING_PRICE}`} · rewatch the call whenever you need it
+                {money(RECORDING_PRICE)} · rewatch the call whenever you need it
               </span>
             </span>
           </label>}
 
           <div className="mt-6 rounded-2xl bg-mist p-5 text-sm">
-            <p className="mb-1 font-bold text-ink">{free ? 'Your session' : 'Order summary'}</p>
+            <p className="mb-1 font-bold text-ink">{sessionPrice === 0 ? 'Your session' : 'Order summary'}</p>
             <p className="mb-3 text-muted">{day.long}{time ? ` at ${time} IST` : ', time not chosen yet'}</p>
             <Row label={doubt ? `Doubt class${subject ? ` · ${subject}` : ''} (1 hour)` : '1-on-1 consultation (1 hour)'}
-              value={free ? money(sessionPrice) : <><s className="mr-1.5 font-normal text-muted">{money(CONSULTATION.was)}</s>{money(sessionPrice)}</>} />
+              value={priceWithWas(sessionPrice)} />
             {recording && <Row label="Add on: session recording" value={money(recordingPrice)} />}
-            <Row label="Total" value={free ? '₹0' : money(total)} strong />
+            <Row label="Total" value={money(total)} strong />
           </div>
 
           {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
@@ -467,7 +482,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             {status === 'saving' ? 'Booking your slot…' : 'Confirm booking'}
           </button>
           <p className="mt-3 text-center text-sm text-muted">
-            You get the Google Meet link as soon as you book{free ? '.' : ', and payment details by email.'}
+            You get the Google Meet link as soon as you book{total > 0 ? ', and can pay by UPI straight away.' : '.'}
           </p>
         </form>
       </div>,

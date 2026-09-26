@@ -10,6 +10,8 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 export const storageReady = Boolean(KV_URL && KV_TOKEN);
 export const emailReady = Boolean(process.env.RESEND_API_KEY);
 export const BOOKING_EMAIL = process.env.BOOKING_EMAIL || 'samarthya.s02@gmail.com';
+import { UPI } from './_pricing.js';
+
 // The one Google Meet room used for every session. Keep in sync with MEET_LINK in src/ui.jsx.
 export const MEET_LINK = 'https://meet.google.com/wfe-ukng-igs';
 
@@ -100,7 +102,7 @@ export async function sendStudentConfirmation(booking) {
             ? ['This session is free as part of your course.']
             : [
               `Amount to pay: Rs ${booking.amount}${booking.recording ? ' (includes the session recording)' : ''}.`,
-              'We will reply with the payment details.',
+              `Pay by UPI to ${UPI.id} (${UPI.name}), or scan the QR shown after booking.`,
             ]),
           '',
           `Join on Google Meet at your booked time: ${MEET_LINK}`,
