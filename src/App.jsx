@@ -752,7 +752,6 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   'Complete notes for every subject you pick',
                   '2000+ genuine exam questions',
                   'Topic tests and full mock exams',
-                  'Study material you can download',
                   'Your marks tracked subject by subject',
                   'Doubts chat with your instructor',
                   'Free 1-on-1 consultations while enrolled',
