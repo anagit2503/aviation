@@ -10,7 +10,7 @@
 //   { action: 'approve', id }          → switch those subjects on (and un-pause them)
 //   { action: 'reject', id, note }     → decline, with a note the student sees
 import {
-  redis, verifyIdToken, isInstructorEmail, getProfile, getAccess, saveAccess,
+  redis, verifyIdToken, isInstructorEmail, getProfile, getAccess, saveAccess, freeConsultationsLeft,
   storageReady, readJsonBody, bumpCounter,
 } from './_lib.js';
 
@@ -79,6 +79,8 @@ export default async function handler(req, res) {
           paused: (access.paused || []).filter((s) => !request.subjects.includes(s)),
           questions: true,
           tests: true,
+          // One free consultation with every course purchase.
+          freeConsultations: freeConsultationsLeft(access) + 1,
           updatedAt: now,
           updatedBy: person.email,
         };

@@ -1,7 +1,8 @@
 // POST /api/book → claim a slot (first booking wins) and email the instructor.
 import {
   redis, storageReady, emailReady, sendBookingEmail, sendStudentConfirmation, bumpCounter,
-  isValidDate, readJsonBody, SLOT_TIMES, verifyIdToken, isInstructorEmail, getAccess,
+  isValidDate, readJsonBody, SLOT_TIMES, verifyIdToken, isInstructorEmail, getAccess, saveAccess,
+  freeConsultationsLeft,
 } from './_lib.js';
 
 // Prices live on the server. The browser is never trusted with them.
@@ -60,6 +61,8 @@ export default async function handler(req, res) {
   // Course students book from inside the portal, free of charge. The server
   // checks their sign-in and access itself; the browser only says "I am signed in".
   let courseStudent = false;
+  let studentAccess = null;
+  let freeLeft = 0; // free consultations this student still has (one per course bought)
   if (idToken) {
     const person = await verifyIdToken(idToken);
     if (!person) {
@@ -73,6 +76,8 @@ export default async function handler(req, res) {
         const active = (access.subjects || []).filter((s) => !(access.paused || []).includes(s));
         courseStudent = access.plan === 'course' && active.length > 0;
         if (kind === 'doubt' && active.includes(requestedSubject)) subject = requestedSubject;
+        studentAccess = access;
+        freeLeft = courseStudent ? freeConsultationsLeft(access) : 0;
       } catch {
         courseStudent = false;
       }
@@ -131,6 +136,8 @@ export default async function handler(req, res) {
     // If the counter cannot be read we still allow the booking through.
   }
 
+  const usesFreeCall = kind === 'consultation' && freeLeft > 0;
+
   const booking = {
     date,
     time,
@@ -145,9 +152,11 @@ export default async function handler(req, res) {
     kind,
     subject,
     amount: kind === 'doubt' ? 0
-      : (courseStudent ? CONSULTATION.coursePrice : CONSULTATION.price) + (recording ? RECORDING_PRICE : 0),
+      : (usesFreeCall ? 0 : courseStudent ? CONSULTATION.coursePrice : CONSULTATION.price) + (recording ? RECORDING_PRICE : 0),
     paymentStatus: kind === 'doubt' ? 'free, course student'
-      : courseStudent ? 'course student price, pay by UPI' : 'pay by UPI',
+      : usesFreeCall ? 'free consultation included with the course'
+        : courseStudent ? 'course student price, pay by UPI' : 'pay by UPI',
+    freeConsultation: usesFreeCall,
     courseStudent,
     createdAt: new Date().toISOString(),
   };
@@ -162,6 +171,10 @@ export default async function handler(req, res) {
     // Remember which days have bookings so the instructor's calendar can list
     // them all, however far ahead they are.
     await redis(['SADD', 'booking-dates', date]);
+    // The slot is theirs: use up the free consultation.
+    if (usesFreeCall && studentAccess) {
+      await saveAccess(email, { ...studentAccess, freeConsultations: freeLeft - 1 });
+    }
   } catch {
     res.status(503).json({ error: 'Could not save the booking. Please try again in a moment.' });
     return;

@@ -81,7 +81,8 @@ const money = (n) => (n === 0 ? 'Free' : `₹${n.toLocaleString('en-IN')}`);
 // name and email come from their Google account, and the server double-checks
 // their access before waiving the fee.
 // `kind="doubt"`: a doubt class on one of the student's subjects (course students, free).
-export default function BookingPage({ goHome, free = false, embedded = false, account = null, getIdToken = null, kind = 'consultation', subjects = [] }) {
+// `freeLeft`: free consultations this course student still has (one per course bought).
+export default function BookingPage({ goHome, free = false, embedded = false, account = null, getIdToken = null, kind = 'consultation', subjects = [], freeLeft = 0, onBooked = null }) {
   const doubt = kind === 'doubt';
   const [subject, setSubject] = useState(subjects.length === 1 ? subjects[0] : '');
   const days = useMemo(() => buildDays(), []);
@@ -121,7 +122,8 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
   const day = days[dayIndex];
   // `free` = signed-in course student: consultations at the course price,
   // doubt classes free. Everyone else pays the normal consultation price.
-  const sessionPrice = doubt ? 0 : (free ? CONSULTATION.coursePrice : CONSULTATION.price);
+  const usesFreeCall = !doubt && free && freeLeft > 0;
+  const sessionPrice = doubt || usesFreeCall ? 0 : (free ? CONSULTATION.coursePrice : CONSULTATION.price);
   const wasPrice = doubt ? null : (free ? CONSULTATION.price : CONSULTATION.was);
   const recordingPrice = RECORDING_PRICE;
   const priceWithWas = (value) => (wasPrice
@@ -211,6 +213,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
       setConfirmed({ ...data, total });
       if (!getIdToken) saveLocalBooking({ date: day.key, time, dayLabel: data.dayLabel, kind, subject });
       loadMine();
+      onBooked?.();
       setStatus('done');
       window.scrollTo(0, 0);
     } catch {
@@ -276,6 +279,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
           <h1 className="mt-2 text-2xl font-extrabold leading-tight sm:text-3xl">
             {doubt ? 'Get unstuck on a topic' : 'Get your flight training questions answered'}
           </h1>
+          {!doubt && <p className="mt-2 text-lg font-semibold text-neutral-200">Talk to Someone Who&apos;s Been There</p>}
           <p className="mt-4 leading-relaxed text-neutral-300/75">
             {doubt
               ? 'Pick the subject, tell me what is confusing you, and we work through it together, question by question.'
@@ -303,8 +307,13 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
           </div>}
           {sessionPrice === 0 ? (
             <div className="mt-8">
-              <p className="text-3xl font-extrabold">Free</p>
-              <p className="mt-1 text-sm text-neutral-300/75">Included with your course</p>
+              <p className="flex flex-wrap items-baseline gap-x-3">
+                <span className="text-3xl font-extrabold">Free</span>
+                {usesFreeCall && <s className="text-lg text-neutral-400">{money(CONSULTATION.price)}</s>}
+              </p>
+              <p className="mt-1 text-sm text-neutral-300/75">
+                {usesFreeCall ? 'Your free consultation, included with your course' : 'Included with your course'}
+              </p>
             </div>
           ) : (
             <div className="mt-8">

@@ -231,6 +231,14 @@ const parseHash = (flat) => {
   return out;
 };
 
+// Free consultations a student has left. Course students from before this
+// perk existed (no number saved yet) start with one.
+export const freeConsultationsLeft = (access) => {
+  const n = Number(access?.freeConsultations);
+  if (Number.isFinite(n)) return Math.max(0, n);
+  return access?.plan === 'course' ? 1 : 0;
+};
+
 export async function getAccess(email) {
   const raw = await redis(['HGET', 'access', email]);
   if (!raw) return emptyAccess();

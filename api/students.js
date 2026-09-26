@@ -26,6 +26,9 @@ function cleanAccess(input) {
   if (Array.isArray(input.paused)) {
     access.paused = input.paused.filter((s) => access.subjects.includes(s));
   }
+  if (input.freeConsultations !== undefined && input.freeConsultations !== null) {
+    access.freeConsultations = Math.max(0, Math.min(20, Math.floor(Number(input.freeConsultations) || 0)));
+  }
   access.questions = Boolean(input.questions);
   access.tests = Boolean(input.tests);
   return access;

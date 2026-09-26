@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play, House,
+  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play, House, StarHalf,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -305,36 +305,42 @@ const PITFALLS = [
 const REVIEWS = [
   {
     name: 'Aditya Menon',
+    rating: 5,
     colour: 'from-indigo-500 to-violet-500',
     role: 'Preparing for CPL, Kochi',
     text: 'I had failed Navigation twice. He looked at my papers and showed me where I was losing marks. I did not have to study the whole subject again. I got 88 in the next attempt.',
   },
   {
     name: 'Ishita Rao',
+    rating: 4.5,
     colour: 'from-rose-500 to-pink-500',
     role: 'Student pilot, Bengaluru',
     text: 'I wanted a mentor, not one more class. He really knows his stuff, and he answers even the small doubts I felt shy to ask anywhere else.',
   },
   {
     name: 'Harshit Sabharwal',
+    rating: 4,
     colour: 'from-sky-500 to-blue-600',
     role: 'Converting an FAA licence, Delhi',
     text: 'It is hard to find someone in this field who will talk to you honestly about money and time. One call stopped me from joining a school that would have cost me a year.',
   },
   {
     name: 'Nandini Pillai',
+    rating: 5,
     colour: 'from-amber-400 to-orange-500',
     role: 'Cleared four papers, Chennai',
     text: 'The notes are the best I have used. They are written the same way the questions are asked, so nothing feels new in the exam.',
   },
   {
-    name: 'Rohan Deshmukh',
+    name: 'Adil Sheikh',
+    rating: 4.5,
     colour: 'from-emerald-500 to-teal-500',
     role: 'CPL aspirant, Pune',
     text: 'He cleared all my doubts in one call. Later I got stuck again and he replied on WhatsApp. He still remembers how hard this time is.',
   },
   {
     name: 'Simran Kaur',
+    rating: 4,
     colour: 'from-fuchsia-500 to-purple-600',
     role: 'Ground school student, Amritsar',
     text: 'I paid a lot for classes before and nobody there knew my name. Here my plan is made for me, and someone checks on me if I fall behind.',
@@ -390,6 +396,21 @@ function scrollToSection(id) {
   const offset = box.height < space ? (space - box.height) / 2 : 24;
   window.scrollTo({ top: window.scrollY + box.top - headerHeight - offset, behavior: 'smooth' });
   window.history.replaceState(null, '', `#${id}`);
+}
+
+// Review stars: full, half and empty, e.g. 4.5 → ★★★★½.
+function Stars({ rating = 5 }) {
+  return (
+    <span className="mt-0.5 flex gap-0.5" aria-label={`${rating} out of 5`}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} className="relative h-4 w-4">
+          <Star className="absolute inset-0 h-4 w-4 text-line" />
+          {rating >= i + 1 && <Star className="absolute inset-0 h-4 w-4 fill-amber-400 text-amber-400" />}
+          {rating > i && rating < i + 1 && <StarHalf className="absolute inset-0 h-4 w-4 fill-amber-400 text-amber-400" />}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 const heroChoice = 'inline-flex items-center justify-center gap-2 rounded-full border border-line bg-surface px-6 py-3 font-semibold text-ink transition hover:border-brand hover:bg-brand hover:text-on-brand';
@@ -503,7 +524,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               className="absolute bottom-0 right-0 aspect-[3/4] w-[42%] rounded-2xl border-[6px] border-surface object-cover object-[60%_72%] shadow-[0_20px_40px_-16px_rgba(15,23,51,0.35)]"
             />
             <span className="absolute left-4 top-4 rounded-full bg-surface/95 px-3.5 py-1.5 text-sm font-bold text-ink shadow-sm">
-              90+ in all six DGCA papers
+              90+ in all DGCA papers
             </span>
           </div>
         </div>
@@ -649,11 +670,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   </span>
                   <span>
                     <span className="block font-bold text-ink">{r.name}</span>
-                    <span className="mt-0.5 flex gap-0.5" aria-label="5 out of 5">
-                      {[0, 1, 2, 3, 4].map((i) => (
-                        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </span>
+                    <Stars rating={r.rating} />
                   </span>
                 </figcaption>
                 <blockquote className="mt-5 flex-1 leading-relaxed text-muted">{r.text}</blockquote>
@@ -737,7 +754,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                 <span className="rounded-full bg-go/10 px-2.5 py-1 text-xs font-bold text-go">Save {rupees(CONSULTATION.was - CONSULTATION.price)}</span>
               </p>
               <p className="mt-3 rounded-xl bg-go/10 px-3 py-2 text-sm font-semibold text-go">
-                Course students pay just {rupees(CONSULTATION.coursePrice)} <s className="font-normal opacity-70">{rupees(CONSULTATION.price)}</s>
+                One free consultation with every course
               </p>
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
@@ -795,7 +812,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
                   'Topic tests and full mock exams',
                   'Your marks tracked subject by subject',
                   'Doubts chat with your instructor',
-                  `1-on-1 consultations for ${rupees(CONSULTATION.coursePrice)} instead of ${rupees(CONSULTATION.price)}`,
+                  'One free consultation with every course',
                 ].map((f) => (
                   <li key={f} className="flex gap-3 text-ink">
                     <Check className="mt-0.5 h-5 w-5 shrink-0 text-go" strokeWidth={2.5} /> {f}
@@ -1539,6 +1556,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const allowed = SUBJECTS.filter((s) => access.subjects?.includes(s.name) && !pausedNames.includes(s.name));
   const pausedSubjects = SUBJECTS.filter((s) => access.subjects?.includes(s.name) && pausedNames.includes(s.name));
   const accessKey = [access.plan, access.questions, access.tests, ...(access.subjects || []), '|', ...pausedNames].join(',');
+  // One free consultation per course bought; course students from before the perk start with one.
+  const freeCallsLeft = Number.isFinite(Number(access.freeConsultations)) && access.freeConsultations !== undefined
+    ? Math.max(0, Number(access.freeConsultations)) : (access.plan === 'course' ? 1 : 0);
   const [materialsError, setMaterialsError] = useState('');
   const [payments, setPayments] = useState([]);
   const [checking, setChecking] = useState(false);
@@ -1754,7 +1774,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               access.questions && { label: 'Practise questions', text: 'Filter by topic and track what you got wrong.', icon: ListChecks, tab: 'quizzes' },
-              access.plan === 'course' && { label: 'Book a consultation', text: `1 hour 1-on-1 for ${rupees(CONSULTATION.coursePrice)}, the course student price.`, icon: CalendarClock, tab: 'book' },
+              access.plan === 'course' && { label: 'Book a consultation', text: freeCallsLeft > 0
+                ? `Your free consultation is ready: 1 hour 1-on-1${freeCallsLeft > 1 ? ` (${freeCallsLeft} left)` : ''}.`
+                : `1 hour 1-on-1 for ${rupees(CONSULTATION.coursePrice)}, the course student price.`, icon: CalendarClock, tab: 'book' },
               { label: 'Ask a doubt', text: 'Your instructor replies in the chat.', icon: MessageCircle, tab: 'doubts' },
             ].filter(Boolean).map(({ label, text, icon: Icon, tab }) => (
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>
@@ -1839,6 +1861,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         <BookingPage
           free
           embedded
+          freeLeft={freeCallsLeft}
+          onBooked={onRefreshAccess}
           account={{ name: user.name, email: user.email }}
           getIdToken={async () => (await currentIdToken()) || user.idToken}
           goHome={() => setActiveTab('overview')}
@@ -3118,6 +3142,7 @@ function AdminPortal({ user, onLogout, onHome }) {
       paused: student.access?.paused || [],
       questions: Boolean(student.access?.questions),
       tests: Boolean(student.access?.tests),
+      freeConsultations: student.access?.freeConsultations ?? (student.access?.plan === 'course' ? 1 : 0),
     });
   };
 
@@ -3343,6 +3368,20 @@ function AdminPortal({ user, onLogout, onHome }) {
                             </div>
                           );
                         })}
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-3 text-sm">
+                        <span>
+                          <span className="font-semibold text-ink">Free consultations left</span>
+                          <span className="block text-xs text-muted">One is added with every course payment you approve.</span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <button type="button" onClick={() => setDraft({ ...draft, freeConsultations: Math.max(0, (draft.freeConsultations || 0) - 1) })}
+                            className="h-8 w-8 rounded-full border border-line font-bold text-ink hover:border-brand" aria-label="One fewer">−</button>
+                          <span className="w-6 text-center font-bold text-ink">{draft.freeConsultations || 0}</span>
+                          <button type="button" onClick={() => setDraft({ ...draft, freeConsultations: Math.min(20, (draft.freeConsultations || 0) + 1) })}
+                            className="h-8 w-8 rounded-full border border-line font-bold text-ink hover:border-brand" aria-label="One more">+</button>
+                        </span>
                       </div>
 
                       <p className="mt-5 text-sm font-semibold text-ink">What else can they use</p>
