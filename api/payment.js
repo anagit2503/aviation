@@ -70,6 +70,30 @@ export default async function handler(req, res) {
         return;
       }
 
+      // Consultation payments: only the booking's payment status changes.
+      if (request.kind === 'consultation' && (body.action === 'approve' || body.action === 'reject')) {
+        const approved = body.action === 'approve';
+        const done = {
+          ...request,
+          status: approved ? 'approved' : 'rejected',
+          note: approved ? request.note : String(body.note || '').trim().slice(0, 300),
+          decidedAt: now,
+          decidedBy: person.email,
+        };
+        await store(done);
+        const raw = await redis(['HGET', `bookings:${request.date}`, request.time]);
+        if (raw) {
+          try {
+            const booking = JSON.parse(raw);
+            await redis(['HSET', `bookings:${request.date}`, request.time, JSON.stringify({
+              ...booking, paymentStatus: approved ? 'paid' : 'payment not received yet',
+            })]);
+          } catch { /* booking unreadable: the payment record is still updated */ }
+        }
+        res.status(200).json({ ok: true, request: done });
+        return;
+      }
+
       if (body.action === 'approve') {
         const access = await getAccess(request.email);
         const next = {

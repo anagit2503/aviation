@@ -1583,7 +1583,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .then((data) => setPayments(data.requests || []))
       .catch(() => {});
   }, [accessKey]);
-  const pending = payments.filter((p) => p.status === 'awaiting' || p.status === 'claimed');
+  const subjectPayments = payments.filter((p) => p.kind !== 'consultation');
+  const pending = subjectPayments.filter((p) => p.status === 'awaiting' || p.status === 'claimed');
   // Show the apology only while it still applies: the latest request was
   // declined AND the student still lacks at least one of those subjects. Once
   // the subjects are switched on (by a later payment or by hand) it disappears.
@@ -1592,7 +1593,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem('dismissed-payment-note') || ''; } catch { return ''; }
   });
-  const latest = payments[0];
+  const latest = subjectPayments[0];
   const rejected = !pending.length && latest?.status === 'rejected'
     && latest.id !== dismissed
     && !latest.subjects.some((s) => (access.subjects || []).includes(s))
@@ -2892,7 +2893,7 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
               {picked.phone && <p className="text-ink">{picked.phone}</p>}
               {picked.goal && <p className="rounded-xl bg-mist p-3 text-muted">{picked.goal}</p>}
               <p className="pt-2 font-semibold text-ink">
-                {picked.amount === 0 ? 'Free · course student' : `₹${(picked.amount ?? 1999).toLocaleString('en-IN')} to collect`}
+                {picked.amount === 0 ? 'Free · course student' : `₹${(picked.amount ?? 1999).toLocaleString('en-IN')} · ${picked.paymentStatus === 'paid' ? 'paid' : picked.paymentStatus?.startsWith('student says paid') ? 'student says paid, check your UPI app' : 'not paid yet'}`}
                 {picked.recording && ' · wants the recording'}
               </p>
             </div>
@@ -2929,6 +2930,9 @@ function PaymentsAdmin({ requests, onApprove, onReject, busyId, error, onRefresh
           <p className="font-bold text-ink">{r.name || r.email}</p>
           <p className="text-sm text-muted">{r.email}</p>
           <div className="mt-3 flex flex-wrap gap-1.5">
+            {r.kind === 'consultation' && (
+              <span className="rounded-full bg-brand px-2.5 py-1 text-xs font-bold text-on-brand">Consultation · {r.dayLabel || r.date} at {r.time} IST</span>
+            )}
             {r.bundle && <span className="rounded-full bg-go px-2.5 py-1 text-xs font-bold text-white">{BUNDLE.months}-month bundle</span>}
             {r.subjects.map((s) => <span key={s} className="rounded-full bg-sky px-2.5 py-1 text-xs font-semibold text-ink">{s}</span>)}
           </div>
@@ -2951,7 +2955,8 @@ function PaymentsAdmin({ requests, onApprove, onReject, busyId, error, onRefresh
         <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
           <button onClick={() => onApprove(r)} disabled={busyId === r.id} className={`${btnPrimary} px-5 py-2 text-sm`}>
             {busyId === r.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            Payment received · switch on {r.subjects.length === 1 ? 'this subject' : `these ${r.subjects.length} subjects`}
+            {r.kind === 'consultation' ? 'Payment received'
+              : `Payment received · switch on ${r.subjects.length === 1 ? 'this subject' : `these ${r.subjects.length} subjects`}`}
           </button>
           <button onClick={() => onReject(r)} disabled={busyId === r.id} className={`${btnGhost} px-5 py-2 text-sm`}>Not received</button>
         </div>
@@ -3038,7 +3043,7 @@ function AdminPortal({ user, onLogout, onHome }) {
     try {
       const data = await call({ action: 'approve', id: request.id }, '/api/payment');
       setPayments((list) => list.map((p) => (p.id === request.id ? data.request : p)));
-      setStudents((list) => list.map((st) => (st.email === request.email ? { ...st, access: data.access } : st)));
+      if (data.access) setStudents((list) => list.map((st) => (st.email === request.email ? { ...st, access: data.access } : st)));
     } catch (err) {
       setPaymentsError(err.message);
     } finally {

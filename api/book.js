@@ -22,6 +22,52 @@ export default async function handler(req, res) {
   }
 
   // { action: 'mine', idToken } → this student's upcoming sessions, for the reminder on the booking page.
+  // { action: 'claim', date, time, payToken, reference } → "I've paid" for a
+  // booking. The payToken came back when the slot was booked, so only the
+  // person who booked can mark it. It then shows in the instructor's Payments tab.
+  if (readJsonBody(req).action === 'claim') {
+    const { date, time, payToken, reference } = readJsonBody(req);
+    if (!isValidDate(date) || !SLOT_TIMES.includes(time) || !payToken) {
+      res.status(400).json({ error: 'Which booking is this for?' });
+      return;
+    }
+    try {
+      const raw = await redis(['HGET', `bookings:${date}`, time]);
+      let booking = null;
+      try { booking = raw ? JSON.parse(raw) : null; } catch { booking = null; }
+      if (!booking || booking.payToken !== payToken) {
+        res.status(404).json({ error: 'That booking was not found. Please email us if you have paid.' });
+        return;
+      }
+      const now = new Date().toISOString();
+      const paymentId = booking.paymentId || crypto.randomUUID();
+      const request = {
+        id: paymentId,
+        kind: 'consultation',
+        email: booking.email,
+        name: booking.name,
+        subjects: [],
+        date,
+        time,
+        dayLabel: booking.dayLabel,
+        amount: booking.amount,
+        status: 'claimed',
+        reference: String(reference || '').trim().slice(0, 60),
+        createdAt: booking.createdAt || now,
+        claimedAt: now,
+      };
+      await redis(['HSET', 'payments', paymentId, JSON.stringify(request)]);
+      await redis(['SADD', `payments:by:${String(booking.email).toLowerCase()}`, paymentId]);
+      await redis(['HSET', `bookings:${date}`, time, JSON.stringify({
+        ...booking, paymentId, paymentStatus: 'student says paid, to check', reference: request.reference,
+      })]);
+      res.status(200).json({ ok: true });
+    } catch {
+      res.status(503).json({ error: 'Could not save that. Please try again in a moment.' });
+    }
+    return;
+  }
+
   if (readJsonBody(req).action === 'mine') {
     const person = await verifyIdToken(readJsonBody(req).idToken);
     if (!person) {
@@ -38,7 +84,11 @@ export default async function handler(req, res) {
           try {
             const b = JSON.parse(flat[j + 1]);
             if (!b.blocked && String(b.email || '').toLowerCase() === person.email) {
-              bookings.push({ date: keys[i].slice(9), time: flat[j], dayLabel: b.dayLabel, kind: b.kind || 'consultation', subject: b.subject || '' });
+              const unpaid = b.amount > 0 && b.payToken && b.paymentStatus !== 'paid' && !String(b.paymentStatus || '').startsWith('student says paid');
+              bookings.push({
+                date: keys[i].slice(9), time: flat[j], dayLabel: b.dayLabel, kind: b.kind || 'consultation', subject: b.subject || '',
+                amount: b.amount || 0, ...(unpaid ? { payToken: b.payToken } : {}),
+              });
             }
           } catch { /* skip unreadable rows */ }
         }
@@ -157,6 +207,7 @@ export default async function handler(req, res) {
       : usesFreeCall ? 'free consultation included with the course'
         : courseStudent ? 'course student price, pay by UPI' : 'pay by UPI',
     freeConsultation: usesFreeCall,
+    ...(!usesFreeCall && kind === 'consultation' ? { payToken: crypto.randomUUID() } : {}),
     courseStudent,
     createdAt: new Date().toISOString(),
   };
@@ -198,6 +249,7 @@ export default async function handler(req, res) {
     time,
     amount: booking.amount,
     dayLabel: booking.dayLabel,
+    payToken: booking.payToken,
     notified: emailed.sent,
     emailConfigured: emailReady,
   });

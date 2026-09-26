@@ -36,7 +36,7 @@ export default function EnrollPage({ user, subjects, api, goBack, onPaid }) {
   const [pending, setPending] = useState([]);
   useEffect(() => {
     api('/api/payment', { action: 'mine' })
-      .then((data) => setPending((data.requests || []).filter((r) => r.status === 'awaiting' || r.status === 'claimed')))
+      .then((data) => setPending((data.requests || []).filter((r) => r.kind !== 'consultation' && (r.status === 'awaiting' || r.status === 'claimed'))))
       .catch(() => {});
   }, []);
 

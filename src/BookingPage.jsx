@@ -114,7 +114,10 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
   const [loadingSlots, setLoadingSlots] = useState(true);
   const [form, setForm] = useState({ name: account?.name || '', email: account?.email || '', phone: '', goal: '' });
   const [recording, setRecording] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle, saving, done
+  const [status, setStatus] = useState('idle'); // idle → saving → pay (paid sessions) → done
+  const [reference, setReference] = useState('');
+  const [claiming, setClaiming] = useState(false);
+  const [paid, setPaid] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [confirmed, setConfirmed] = useState(null);
@@ -211,10 +214,11 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
         return;
       }
       setConfirmed({ ...data, total });
-      if (!getIdToken) saveLocalBooking({ date: day.key, time, dayLabel: data.dayLabel, kind, subject });
+      if (!getIdToken) saveLocalBooking({ date: day.key, time, dayLabel: data.dayLabel, kind, subject, amount: data.amount, payToken: data.payToken });
       loadMine();
       onBooked?.();
-      setStatus('done');
+      // Paid sessions go to the payment step first; free ones are done.
+      setStatus(data.amount > 0 && data.payToken ? 'pay' : 'done');
       window.scrollTo(0, 0);
     } catch {
       setError('Something went wrong. Please check your connection and try again.');
@@ -232,6 +236,68 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
     </div>
   ));
 
+  // "I've paid": tells the instructor, who checks the money arrived.
+  const claimPaid = async () => {
+    setClaiming(true);
+    setError('');
+    try {
+      const res = await fetch('/api/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'claim', date: confirmed.date, time: confirmed.time, payToken: confirmed.payToken, reference }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Could not save that. Please try again.'); return; }
+      setPaid(true);
+      setStatus('done');
+      // Forget the token on this device so the reminder stops asking.
+      try {
+        localStorage.setItem(LOCAL_BOOKINGS, JSON.stringify(readLocalBookings().map((b) => (
+          b.date === confirmed.date && b.time === confirmed.time ? { ...b, payToken: undefined } : b))));
+      } catch { /* not important */ }
+      loadMine();
+      window.scrollTo(0, 0);
+    } catch {
+      setError('Something went wrong. Please check your connection and try again.');
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  if (status === 'pay' && confirmed) {
+    return frame(
+        <div className={`mx-auto max-w-xl ${embedded ? '' : 'px-4 py-12 sm:px-6'}`}>
+          <div className={`${card} p-6 sm:p-10`}>
+            <p className="text-center text-sm font-semibold text-muted">Step 2 of 2 · Payment</p>
+            <h1 className="mt-2 text-center text-2xl font-extrabold text-ink">Pay to confirm your session</h1>
+            <p className="mt-2 text-center text-muted">
+              Your slot on {confirmed.dayLabel} at {confirmed.time} IST is held for you.
+            </p>
+            <div className="mt-6">
+              <UpiPay amount={confirmed.amount} note="Avero Aviation consultation" lastStep="Come back here and tap I’ve paid." />
+            </div>
+            <div className="mt-6 space-y-3 border-t border-line pt-6">
+              <div>
+                <label htmlFor="ref" className="mb-1.5 block text-sm font-semibold text-ink">
+                  UPI transaction ID <span className="font-normal text-muted">(optional)</span>
+                </label>
+                <input id="ref" className={input} value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. 4271 8899 1234" />
+                <p className="mt-1 text-xs text-muted">Helps us find your payment faster.</p>
+              </div>
+              {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+              <button type="button" onClick={claimPaid} disabled={claiming} className={`${btnPrimary} w-full py-3.5`}>
+                <Check className="h-5 w-5" /> {claiming ? 'Saving…' : 'I’ve paid'}
+              </button>
+              <button type="button" onClick={() => { setStatus('done'); window.scrollTo(0, 0); }}
+                className="w-full py-2 text-sm font-semibold text-muted transition hover:text-ink">
+                I’ll pay a little later
+              </button>
+            </div>
+          </div>
+        </div>,
+    );
+  }
+
   if (status === 'done' && confirmed) {
     return frame(
         <div className={`mx-auto max-w-xl ${embedded ? '' : 'px-4 py-16 sm:px-6'}`}>
@@ -248,13 +314,17 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               {recording && !doubt && <Row label="Add on: recording" value={money(recordingPrice)} />}
               <Row label="Total" value={(confirmed.amount ?? confirmed.total) === 0 ? '₹0 · included in your course' : money(confirmed.amount ?? confirmed.total)} strong />
             </div>
-            {(confirmed.amount ?? confirmed.total) > 0 && (
-              <div className="mt-6 rounded-2xl border border-line p-5">
-                <p className="mb-4 text-sm font-semibold text-ink">Pay for your session</p>
-                <UpiPay amount={confirmed.amount ?? confirmed.total} note="Avero Aviation consultation"
-                  lastStep="That’s it. We confirm the payment on our side." />
+            {(confirmed.amount ?? confirmed.total) > 0 && (paid ? (
+              <p className="mt-4 rounded-xl bg-go/10 p-3 text-sm font-medium text-go">
+                Thank you! We will confirm your payment shortly.
+              </p>
+            ) : (
+              <div className="mt-4 rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+                <p className="font-semibold">Payment still to do</p>
+                <p className="mt-1">Your slot is held. Please pay {money(confirmed.amount)} before the session:</p>
+                <button type="button" onClick={() => setStatus('pay')} className="mt-2 font-semibold underline">Pay now</button>
               </div>
-            )}
+            ))}
             <div className="mt-6 rounded-2xl border border-line p-5">
               <p className="text-sm font-semibold text-ink">Your meeting link</p>
               <a href={MEET_LINK} target="_blank" rel="noreferrer" className={`${btnPrimary} mt-3 w-full`}>
@@ -344,6 +414,15 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
                   {mine.slice(0, 5).map((b) => (
                     <li key={`${b.date}-${b.time}`}>
                       {b.kind === 'doubt' ? `Doubt class${b.subject ? ` (${b.subject})` : ''}` : 'Consultation'}: {b.dayLabel || b.date} at {b.time} IST
+                      {b.payToken && (
+                        <>
+                          {' · '}<span className="font-semibold text-amber-700 dark:text-amber-300">payment pending</span>{' · '}
+                          <button type="button" className="font-semibold text-ink underline"
+                            onClick={() => { setConfirmed({ ...b, amount: b.amount }); setPaid(false); setStatus('pay'); window.scrollTo(0, 0); }}>
+                            Pay now
+                          </button>
+                        </>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -495,7 +574,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
           {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
           <button type="submit" disabled={status === 'saving'} className={`${btnPrimary} mt-6 w-full py-3.5`}>
-            {status === 'saving' ? 'Booking your slot…' : 'Confirm booking'}
+            {status === 'saving' ? 'Booking your slot…' : total > 0 ? `Continue to payment · ${money(total)}` : 'Confirm booking'}
           </button>
           <p className="mt-3 text-center text-sm text-muted">
             You get the Google Meet link as soon as you book{total > 0 ? ', and can pay by UPI straight away.' : '.'}
