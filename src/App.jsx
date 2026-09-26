@@ -480,10 +480,12 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <button onClick={() => setAuthMode('book')} className={heroChoice}>Book a consultation</button>
               <a href="#subjects" className={heroChoice}>See the course</a>
             </div>
-            <div className="mt-10 flex items-center gap-8 text-sm text-muted">
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm text-muted">
               <div><span className="block text-2xl font-extrabold text-ink">500+</span>students trained</div>
               <div className="h-10 w-px bg-line" />
               <div><span className="block text-2xl font-extrabold text-ink">95%</span>pass rate</div>
+              <div className="h-10 w-px bg-line" />
+              <div><span className="block text-2xl font-extrabold text-ink">₹5 lakh</span>potential savings (up to)</div>
             </div>
           </div>
 
@@ -894,8 +896,10 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
         </svg>
         <button onClick={() => setAuthMode('landing')} className="relative w-fit"><Logo light /></button>
         <div className="relative max-w-md">
-          <p className="text-3xl font-extrabold leading-tight">Everything you need for the CPL ground papers, in one place.</p>
-          <p className="mt-4 text-neutral-300/70">Notes, 2000+ questions, topic tests and mock exams.</p>
+          <p className="text-3xl font-extrabold leading-tight">Get started on your first step towards the cockpit.</p>
+          <p className="mt-4 text-neutral-300/70">
+            Access everything you need to prepare — structured notes, 2,000+ exam questions, tests and mock exams.
+          </p>
         </div>
         <p className="relative text-sm text-neutral-300/50">Trusted by 500+ student pilots</p>
       </div>
