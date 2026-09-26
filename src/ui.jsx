@@ -9,6 +9,10 @@ export const input =
   'w-full rounded-xl border border-line bg-surface px-4 py-3 text-ink placeholder-slate-400 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/10';
 export const card = 'rounded-2xl border border-line bg-surface';
 
+// The one Google Meet room used for every consultation and doubt class.
+// Keep in sync with MEET_LINK in api/_lib.js.
+export const MEET_LINK = 'https://meet.google.com/wfe-ukng-igs';
+
 // Session times in IST. Keep in sync with SLOT_TIMES in api/_lib.js.
 export const SLOT_TIMES = [
   '09:30', '10:45', '12:00', '13:15', '14:30', '15:45',

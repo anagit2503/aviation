@@ -10,6 +10,8 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 export const storageReady = Boolean(KV_URL && KV_TOKEN);
 export const emailReady = Boolean(process.env.RESEND_API_KEY);
 export const BOOKING_EMAIL = process.env.BOOKING_EMAIL || 'samarthya.s02@gmail.com';
+// The one Google Meet room used for every session. Keep in sync with MEET_LINK in src/ui.jsx.
+export const MEET_LINK = 'https://meet.google.com/wfe-ukng-igs';
 
 // Session times shown to students, in IST. Keep in sync with SLOT_TIMES in src/App.jsx.
 export const SLOT_TIMES = [
@@ -36,6 +38,7 @@ export async function sendBookingEmail(booking) {
     ...(booking.kind === 'doubt' ? [`DOUBT CLASS: ${booking.subject}`, ''] : []),
     `Date: ${booking.date} (${booking.dayLabel})`,
     `Time: ${booking.time} IST (1 hour)`,
+    `Google Meet: ${MEET_LINK}`,
     '',
     `Name: ${booking.name}`,
     `Email: ${booking.email}`,
@@ -94,11 +97,13 @@ export async function sendStudentConfirmation(booking) {
           `Your 1-hour ${booking.kind === 'doubt' ? `doubt class on ${booking.subject}` : 'consultation'} is booked for ${booking.dayLabel} at ${booking.time} IST. Don't worry about the time; we keep going until your questions are answered.`,
           '',
           ...(booking.amount === 0
-            ? ['This session is free as part of your course.', 'We will reply with the Google Meet link.']
+            ? ['This session is free as part of your course.']
             : [
               `Amount to pay: Rs ${booking.amount}${booking.recording ? ' (includes the session recording)' : ''}.`,
-              'We will reply with the Google Meet link and payment details.',
+              'We will reply with the payment details.',
             ]),
+          '',
+          `Join on Google Meet at your booked time: ${MEET_LINK}`,
           '',
           'If you need to change the time, just reply to this email.',
           '',

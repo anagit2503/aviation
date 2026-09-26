@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, Check, ChevronLeft, ChevronRight, Video, MessageSquare, Map as MapIcon, Circle, Clock, CalendarDays, CalendarCheck,
 } from 'lucide-react';
-import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES } from './ui.jsx';
+import { Logo, ThemeToggle, btnPrimary, card, input, SLOT_TIMES, MEET_LINK } from './ui.jsx';
 
 const SESSION_PRICE = 1999;
 const RECORDING_PRICE = 400;
@@ -137,7 +137,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
     if (account?.email) return errors; // signed in: name and email come from their account
     if (form.name.trim().length < 2) errors.name = 'Please enter your name.';
     if (!form.email.trim()) {
-      errors.email = 'We need an email to send you the meeting link.';
+      errors.email = 'We need an email so we can reach you about your session.';
     } else if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email.trim())) {
       errors.email = 'That email address is missing something. Example: you@gmail.com';
     }
@@ -236,9 +236,17 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               {recording && <Row label="Add on: recording" value={money(recordingPrice)} />}
               <Row label="Total" value={free ? '₹0 · included in your course' : money(confirmed.total)} strong />
             </div>
-            <p className="mt-6 text-sm text-muted">
-              You will get the Google Meet link{free ? '' : ' and payment details'} by email at {form.email}.
-            </p>
+            <div className="mt-6 rounded-2xl border border-line p-5">
+              <p className="text-sm font-semibold text-ink">Your meeting link</p>
+              <a href={MEET_LINK} target="_blank" rel="noreferrer" className={`${btnPrimary} mt-3 w-full`}>
+                <Video className="h-4 w-4" /> Join on Google Meet
+              </a>
+              <p className="mt-2 break-all text-sm text-muted">{MEET_LINK.replace('https://', '')}</p>
+              <p className="mt-2 text-xs text-muted">
+                The same link works for every session. Open it at your booked time.
+                {!free && ' Payment details will reach you by email.'}
+              </p>
+            </div>
             <button onClick={goHome} className={`${btnPrimary} mt-8`}>{embedded ? 'Back to overview' : 'Back to home'}</button>
           </div>
         </div>,
@@ -302,7 +310,13 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1 text-muted">You can still book another one below.</p>
+                <p className="mt-1 text-muted">
+                  Join at your booked time:{' '}
+                  <a href={MEET_LINK} target="_blank" rel="noreferrer" className="font-semibold text-ink underline">
+                    {MEET_LINK.replace('https://', '')}
+                  </a>
+                  . You can still book another one below.
+                </p>
               </div>
             </div>
           )}
@@ -446,7 +460,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             {status === 'saving' ? 'Booking your slot…' : 'Confirm booking'}
           </button>
           <p className="mt-3 text-center text-sm text-muted">
-            We will email you the meeting link{free ? '.' : ' and payment details.'}
+            You get the Google Meet link as soon as you book{free ? '.' : ', and payment details by email.'}
           </p>
         </form>
       </div>,
