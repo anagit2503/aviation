@@ -112,7 +112,11 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
   const [time, setTime] = useState('');
   const [booked, setBooked] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
-  const [form, setForm] = useState({ name: account?.name || '', email: account?.email || '', phone: '', goal: '' });
+  const [form, setForm] = useState(() => {
+    let phone = '';
+    try { phone = localStorage.getItem('avero-phone') || ''; } catch { /* not important */ }
+    return { name: account?.name || '', email: account?.email || '', phone, goal: '' };
+  });
   const [recording, setRecording] = useState(false);
   const [status, setStatus] = useState('idle'); // idle → saving → pay (paid sessions) → done
   const [reference, setReference] = useState('');
@@ -148,16 +152,16 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
 
   const validate = () => {
     const errors = {};
+    // A phone number is needed for every booking, so we can reach them quickly.
+    const digits = form.phone.replace(/\D/g, '');
+    if (!digits) errors.phone = 'Please enter your mobile number.';
+    else if (digits.length < 10 || digits.length > 13) errors.phone = 'Enter a 10-digit mobile number.';
     if (account?.email) return errors; // signed in: name and email come from their account
     if (form.name.trim().length < 2) errors.name = 'Please enter your name.';
     if (!form.email.trim()) {
       errors.email = 'We need an email so we can reach you about your session.';
     } else if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(form.email.trim())) {
       errors.email = 'That email address is missing something. Example: you@gmail.com';
-    }
-    const digits = form.phone.replace(/\D/g, '');
-    if (form.phone.trim() && (digits.length < 10 || digits.length > 13)) {
-      errors.phone = 'Enter a 10-digit mobile number, or leave this empty.';
     }
     return errors;
   };
@@ -214,6 +218,7 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
         return;
       }
       setConfirmed({ ...data, total });
+      try { localStorage.setItem('avero-phone', form.phone.trim()); } catch { /* not important */ }
       if (!getIdToken) saveLocalBooking({ date: day.key, time, dayLabel: data.dayLabel, kind, subject, amount: data.amount, payToken: data.payToken });
       loadMine();
       onBooked?.();
@@ -513,17 +518,13 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
             <p className="mt-3 text-sm text-muted">Crossed-out times are already booked.</p>
           )}
 
-          {/* Signed-in students are already known, so they only see what matters. */}
-          {!account?.email && (
-            <>
-              <h2 className="mt-7 font-bold text-ink">Your details</h2>
-              <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
-                {field('name', 'Full name')}
-                {field('email', 'Email', 'email')}
-                {field('phone', 'Phone (optional)', 'tel')}
-              </div>
-            </>
-          )}
+          {/* Signed-in students are already known: they only add a phone number. */}
+          <h2 className="mt-7 font-bold text-ink">{account?.email ? 'Your mobile number' : 'Your details'}</h2>
+          <div className="mt-3 grid items-start gap-3 sm:grid-cols-2">
+            {!account?.email && field('name', 'Full name')}
+            {!account?.email && field('email', 'Email', 'email')}
+            {field('phone', 'Mobile number', 'tel')}
+          </div>
 
           {doubt && (
             <div className="mt-7">

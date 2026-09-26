@@ -154,6 +154,11 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Name and email are required.' });
     return;
   }
+  const phoneDigits = String(phone || '').replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 13) {
+    res.status(400).json({ error: 'Please enter a valid mobile number.' });
+    return;
+  }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) {
     res.status(400).json({ error: 'That email address does not look right.' });
     return;
