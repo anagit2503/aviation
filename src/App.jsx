@@ -758,12 +758,15 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <p className="mt-1 text-sm text-muted">Add or pause subjects month by month</p>
               <ul className="mt-6 divide-y divide-line rounded-2xl border border-line text-sm">
                 {Object.entries(SUBJECT_PRICES).map(([name, p]) => (
-                  <li key={name} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2.5">
+                  <li key={name} className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5">
                     <span className="font-medium text-ink">{name}</span>
-                    <span className="flex items-center gap-2 whitespace-nowrap">
-                      {p.was && <s className="text-muted">{rupees(p.was)}</s>}
-                      <span className="font-bold text-ink">{rupees(p.price)}</span>
-                      {p.was && <span className="rounded-full bg-go/10 px-2 py-0.5 text-xs font-bold text-go">Save {rupees(p.was - p.price)}</span>}
+                    {/* Prices stay in a right-aligned column, "Save" tag under the price. */}
+                    <span className="flex flex-col items-end text-right">
+                      <span className="whitespace-nowrap">
+                        {p.was && <s className="mr-2 text-muted">{rupees(p.was)}</s>}
+                        <span className="font-bold text-ink">{rupees(p.price)}</span>
+                      </span>
+                      {p.was && <span className="mt-0.5 rounded-full bg-go/10 px-2 py-0.5 text-xs font-bold text-go">Save {rupees(p.was - p.price)}</span>}
                     </span>
                   </li>
                 ))}
