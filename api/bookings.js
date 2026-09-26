@@ -2,6 +2,8 @@
 //   { action: 'list' }                  → upcoming bookings
 //   { action: 'cancel', date, time }    → free that slot again
 //   { action: 'block',  date, time }    → keep a slot for yourself
+//   { action: 'blockDay', date }         → block every free slot that day (bookings stay)
+//   { action: 'openDay', date }          → remove the blocks you put on that day
 //
 // Cancelling matters: without it a wrong or spam booking would block a slot for good.
 import {
@@ -68,6 +70,36 @@ export default async function handler(req, res) {
       }
       await redis(['HDEL', `bookings:${date}`, time]);
       res.status(200).json({ ok: true });
+      return;
+    }
+
+    if (action === 'blockDay' || action === 'openDay') {
+      if (!isValidDate(date)) {
+        res.status(400).json({ error: 'Which day?' });
+        return;
+      }
+      const flat = (await redis(['HGETALL', `bookings:${date}`])) || [];
+      const taken = {};
+      for (let i = 0; i < flat.length; i += 2) {
+        try { taken[flat[i]] = JSON.parse(flat[i + 1]); } catch { taken[flat[i]] = {}; }
+      }
+      let changed = 0;
+      if (action === 'blockDay') {
+        for (const slot of SLOT_TIMES) {
+          if (taken[slot]) continue; // real bookings are never touched
+          const held = {
+            date, time: slot, name: 'Blocked by instructor', email: person.email,
+            goal: 'Not available for booking', blocked: true, createdAt: new Date().toISOString(),
+          };
+          if (await redis(['HSETNX', `bookings:${date}`, slot, JSON.stringify(held)]) === 1) changed += 1;
+        }
+        await redis(['SADD', 'booking-dates', date]);
+      } else {
+        const blocks = Object.entries(taken).filter(([, b]) => b.blocked).map(([slot]) => slot);
+        if (blocks.length) await redis(['HDEL', `bookings:${date}`, ...blocks]);
+        changed = blocks.length;
+      }
+      res.status(200).json({ ok: true, changed });
       return;
     }
 

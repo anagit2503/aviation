@@ -2,12 +2,14 @@
 //   { action: 'list' }                       → everyone who has signed in
 //   { action: 'update', email, access }      → change one person's access
 //   { action: 'delete', email }              → remove an account, its access and its doubts chat
+//   { action: 'renew', email, subject }      → "Paid · continue": paid up one more month
+//   { action: 'pauseSubject', email, subject } → "Not paid · pause" (only ever done by an instructor)
 //
 // Every call carries the instructor's Google token, and the server checks both
 // that the token is real and that the email belongs to an instructor.
 import {
-  redis, verifyIdToken, isInstructorEmail, listAccounts, getProfile, saveAccess,
-  emptyAccess, storageReady, readJsonBody,
+  redis, verifyIdToken, isInstructorEmail, listAccounts, getProfile, saveAccess, getAccess,
+  emptyAccess, storageReady, readJsonBody, ensureRenewals, extendRenewal, addMonths, todayIST,
 } from './_lib.js';
 
 const PLANS = ['none', 'consultation', 'course'];
@@ -60,7 +62,8 @@ export default async function handler(req, res) {
     if (action === 'list') {
       const accounts = await listAccounts();
       // Instructor accounts are not students and never need access granted.
-      const students = accounts.filter((a) => !isInstructorEmail(a.email));
+      const students = await Promise.all(accounts.filter((a) => !isInstructorEmail(a.email))
+        .map(async (a) => ({ ...a, access: await ensureRenewals(a.email, a.access) })));
       const instructors = accounts.filter((a) => isInstructorEmail(a.email)).map((a) => a.email);
       res.status(200).json({ students, instructors });
       return;
@@ -77,12 +80,41 @@ export default async function handler(req, res) {
         res.status(404).json({ error: 'No account with that email has signed in yet.' });
         return;
       }
+      const before = await getAccess(target);
+      const clean = cleanAccess(access);
+      // Keep renewal dates; a subject switched on by hand is paid up a month from today.
+      const renewals = Object.fromEntries(clean.subjects.map((s) => [s, before.renewals?.[s] || addMonths(todayIST(), 1)]));
       const next = {
-        ...cleanAccess(access),
+        ...clean,
+        renewals,
+        ...(clean.freeConsultations === undefined && before.freeConsultations !== undefined ? { freeConsultations: before.freeConsultations } : {}),
         updatedAt: new Date().toISOString(),
         updatedBy: person.email,
       };
       await saveAccess(target, next);
+      res.status(200).json({ ok: true, student: { ...profile, access: next } });
+      return;
+    }
+
+    if (action === 'renew' || action === 'pauseSubject') {
+      const target = String(email || '').trim().toLowerCase();
+      const subject = String(readJsonBody(req).subject || '');
+      const current = await ensureRenewals(target, await getAccess(target));
+      if (!(current.subjects || []).includes(subject)) {
+        res.status(400).json({ error: 'That student does not have this subject.' });
+        return;
+      }
+      const next = action === 'renew'
+        ? {
+          ...current,
+          paused: (current.paused || []).filter((s) => s !== subject),
+          renewals: { ...current.renewals, [subject]: extendRenewal(current.renewals?.[subject], 1) },
+        }
+        : { ...current, paused: [...new Set([...(current.paused || []), subject])] };
+      next.updatedAt = new Date().toISOString();
+      next.updatedBy = person.email;
+      await saveAccess(target, next);
+      const profile = await getProfile(target);
       res.status(200).json({ ok: true, student: { ...profile, access: next } });
       return;
     }

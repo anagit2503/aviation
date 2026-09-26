@@ -245,6 +245,50 @@ export async function getAccess(email) {
   try { return { ...emptyAccess(), ...JSON.parse(raw) }; } catch { return emptyAccess(); }
 }
 
+// ---------- Monthly renewals ----------
+// access.renewals = { 'Air Navigation': '2026-10-27', … }: the date each subject
+// is paid up to. Paying moves it forward; nothing is ever paused automatically.
+
+export const todayIST = () => new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+
+// '2026-01-31' + 1 month → '2026-02-28' (clamped to the month's last day).
+export function addMonths(date, months) {
+  const [y, m, d] = date.split('-').map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, last));
+  return target.toISOString().slice(0, 10);
+}
+
+// New renewal date after paying for `months`: counted from the current due
+// date if it is still ahead (paying early loses nothing), otherwise from today.
+export function extendRenewal(current, months) {
+  const today = todayIST();
+  return addMonths(current && current > today ? current : today, months);
+}
+
+// Course students from before renewals existed get dates once: from their
+// last approved payment for the subject, else a month after access was given.
+export async function ensureRenewals(email, access) {
+  if (access?.plan !== 'course') return access;
+  const missing = (access.subjects || []).filter((s) => !access.renewals?.[s]);
+  if (missing.length === 0) return access;
+  const ids = (await redis(['SMEMBERS', `payments:by:${email}`])) || [];
+  const rows = ids.length ? await redis(['HMGET', 'payments', ...ids]) : [];
+  const approved = rows.map((r) => { try { return JSON.parse(r); } catch { return null; } })
+    .filter((r) => r && r.status === 'approved' && r.kind !== 'consultation')
+    .sort((a, b) => (a.decidedAt || '').localeCompare(b.decidedAt || ''));
+  const renewals = { ...(access.renewals || {}) };
+  for (const subject of missing) {
+    const last = approved.filter((r) => r.subjects.includes(subject)).pop();
+    const from = (last?.decidedAt || access.updatedAt || new Date().toISOString()).slice(0, 10);
+    renewals[subject] = addMonths(from, last?.bundle ? 2 : 1);
+  }
+  const next = { ...access, renewals };
+  await saveAccess(email, next);
+  return next;
+}
+
 export async function saveAccess(email, access) {
   await redis(['HSET', 'access', email, JSON.stringify(access)]);
   return access;

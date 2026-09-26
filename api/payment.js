@@ -14,7 +14,8 @@ import {
   storageReady, readJsonBody, bumpCounter,
 } from './_lib.js';
 
-import { SUBJECT_PRICES, quote } from './_pricing.js';
+import { SUBJECT_PRICES, BUNDLE, quote } from './_pricing.js';
+import { extendRenewal } from './_lib.js';
 
 const SUBJECT_NAMES = Object.keys(SUBJECT_PRICES);
 const OPEN = ['awaiting', 'claimed'];
@@ -105,6 +106,12 @@ export default async function handler(req, res) {
           tests: true,
           // One free consultation with every course purchase.
           freeConsultations: freeConsultationsLeft(access) + 1,
+          // Each paid subject is paid up a month further (bundle subjects: two).
+          renewals: {
+            ...(access.renewals || {}),
+            ...Object.fromEntries(request.subjects.map((s) => [s,
+              extendRenewal(access.renewals?.[s], request.bundle && BUNDLE.subjects.includes(s) ? BUNDLE.months : 1)])),
+          },
           updatedAt: now,
           updatedBy: person.email,
         };

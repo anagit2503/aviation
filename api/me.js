@@ -4,7 +4,7 @@
 // token; the server checks it, so nobody can claim an email that is not theirs.
 import {
   verifyIdToken, getProfile, saveProfile, getAccess, emptyAccess,
-  isInstructorEmail, storageReady, readJsonBody,
+  isInstructorEmail, storageReady, readJsonBody, ensureRenewals,
 } from './_lib.js';
 
 export default async function handler(req, res) {
@@ -48,6 +48,7 @@ export default async function handler(req, res) {
     };
     // Access is never written here, so signing in cannot undo a grant.
     [access] = await Promise.all([getAccess(person.email), saveProfile(profile)]);
+    access = await ensureRenewals(person.email, access); // renewal dates for the reminder
   } catch {
     res.status(200).json({
       email: person.email, name: person.name, instructor, access: emptyAccess(), saved: false,

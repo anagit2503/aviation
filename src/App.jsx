@@ -1639,6 +1639,38 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const openSubject = (name) => { setSubjectFilter(name); setActiveTab('resources'); window.scrollTo(0, 0); };
   const enroll = () => onGoPublic('enroll');
 
+  // Renewal reminder: subjects due within 3 days, or overdue and not paused.
+  const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+  const daysUntil = (d) => Math.round((Date.parse(d) - Date.parse(today)) / 86400000);
+  const niceDate = (d) => new Date(`${d}T00:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+  const dueSoon = allowed
+    .map((s) => ({ name: s.name, date: access.renewals?.[s.name] }))
+    .filter((d) => d.date && daysUntil(d.date) <= 3)
+    .filter((d) => !pendingNames.includes(d.name)); // already paid, waiting for approval
+  const renewNow = () => { rememberSubjectPick(dueSoon.map((d) => d.name)); enroll(); };
+  const renewalNote = dueSoon.length > 0 && (
+    <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+      <div className="flex items-start gap-3">
+        <CalendarClock className="mt-0.5 h-5 w-5 shrink-0" />
+        <div>
+          <p className="font-semibold">
+            {dueSoon.some((d) => daysUntil(d.date) < 0) ? 'Your subscription is due' : 'Your subscription renews soon'}
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {dueSoon.map((d) => (
+              <li key={d.name}>
+                {d.name}: {daysUntil(d.date) < 0 ? `was due on ${niceDate(d.date)}` : daysUntil(d.date) === 0 ? 'renews today' : `renews on ${niceDate(d.date)}`}
+                {' · '}{rupees(SUBJECT_PRICES[d.name]?.price || 0)}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1">Pay to continue without a break.</p>
+        </div>
+      </div>
+      <button onClick={renewNow} className={`${btnPrimary} px-5 py-2 text-sm`}>Pay now</button>
+    </div>
+  );
+
   const doubtsTab = { id: 'doubts', label: 'Doubts', icon: MessageCircle, badge: unread };
   // The doubts chat is part of the course, so it appears with course access.
   const tabs = allowed.length === 0
@@ -1733,6 +1765,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
 
       {activeTab === 'overview' && allowed.length > 0 && (
         <div className="space-y-8">
+          {renewalNote}
           {pendingNote}
           {rejectedNote}
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -1754,6 +1787,11 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                 </div>
                 <p className="mt-4 font-bold text-ink">{subject.name}</p>
                 <p className="mt-1 flex-1 text-sm text-muted">{subject.blurb}</p>
+                {access.renewals?.[subject.name] && (
+                  <p className={`mt-3 text-xs font-semibold ${daysUntil(access.renewals[subject.name]) <= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-muted'}`}>
+                    Renews on {niceDate(access.renewals[subject.name])}
+                  </p>
+                )}
                 <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">
                   {materialsLoading ? 'Open notes' : subject.files === 0 ? 'Notes coming soon' : `${subject.files} file${subject.files === 1 ? '' : 's'} · Open`}
                 </p>
@@ -2781,7 +2819,7 @@ function weekDays(offset) {
   });
 }
 
-function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
+function BookingsCalendar({ bookings, onCancel, onBlock, onDay, busySlot }) {
   const [week, setWeek] = useState(0);
   const [picked, setPicked] = useState(null);
   const days = weekDays(week);
@@ -2824,6 +2862,25 @@ function BookingsCalendar({ bookings, onCancel, onBlock, busySlot }) {
                 <th key={d.key} className={`border-b border-l border-line p-2 text-center ${d.isToday ? 'bg-sky' : ''}`}>
                   <span className="block text-xs font-medium text-muted">{d.weekday}</span>
                   <span className="block font-bold text-ink">{d.dayMonth}</span>
+                  {(() => {
+                    // Whole-day control: block every free slot, or open the day again.
+                    const future = SLOT_TIMES.filter((t) => !isPast(d.key, t));
+                    if (future.length === 0) return null;
+                    const blocked = future.filter((t) => bySlot.get(`${d.key} ${t}`)?.blocked).length;
+                    const free = future.filter((t) => !bySlot.has(`${d.key} ${t}`)).length;
+                    const dayBusy = busySlot === `day ${d.key}`;
+                    return free > 0 ? (
+                      <button onClick={() => onDay(d.key, 'blockDay')} disabled={dayBusy}
+                        className="mt-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold text-muted transition hover:border-brand hover:text-ink">
+                        {dayBusy ? '…' : 'Block day'}
+                      </button>
+                    ) : blocked > 0 ? (
+                      <button onClick={() => onDay(d.key, 'openDay')} disabled={dayBusy}
+                        className="mt-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold text-muted transition hover:border-brand hover:text-ink">
+                        {dayBusy ? '…' : 'Open day'}
+                      </button>
+                    ) : null;
+                  })()}
                 </th>
               ))}
             </tr>
@@ -3068,6 +3125,36 @@ function AdminPortal({ user, onLogout, onHome }) {
     }
   };
 
+  // ---- Monthly renewals (never paused automatically) ----
+  const todayStr = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+  const daysTo = (d) => Math.round((Date.parse(d) - Date.parse(todayStr)) / 86400000);
+  const niceDay = (d) => new Date(`${d}T00:00:00+05:30`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const [renewBusy, setRenewBusy] = useState(null);
+  const subscriptionAction = async (student, subject, action) => {
+    const verb = action === 'renew' ? `mark ${subject} as paid and continue it for another month` : `pause ${subject} until they pay`;
+    if (!window.confirm(`For ${student.name || student.email}: ${verb}?`)) return;
+    setRenewBusy(`${student.email} ${subject}`);
+    try {
+      const data = await call({ action, email: student.email, subject });
+      setStudents((list) => list.map((st) => (st.email === student.email ? data.student : st)));
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setRenewBusy(null);
+    }
+  };
+  const dueList = students.flatMap((st) => (st.access?.plan === 'course' ? (st.access.subjects || [])
+    .filter((sub) => !(st.access.paused || []).includes(sub) && st.access.renewals?.[sub] && daysTo(st.access.renewals[sub]) <= 3)
+    .map((sub) => ({ student: st, subject: sub, date: st.access.renewals[sub] })) : []))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const renewalStatus = (date, paused) => {
+    if (paused) return { text: 'Paused', tone: 'bg-mist text-muted' };
+    const d = daysTo(date);
+    if (d < 0) return { text: `Overdue by ${-d} day${d === -1 ? '' : 's'}`, tone: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300' };
+    if (d <= 3) return { text: d === 0 ? 'Due today' : `Due in ${d} day${d === 1 ? '' : 's'}`, tone: 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200' };
+    return { text: 'Active', tone: 'bg-go/10 text-go' };
+  };
+
   const deleteStudent = async (student) => {
     if (!window.confirm(
       `Delete ${student.name || student.email}? Their access and doubts chat are removed. `
@@ -3124,6 +3211,23 @@ function AdminPortal({ user, onLogout, onHome }) {
   };
 
   // Keeps a slot for yourself, so students cannot book it.
+  // Block every free slot on a day (existing bookings stay), or open it again.
+  const blockOrOpenDay = async (date, action) => {
+    const label = new Date(`${date}T00:00:00+05:30`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (!window.confirm(action === 'blockDay'
+      ? `Block all free slots on ${label}? Sessions already booked that day stay booked.`
+      : `Open ${label} again for bookings?`)) return;
+    setBusySlot(`day ${date}`);
+    try {
+      await call({ action, date }, '/api/bookings');
+      await loadBookings();
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setBusySlot(null);
+    }
+  };
+
   const blockSlot = async (date, time) => {
     setBusySlot(`${date} ${time}`);
     try {
@@ -3207,6 +3311,32 @@ function AdminPortal({ user, onLogout, onHome }) {
                 <p className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{loading ? '—' : stat.value}</p>
               </div>
             ))}
+          </div>
+
+          <div className={`${card} p-6`}>
+            <h2 className="mb-1 font-bold text-ink">Renewals due ({dueList.length})</h2>
+            <p className="mb-4 text-sm text-muted">
+              Subjects renewing in the next 3 days or overdue. Nothing is paused unless you pause it.
+            </p>
+            {dueList.length === 0 ? <p className="text-muted">Nothing due right now.</p> : (
+              <div className="divide-y divide-line">
+                {dueList.map(({ student: st, subject: sub, date }) => {
+                  const status = renewalStatus(date, false);
+                  return (
+                    <div key={`${st.email}-${sub}`} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-ink">{st.name || st.email} · {sub}</p>
+                        <p className="text-muted">Renews on {niceDay(date)} <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-semibold ${status.tone}`}>{status.text}</span></p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => subscriptionAction(st, sub, 'renew')} className={`${btnGhost} px-4 py-1.5 text-xs`}>Paid · continue</button>
+                        <button onClick={() => subscriptionAction(st, sub, 'pauseSubject')} className={`${btnGhost} px-4 py-1.5 text-xs`}>Not paid · pause</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className={`${card} p-6`}>
@@ -3297,11 +3427,38 @@ function AdminPortal({ user, onLogout, onHome }) {
               </div>
 
               {student.access?.plan === 'course' && student.access.subjects?.length > 0 && editing !== student.email && (
-                <p className="mt-3 border-t border-line pt-3 text-sm text-muted">
-                  Subjects: {student.access.subjects.map((sub) => ((student.access.paused || []).includes(sub) ? `${sub} (paused)` : sub)).join(', ')}
-                  {student.access.questions && ' · question bank'}
-                  {student.access.tests && ' · tests'}
-                </p>
+                <div className="mt-3 space-y-2 border-t border-line pt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    Subscriptions{student.access.questions ? ' · question bank' : ''}{student.access.tests ? ' · tests' : ''}
+                  </p>
+                  {student.access.subjects.map((sub) => {
+                    const date = student.access.renewals?.[sub];
+                    const paused = (student.access.paused || []).includes(sub);
+                    const st = renewalStatus(date, paused);
+                    const busy = renewBusy === `${student.email} ${sub}`;
+                    return (
+                      <div key={sub} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-mist px-3 py-2 text-sm">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-ink">{sub}</span>
+                          <span className="text-muted"> · {date ? `renews on ${niceDay(date)}` : 'no renewal date yet'}</span>
+                          <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${st.tone}`}>{st.text}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => subscriptionAction(student, sub, 'renew')} disabled={busy}
+                            className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-ink transition hover:border-go hover:text-go">
+                            Paid · continue
+                          </button>
+                          {!paused && (
+                            <button onClick={() => subscriptionAction(student, sub, 'pauseSubject')} disabled={busy}
+                              className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-ink transition hover:border-red-300 hover:text-red-600">
+                              Not paid · pause
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
               {editing === student.email && draft && (
@@ -3444,7 +3601,7 @@ function AdminPortal({ user, onLogout, onHome }) {
           {bookingsLoading && <div className={`${card} p-12 text-center text-muted`}>Loading calendar…</div>}
 
           {!bookingsLoading && bookingsView === 'calendar' && (
-            <BookingsCalendar bookings={bookings} onCancel={cancelBooking} onBlock={blockSlot} busySlot={busySlot} />
+            <BookingsCalendar bookings={bookings} onCancel={cancelBooking} onBlock={blockSlot} onDay={blockOrOpenDay} busySlot={busySlot} />
           )}
 
           {!bookingsLoading && bookingsView === 'list' && bookings.length === 0 && (
