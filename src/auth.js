@@ -8,9 +8,19 @@ const env = import.meta.env;
 // What actually protects the project is the Authorized domains list and the
 // sign-in providers you switch on in the Firebase console.
 // Setting the VITE_FIREBASE_* variables in Vercel overrides anything here.
+// Phone browsers (iPhone Safari especially) block sign-in when Google's step
+// runs on another address (firebaseapp.com). vercel.json passes /__/auth
+// through this site, so sign-in can run on the site's own address instead.
+// Turn on only after https://aviation-psi.vercel.app/__/auth/handler is added
+// to the OAuth client's "Authorized redirect URIs" in Google Cloud Console;
+// before that, Google would refuse the sign-in everywhere.
+const SIGN_IN_ON_OWN_ADDRESS = false;
+const ownAddress = typeof window !== 'undefined' && window.location.hostname === 'aviation-psi.vercel.app'
+  ? window.location.host : null;
+
 const config = {
   apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyCoajtzxGIQdvx1zWPZY-cPtQ7LVhFjYT0',
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'flywithsam-46790.firebaseapp.com',
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || (SIGN_IN_ON_OWN_ADDRESS && ownAddress) || 'flywithsam-46790.firebaseapp.com',
   projectId: env.VITE_FIREBASE_PROJECT_ID || 'flywithsam-46790',
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'flywithsam-46790.firebasestorage.app',
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '387256125481',
