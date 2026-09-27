@@ -9,8 +9,13 @@
 //   { action: 'answer', id, choice }      → records the attempt and reveals the correct option
 //   { action: 'bookmark', id, on }        → bookmark or un-bookmark a question
 //
-// Answers never reach a student's browser before they have answered, so the
-// correct option cannot be read out of the page.
+// Timed tests (topic tests and mock exams), actions starting with "test":
+//   Instructors: testList · testSave { test } · testUpdate { id, title, durationMinutes } · testDelete { id }
+//   Students:    testList (their subjects, no answers) · testStart { id } → questions without answers
+//                testSubmit { id, answers, minutes, timeTakenSec } → marked here, attempt saved · testAttempts
+//
+// Answers never reach a student's browser before they have answered (or, for
+// a test, submitted), so the correct option cannot be read out of the page.
 import {
   redis, verifyIdToken, isInstructorEmail, getAccess, storageReady, readJsonBody,
 } from './_lib.js';
@@ -72,6 +77,158 @@ function cleanQuestion(input, by) {
   return { question: q };
 }
 
+// ---------- Timed tests ----------
+const TEST_TYPES = ['test', 'mock'];
+const attemptsKey = (email) => `attempts:${email}`;
+
+async function getTest(id) {
+  const raw = await redis(['HGET', 'tests', String(id || '')]);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// Chapter-by-chapter marks for a result.
+function byChapter(questions, answers) {
+  const out = {};
+  for (const q of questions) {
+    const key = q.topic || 'Other';
+    out[key] ??= { chapter: key, total: 0, correct: 0 };
+    out[key].total += 1;
+    if (answers[q.id] === q.answer) out[key].correct += 1;
+  }
+  return Object.values(out).sort((a, b) => a.chapter.localeCompare(b.chapter));
+}
+
+async function handleTests(body, person, instructor, res) {
+  if (instructor) {
+    if (body.action === 'testList') {
+      const tests = Object.values(parseHash(await redis(['HGETALL', 'tests'])))
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      res.status(200).json({ tests });
+      return;
+    }
+    if (body.action === 'testSave') {
+      const t = body.test || {};
+      if (!SUBJECT_NAMES.includes(t.subject)) { res.status(400).json({ error: 'Pick a subject.' }); return; }
+      const minutes = Math.round(Number(t.durationMinutes));
+      if (!(minutes >= 1 && minutes <= 600)) { res.status(400).json({ error: 'Enter the test time in minutes (1 to 600).' }); return; }
+      const incoming = Array.isArray(t.questions) ? t.questions : [];
+      if (incoming.length === 0 || incoming.length > 500) { res.status(400).json({ error: 'A test needs between 1 and 500 questions.' }); return; }
+      const questions = [];
+      for (const item of incoming) {
+        const { question, error } = cleanQuestion({ ...item, subject: t.subject }, person.email);
+        if (error) { res.status(400).json({ error }); return; }
+        questions.push(question);
+      }
+      const now = new Date().toISOString();
+      const existing = t.id ? await getTest(t.id) : null;
+      const test = {
+        id: existing?.id || crypto.randomUUID(),
+        title: clip(t.title, 120) || 'Untitled test',
+        subject: t.subject,
+        type: TEST_TYPES.includes(t.type) ? t.type : 'test',
+        durationMinutes: minutes,
+        questions,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        updatedBy: person.email,
+      };
+      await redis(['HSET', 'tests', test.id, JSON.stringify(test)]);
+      res.status(200).json({ ok: true, test });
+      return;
+    }
+    if (body.action === 'testUpdate') {
+      const test = await getTest(body.id);
+      if (!test) { res.status(404).json({ error: 'That test no longer exists.' }); return; }
+      if (body.title !== undefined) test.title = clip(body.title, 120) || test.title;
+      if (body.durationMinutes !== undefined) {
+        const minutes = Math.round(Number(body.durationMinutes));
+        if (!(minutes >= 1 && minutes <= 600)) { res.status(400).json({ error: 'Enter the test time in minutes (1 to 600).' }); return; }
+        test.durationMinutes = minutes;
+      }
+      test.updatedAt = new Date().toISOString();
+      await redis(['HSET', 'tests', test.id, JSON.stringify(test)]);
+      res.status(200).json({ ok: true, test });
+      return;
+    }
+    if (body.action === 'testDelete') {
+      await redis(['HDEL', 'tests', String(body.id || '')]);
+      res.status(200).json({ ok: true });
+      return;
+    }
+    res.status(400).json({ error: 'Unknown action.' });
+    return;
+  }
+
+  // Students: tests need course access with tests switched on, for an active subject.
+  const access = await getAccess(person.email);
+  if (access.plan !== 'course' || !access.tests) {
+    res.status(403).json({ error: 'Tests are not part of your access yet.' });
+    return;
+  }
+  const allowed = (t) => t && access.subjects.includes(t.subject) && !(access.paused || []).includes(t.subject);
+
+  if (body.action === 'testList') {
+    const [tests, attempts] = await Promise.all([
+      redis(['HGETALL', 'tests']).then(parseHash),
+      redis(['HGETALL', attemptsKey(person.email)]).then(parseHash),
+    ]);
+    const list = Object.values(tests).filter(allowed)
+      .map(({ questions, updatedBy, ...meta }) => ({ ...meta, count: questions.length }))
+      .sort((a, b) => a.subject.localeCompare(b.subject) || (b.createdAt || '').localeCompare(a.createdAt || ''));
+    const history = Object.values(attempts).sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+    res.status(200).json({ tests: list, attempts: history });
+    return;
+  }
+
+  const test = await getTest(body.id);
+  if (!allowed(test)) { res.status(404).json({ error: 'That test is not available.' }); return; }
+
+  if (body.action === 'testStart') {
+    res.status(200).json({
+      test: {
+        id: test.id, title: test.title, subject: test.subject, type: test.type, durationMinutes: test.durationMinutes,
+        questions: test.questions.map(({ answer, updatedBy, updatedAt, createdAt, ...q }) => q),
+      },
+    });
+    return;
+  }
+
+  if (body.action === 'testSubmit') {
+    const given = body.answers && typeof body.answers === 'object' ? body.answers : {};
+    const answers = {};
+    for (const q of test.questions) {
+      const a = Number(given[q.id]);
+      if (Number.isInteger(a) && a >= 0 && a < q.options.length) answers[q.id] = a;
+    }
+    const correct = test.questions.filter((q) => answers[q.id] === q.answer).length;
+    const attempted = Object.keys(answers).length;
+    const attempt = {
+      id: crypto.randomUUID(),
+      testId: test.id,
+      title: test.title,
+      subject: test.subject,
+      total: test.questions.length,
+      correct,
+      wrong: attempted - correct,
+      skipped: test.questions.length - attempted,
+      percent: Math.round((correct / test.questions.length) * 100),
+      minutes: Math.max(1, Math.round(Number(body.minutes) || test.durationMinutes)),
+      timeTakenSec: Math.max(0, Math.round(Number(body.timeTakenSec) || 0)),
+      submittedAt: new Date().toISOString(),
+    };
+    await redis(['HSET', attemptsKey(person.email), attempt.id, JSON.stringify(attempt)]);
+    res.status(200).json({
+      attempt,
+      chapters: byChapter(test.questions, answers),
+      review: test.questions.map((q) => ({ id: q.id, text: q.text, options: q.options, answer: q.answer, given: answers[q.id] ?? null, topic: q.topic })),
+    });
+    return;
+  }
+
+  res.status(400).json({ error: 'Unknown action.' });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Use POST.' });
@@ -91,6 +248,11 @@ export default async function handler(req, res) {
   const instructor = isInstructorEmail(person.email);
 
   try {
+    if (String(body.action || '').startsWith('test')) {
+      await handleTests(body, person, instructor, res);
+      return;
+    }
+
     // ---------- Instructor side ----------
     if (instructor) {
       if (body.action === 'list') {

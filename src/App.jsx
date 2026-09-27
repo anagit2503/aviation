@@ -22,6 +22,7 @@ import BookingPage from './BookingPage.jsx';
 import EnrollPage, { rememberSubjectPick } from './EnrollPage.jsx';
 import { SUBJECT_PRICES, BUNDLE, CONSULTATION, lowestPrice, rupees } from '../api/_pricing.js';
 import NotesViewer, { isViewable } from './NotesViewer.jsx';
+import TimedTests from './TimedTests.jsx';
 import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken, prepareGoogle, inAppBrowser } from './auth.js';
 
@@ -1650,19 +1651,15 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .catch(() => {});
   }, 60000, [activeTab, accessKey]);
 
-  // Scores stay at zero until tests are taken on the site.
   const subjects = React.useMemo(
     () => allowed.map((s, i) => ({
       id: i + 1,
       name: s.name,
       blurb: s.blurb,
-      testsDone: 0,
-      bestScore: null,
       files: materials.filter((m) => m.subject === s.name && (m.type === 'notes' || m.type === 'questions')).length,
     })),
     [accessKey, materials],
   );
-  const testsDone = subjects.reduce((sum, s) => sum + s.testsDone, 0);
 
   // Notes (PDFs and images) open in the protected viewer; nothing is downloaded.
   const [viewing, setViewing] = useState(null);
@@ -1896,35 +1893,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       )}
 
       {activeTab === 'scores' && (
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-ink">Topic tests and mock exams</h2>
-          {!materialsLoading && tests.length === 0 && emptyFiles('Tests appear here once your instructor uploads them.')}
-          {tests.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
-
-          <h2 className="pt-4 text-lg font-bold text-ink">Your scores</h2>
-          {testsDone === 0 ? (
-            <div className={`${card} p-8 text-center`}>
-              <BarChart3 className="mx-auto h-10 w-10 text-brand" />
-              <p className="mt-4 font-bold text-ink">No scores yet</p>
-              <p className="mt-1 text-muted">Your best score in each subject will show up here.</p>
-            </div>
-          ) : (
-            subjects.map((subject) => (
-              <div key={subject.id} className={`${card} flex items-center gap-6 p-6`}>
-                <div className="flex-1">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span className="font-bold text-ink">{subject.name}</span>
-                    <span className="text-muted">{subject.testsDone} tests</span>
-                  </div>
-                  <ProgressBar value={subject.bestScore ?? 0} color="bg-go" height="h-2.5" />
-                </div>
-                <p className="w-20 text-right text-2xl font-extrabold text-ink">
-                  {subject.bestScore === null ? '—' : `${subject.bestScore}%`}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
+        <TimedTests user={user} files={tests}
+          renderFile={(m) => <MaterialRow key={m.id} material={m} onOpen={open} />} />
       )}
 
       {activeTab === 'book' && (
@@ -2184,6 +2154,25 @@ function UploadMaterial({ user }) {
 
   // A question bank is not stored as a file: it is split into separate
   // questions that students practise one by one.
+  // Topic tests and mock exams become timed tests, split question by question.
+  if (type === 'test' || type === 'mock') {
+    return (
+      <div className="space-y-5">
+        <div className={`${card} p-6 sm:p-8`}>
+          <h2 className="mb-1 text-lg font-bold text-ink">Upload a timed {type === 'mock' ? 'mock exam' : 'topic test'}</h2>
+          <p className="mb-6 text-sm text-muted">
+            The paper is split into questions like the question bank. Give it a name and a time: the time is shared evenly
+            across the questions, and students can adjust it before they start.
+          </p>
+          {pickers}
+        </div>
+        {subject
+          ? <QuestionBankAdmin key={`${subject}-${type}`} user={user} fixedSubject={subject} addOnly testType={type} />
+          : <div className={`${card} p-8 text-center text-muted`}>Pick the subject to continue.</div>}
+      </div>
+    );
+  }
+
   if (type === 'questions') {
     return (
       <div className="space-y-5">
@@ -2456,13 +2445,13 @@ function QuestionEditor({ items, setItems, allQuestions, subject, listId, footer
 // The unsaved draft is kept in this browser tab, so switching portal tabs or
 // changing the subject for a moment does not throw away marked answers.
 const DRAFT_STORE = 'flywithsam-question-draft';
-const readDraft = () => {
-  try { return JSON.parse(sessionStorage.getItem(DRAFT_STORE) || 'null'); } catch { return null; }
+const readDraft = (key = DRAFT_STORE) => {
+  try { return JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { return null; }
 };
-const writeDraft = (value) => {
+const writeDraft = (value, key = DRAFT_STORE) => {
   try {
-    if (value?.draft?.length) sessionStorage.setItem(DRAFT_STORE, JSON.stringify(value));
-    else sessionStorage.removeItem(DRAFT_STORE);
+    if (value?.draft?.length) sessionStorage.setItem(key, JSON.stringify(value));
+    else sessionStorage.removeItem(key);
   } catch { /* storage unavailable: the draft just lives in memory */ }
 };
 
@@ -2495,9 +2484,72 @@ async function fileToText(file) {
 
 // `fixedSubject` / `addOnly`: used inside the Upload tab, where the subject is
 // already picked there and only the add-and-split flow is shown.
-function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
+// "4 min 12 s" / "45 s"
+const paceText = (sec) => {
+  if (!Number.isFinite(sec) || sec <= 0) return '';
+  const m = Math.floor(sec / 60); const s2 = Math.round(sec % 60);
+  return m ? `${m} min${s2 ? ` ${s2} s` : ''}` : `${s2} s`;
+};
+
+// The instructor's list of timed tests: change the time, or delete.
+function TestsAdminList({ tests, setTests, user, onError }) {
+  const [times, setTimes] = useState({});
+  const update = async (t) => {
+    try {
+      const data = await api('/api/questions', { action: 'testUpdate', id: t.id, durationMinutes: Number(times[t.id]) }, user.idToken);
+      setTests((list) => list.map((x) => (x.id === t.id ? data.test : x)));
+      setTimes((m) => ({ ...m, [t.id]: undefined }));
+    } catch (err) { onError(err.message); }
+  };
+  const remove = async (t) => {
+    if (!window.confirm(`Delete "${t.title}"? Students' past scores stay, but nobody can take it again.`)) return;
+    try {
+      await api('/api/questions', { action: 'testDelete', id: t.id }, user.idToken);
+      setTests((list) => list.filter((x) => x.id !== t.id));
+    } catch (err) { onError(err.message); }
+  };
+  if (tests.length === 0) {
+    return (
+      <div className={`${card} p-10 text-center`}>
+        <ClipboardCheck className="mx-auto h-10 w-10 text-brand" />
+        <p className="mt-4 font-bold text-ink">No timed tests yet</p>
+        <p className="mt-1 text-muted">Add one in Upload material → Type: Topic test or Mock exam.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {tests.map((t) => {
+        const count = t.questions?.length || t.count || 0;
+        const edited = times[t.id] !== undefined && Number(times[t.id]) !== t.durationMinutes;
+        return (
+          <div key={t.id} className={`${card} flex flex-wrap items-center justify-between gap-4 p-5`}>
+            <div className="min-w-0">
+              <p className="font-bold text-ink">{t.title}</p>
+              <p className="text-sm text-muted">{t.subject} · {t.type === 'mock' ? 'Mock exam' : 'Topic test'} · {count} questions · about {paceText((t.durationMinutes * 60) / count)} each</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <input type="number" min="1" max="600" value={times[t.id] ?? t.durationMinutes}
+                onChange={(e) => setTimes((m) => ({ ...m, [t.id]: e.target.value }))}
+                className="w-20 rounded-lg border border-line bg-surface px-2 py-1.5 text-ink" aria-label="Minutes" />
+              <span className="text-muted">min</span>
+              {edited && <button onClick={() => update(t)} className={`${btnPrimary} px-4 py-1.5 text-xs`}>Save time</button>}
+              <button onClick={() => remove(t)} className="rounded-lg p-2 text-muted transition hover:bg-red-50 hover:text-red-600" aria-label="Delete test">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// `testType` ('test' | 'mock'): the same splitter, saved as a timed test.
+function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType = null }) {
+  const storeKey = testType ? `${DRAFT_STORE}-test` : DRAFT_STORE;
   const stored = React.useMemo(() => {
-    const d = readDraft();
+    const d = readDraft(storeKey);
     return d && (!fixedSubject || d.subject === fixedSubject) ? d : null;
   }, [fixedSubject]);
 
@@ -2513,6 +2565,8 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   const subject = fixedSubject || pickedSubject;
   const [source, setSource] = useState(stored?.source || '');
   const [pasted, setPasted] = useState('');
+  const [minutes, setMinutes] = useState(stored?.minutes || '');
+  const [tests, setTests] = useState([]);
   const [draft, setDraft] = useState(() => (stored?.draft || []).map(withKey));
   const [keyText, setKeyText] = useState('');
   const [keyResult, setKeyResult] = useState('');
@@ -2530,8 +2584,8 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
   const firstRun = React.useRef(true);
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return; }
-    writeDraft({ subject, source, draft });
-  }, [draft, subject, source]);
+    writeDraft({ subject, source, draft, minutes }, storeKey);
+  }, [draft, subject, source, minutes]);
 
   // Warn before closing the page with unsaved work.
   const unsaved = draft.length > 0 || edits.size > 0 || removed.size > 0;
@@ -2551,6 +2605,16 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
     }
   };
   useEffect(() => { load(); }, []);
+
+  const loadTests = async () => {
+    try {
+      const data = await api('/api/questions', { action: 'testList' }, user.idToken);
+      setTests(data.tests || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  useEffect(() => { if (!addOnly) loadTests(); }, []);
 
   const matches = (q) => (!filter.subject || q.subject === filter.subject)
     && (!filter.topic || q.topic === filter.topic)
@@ -2638,7 +2702,37 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
     return data.questions.length;
   };
 
+  // Timed test: saved as one test with its own questions and time.
+  const saveTest = async () => {
+    const bad = draft.filter((q) => questionWarnings(q).length > 0);
+    if (bad.length) {
+      setError(`${bad.length} question${bad.length === 1 ? ' needs' : 's need'} attention first (Q${bad.slice(0, 8).map((q) => q.number || '?').join(', Q')}${bad.length > 8 ? '…' : ''}). Click "Needs attention" to see them.`);
+      return;
+    }
+    if (!source.trim()) { setError('Give the test a name first (step 1 box above the cards, or "Start over").'); return; }
+    if (!(Number(minutes) >= 1)) { setError('Enter how many minutes the whole test takes.'); return; }
+    setBusy(true);
+    setError('');
+    try {
+      const data = await api('/api/questions', {
+        action: 'testSave',
+        test: {
+          title: source.trim(), subject, type: testType, durationMinutes: Number(minutes),
+          questions: draft.map(({ key, dirty, ...q }) => q),
+        },
+      }, user.idToken);
+      setDraft([]); setPasted(''); setSource(''); setMinutes(''); setKeyText(''); setKeyResult('');
+      setNotice(`"${data.test.title}" is saved: ${data.test.questions.length} questions in ${data.test.durationMinutes} minutes. Students with ${subject} and tests switched on can take it now.`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const saveDraft = async () => {
+    if (testType) { await saveTest(); return; }
     setBusy(true);
     setError('');
     try {
@@ -2696,7 +2790,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
     <div className="space-y-5">
       {!addOnly && (
         <div className="flex flex-wrap gap-2">
-          {[['add', 'Add questions'], ['saved', `All questions (${saved.length})`]].map(([id, label]) => (
+          {[['add', 'Add questions'], ['saved', `All questions (${saved.length})`], ['tests', `Timed tests (${tests.length})`]].map(([id, label]) => (
             <button key={id} onClick={() => { setView(id); setError(''); setNotice(''); }}
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 view === id ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
@@ -2722,9 +2816,19 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
               </div>
             )}
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-ink">Paper name <span className="font-normal text-muted">(optional)</span></label>
-              <input className={input} value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. MET1" />
+              <label className="mb-1.5 block text-sm font-semibold text-ink">
+                {testType ? 'Test name' : <>Paper name <span className="font-normal text-muted">(optional)</span></>}
+              </label>
+              <input className={input} value={source} onChange={(e) => setSource(e.target.value)}
+                placeholder={testType ? 'e.g. Meteorology mock test 1' : 'e.g. MET1'} />
             </div>
+            {testType && (
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">Time for the whole test (minutes)</label>
+                <input className={input} type="number" min="1" max="600" value={minutes}
+                  onChange={(e) => setMinutes(e.target.value)} placeholder="e.g. 60" />
+              </div>
+            )}
           </div>
           <label
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -2753,6 +2857,14 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
           <div className={`${card} space-y-4 p-5 sm:p-6`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <StepTitle n={2} title={`Check the ${draft.length} questions from ${source || 'your paper'} · ${subject}`}>
+                {testType && (
+                  <span className="mb-1 flex flex-wrap items-center gap-2 text-ink">
+                    Test time:
+                    <input type="number" min="1" max="600" value={minutes} onChange={(e) => setMinutes(e.target.value)}
+                      className="w-20 rounded-lg border border-line bg-surface px-2 py-1 text-ink" aria-label="Minutes" /> minutes
+                    {Number(minutes) > 0 && <span className="text-muted">· about {paceText((Number(minutes) * 60) / draft.length)} per question</span>}
+                  </span>
+                )}
                 {needAnswer > 0
                   ? `${needAnswer} still need the correct answer: add an answer key below, or click the letter next to the right option.`
                   : 'Every question has an answer.'}
@@ -2788,12 +2900,14 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false }) {
                   {needAnswer > 0 ? `Mark the remaining ${needAnswer} answer${needAnswer === 1 ? '' : 's'} first.` : 'Students see the questions as soon as you save.'}
                 </StepTitle>
                 <button onClick={saveDraft} disabled={busy} className={`${btnPrimary} w-full py-3.5`}>
-                  {busy ? 'Saving…' : `Save ${draft.length} questions`}
+                  {busy ? 'Saving…' : testType ? `Save test · ${draft.length} questions${Number(minutes) > 0 ? ` · ${minutes} min` : ''}` : `Save ${draft.length} questions`}
                 </button>
               </div>
             )} />
         </>
       )}
+
+      {view === 'tests' && <TestsAdminList tests={tests} setTests={setTests} user={user} onError={setError} />}
 
       {view === 'saved' && (
         <>
