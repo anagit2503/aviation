@@ -23,7 +23,7 @@ import EnrollPage, { rememberSubjectPick } from './EnrollPage.jsx';
 import { SUBJECT_PRICES, BUNDLE, CONSULTATION, lowestPrice, rupees } from '../api/_pricing.js';
 import NotesViewer, { isViewable } from './NotesViewer.jsx';
 import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
-import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken } from './auth.js';
+import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken, prepareGoogle, inAppBrowser } from './auth.js';
 
 const PATH_TO_MODE = { '/login': 'login', '/signup': 'signup', '/book': 'book', '/enroll': 'enroll' };
 const MODE_TO_PATH = { landing: '/', login: '/login', signup: '/signup', book: '/book', enroll: '/enroll' };
@@ -903,16 +903,23 @@ function firstName(user) {
 function GoogleButton({ onGoogleUser, label }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+  const app = inAppBrowser();
+
+  // Load the sign-in code now, so the tap can open Google's window at once
+  // (phone browsers block windows that open after a delay).
+  useEffect(() => { prepareGoogle(); }, []);
 
   const click = async () => {
     setError('');
     if (!googleReady) {
-      setError('Google sign-in is not connected yet. Use your email and password for now.');
+      setError('Google sign-in is not connected yet. Please try again later.');
       return;
     }
+    const signing = signInWithGoogle(); // started inside the tap, before anything else
     setBusy(true);
     try {
-      const user = await signInWithGoogle();
+      const user = await signing;
       if (user) onGoogleUser(user);
     } catch (err) {
       setError(err.message);
@@ -920,6 +927,30 @@ function GoogleButton({ onGoogleUser, label }) {
       setBusy(false);
     }
   };
+
+  // Google blocks sign-in inside WhatsApp / Instagram / Facebook browsers.
+  if (app) {
+    const url = window.location.href;
+    const android = /Android/i.test(navigator.userAgent);
+    const chromeIntent = `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;package=com.android.chrome;end`;
+    return (
+      <div className="rounded-2xl bg-amber-50 p-5 text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
+        <p className="font-semibold">Please open this page in {android ? 'Chrome' : 'Safari'} to sign in</p>
+        <p className="mt-1">
+          Google does not allow signing in inside the {app} browser. It takes one tap to open the same page in
+          your phone&apos;s browser.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {android && <a href={chromeIntent} className={`${btnPrimary} px-5 py-2.5 text-sm`}>Open in Chrome</a>}
+          <button type="button" className={`${btnGhost} px-5 py-2.5 text-sm`}
+            onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true); } catch { /* long-press the address instead */ } }}>
+            {copied ? 'Link copied: paste it in your browser' : 'Copy link'}
+          </button>
+        </div>
+        {!android && <p className="mt-3 text-xs">Or tap the ••• / share menu and choose “Open in Safari”.</p>}
+      </div>
+    );
+  }
 
   return (
     <div>

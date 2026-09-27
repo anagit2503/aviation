@@ -19,22 +19,48 @@ const config = {
 
 export const googleReady = Boolean(config.apiKey && config.authDomain && config.appId);
 
-// Firebase is loaded only when someone actually clicks the button, so it never
-// slows down the first page load.
+// Phones only allow the Google window to open straight away on a tap. So the
+// sign-in code is loaded in the background when the sign-in page opens
+// (prepareGoogle), and the tap then opens the window with nothing to wait for.
+let loading = null;
+let ready = null; // set once loaded, so a tap can use it without waiting
+export function prepareGoogle() {
+  if (!googleReady) return Promise.resolve(null);
+  loading ??= Promise.all([import('firebase/app'), import('firebase/auth')]).then(([appMod, authMod]) => {
+    const app = appMod.getApps().length ? appMod.getApp() : appMod.initializeApp(config);
+    const auth = authMod.getAuth(app);
+    auth.useDeviceLanguage();
+    ready = { auth, ...authMod };
+    return ready;
+  });
+  return loading;
+}
+
+// Google refuses sign-in inside apps' built-in browsers (WhatsApp, Instagram,
+// Facebook, LinkedIn…), so those visitors are asked to open a real browser.
+export function inAppBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/WhatsApp/i.test(ua)) return 'WhatsApp';
+  if (/Instagram/i.test(ua)) return 'Instagram';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+  if (/LinkedInApp/i.test(ua)) return 'LinkedIn';
+  if (/Snapchat/i.test(ua)) return 'Snapchat';
+  if (/Line\//i.test(ua)) return 'LINE';
+  if (/; wv\)/.test(ua)) return 'this app';
+  return null;
+}
+
 export async function signInWithGoogle() {
   if (!googleReady) {
     throw new Error('Google sign-in is not connected yet.');
   }
 
-  const { initializeApp, getApps, getApp } = await import('firebase/app');
-  const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } = await import('firebase/auth');
-
-  const app = getApps().length ? getApp() : initializeApp(config);
-  const auth = getAuth(app);
-  auth.useDeviceLanguage();
+  // If the code is already loaded, open the window right now, inside the tap.
+  const { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } = ready || await prepareGoogle();
+  const popup = signInWithPopup(auth, new GoogleAuthProvider());
 
   try {
-    const result = await signInWithPopup(auth, new GoogleAuthProvider());
+    const result = await popup;
     return {
       idToken: await result.user.getIdToken(),
       email: result.user.email,
@@ -70,7 +96,7 @@ export async function signInWithGoogle() {
       'auth/network-request-failed':
         'No connection to Google. Check your internet and try again.',
     };
-    throw new Error(messages[err?.code] || `Google sign-in failed (${err?.code || 'unknown error'}).`);
+    throw new Error(messages[err?.code] || `Google sign-in failed (${err?.code || err?.message || 'unknown error'}). Try again, or open the site in Chrome or Safari.`);
   }
 }
 
