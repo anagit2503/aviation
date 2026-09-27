@@ -15,7 +15,9 @@ const env = import.meta.env;
 // to the OAuth client's "Authorized redirect URIs" in Google Cloud Console;
 // before that, Google would refuse the sign-in everywhere.
 const SIGN_IN_ON_OWN_ADDRESS = false;
-const ownAddress = typeof window !== 'undefined' && window.location.hostname === 'aviation-psi.vercel.app'
+// Only phones and tablets use it; computers keep signing in exactly as before.
+const onPhone = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+const ownAddress = typeof window !== 'undefined' && onPhone && window.location.hostname === 'aviation-psi.vercel.app'
   ? window.location.host : null;
 
 const config = {
