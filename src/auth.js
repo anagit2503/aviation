@@ -85,15 +85,16 @@ export async function signInWithGoogle() {
     if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
       return null;
     }
-    // Phone browsers often block popups. Fall back to sending the person to
-    // Google and back; the session is picked up when they return.
+    // The Google window was blocked. Do NOT fall back to a redirect: phone
+    // browsers break redirect sign-in when Google's step runs on another
+    // address ("missing initial state"). Only use it once sign-in runs on this
+    // site's own address (see SIGN_IN_ON_OWN_ADDRESS), where it works.
     if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(err?.code)) {
-      try {
+      if (SIGN_IN_ON_OWN_ADDRESS && ownAddress) {
         await signInWithRedirect(auth, new GoogleAuthProvider());
         return null;
-      } catch {
-        throw new Error('Your browser blocked the Google window. Allow pop-ups for this site and try again.');
       }
+      throw new Error('Your phone blocked the Google sign-in window. Please tap the button again. If it keeps happening, allow pop-ups for this site in your browser settings.');
     }
     console.error('Google sign-in failed:', err?.code, err?.message);
     const messages = {
