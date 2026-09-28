@@ -271,7 +271,7 @@ const SUBJECTS = [
 ];
 
 const FEATURES = [
-  { icon: FileQuestion, title: '2000+ questions', text: 'Genuine questions across all six papers.' },
+  { icon: FileQuestion, title: '10,000+ questions', text: 'Genuine questions across all six papers.' },
   { icon: NotebookPen, title: 'Study notes', text: 'Short notes that follow the syllabus.' },
   { icon: ListChecks, title: 'Topic tests', text: 'Short tests after every topic.' },
   { icon: ClipboardCheck, title: 'Mock exams', text: 'Full papers with timing, marked at once.' },
@@ -809,7 +809,7 @@ function LandingPage({ setAuthMode, signedIn = false }) {
               <ul className="mt-7 flex-1 space-y-3 text-[15px]">
                 {[
                   'Complete notes for every subject you pick',
-                  '2000+ genuine exam questions',
+                  '10,000+ genuine exam questions',
                   'Topic tests and full mock exams',
                   'Your marks tracked subject by subject',
                   'Doubts chat with your instructor',
@@ -987,7 +987,7 @@ function AuthLayout({ title, subtitle, children, setAuthMode }) {
         <div className="relative max-w-md">
           <p className="text-3xl font-extrabold leading-tight">Get started on your first step towards the cockpit.</p>
           <p className="mt-4 text-neutral-300/70">
-            Access everything you need to prepare — structured notes, 2,000+ exam questions, tests and mock exams.
+            Access everything you need to prepare — structured notes, 10,000+ exam questions, tests and mock exams.
           </p>
         </div>
         <p className="relative text-sm text-neutral-300/50">Trusted by 500+ student pilots</p>

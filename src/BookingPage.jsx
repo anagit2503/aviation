@@ -293,10 +293,6 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               <button type="button" onClick={claimPaid} disabled={claiming} className={`${btnPrimary} w-full py-3.5`}>
                 <Check className="h-5 w-5" /> {claiming ? 'Saving…' : 'I’ve paid'}
               </button>
-              <button type="button" onClick={() => { setStatus('done'); window.scrollTo(0, 0); }}
-                className="w-full py-2 text-sm font-semibold text-muted transition hover:text-ink">
-                I’ll pay a little later
-              </button>
             </div>
           </div>
         </div>,
@@ -319,17 +315,11 @@ export default function BookingPage({ goHome, free = false, embedded = false, ac
               {recording && !doubt && <Row label="Add on: recording" value={money(recordingPrice)} />}
               <Row label="Total" value={(confirmed.amount ?? confirmed.total) === 0 ? '₹0 · included in your course' : money(confirmed.amount ?? confirmed.total)} strong />
             </div>
-            {(confirmed.amount ?? confirmed.total) > 0 && (paid ? (
+            {(confirmed.amount ?? confirmed.total) > 0 && paid && (
               <p className="mt-4 rounded-xl bg-go/10 p-3 text-sm font-medium text-go">
                 Thank you! We will confirm your payment shortly.
               </p>
-            ) : (
-              <div className="mt-4 rounded-xl bg-amber-50 p-3 text-left text-sm text-amber-900 dark:bg-amber-950/50 dark:text-amber-200">
-                <p className="font-semibold">Payment still to do</p>
-                <p className="mt-1">Your slot is held. Please pay {money(confirmed.amount)} before the session:</p>
-                <button type="button" onClick={() => setStatus('pay')} className="mt-2 font-semibold underline">Pay now</button>
-              </div>
-            ))}
+            )}
             <div className="mt-6 rounded-2xl border border-line p-5">
               <p className="text-sm font-semibold text-ink">Your meeting link</p>
               <a href={MEET_LINK} target="_blank" rel="noreferrer" className={`${btnPrimary} mt-3 w-full`}>
