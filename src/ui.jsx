@@ -19,18 +19,25 @@ export const SLOT_TIMES = [
   '17:00', '18:15', '19:30', '20:45', '22:00',
 ];
 
-// A Cessna seen from above (propeller, high straight wing, tail), nose up.
-// Same drawing as public/favicon.svg. Takes the text colour, so it follows the theme.
-export function CessnaIcon({ className = 'h-6 w-6' }) {
+// A Cessna from the side: high wing on top of the cabin, strut, tail fin,
+// propeller and wheels. Same drawing as public/favicon.svg; takes the text
+// colour, so it follows the theme.
+export function CessnaIcon({ className = 'h-7 w-7' }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      {/* The drawing spans y 1.6–20.1; shifting it down 1.15 centres it in the square. */}
-      <g transform="translate(0 1.15)">
-      <rect x="9" y="1.6" width="6" height="0.9" rx="0.45"/>
-      <circle cx="12" cy="2.6" r="0.9"/>
-      <path d="M12 2.9c1.05 0 1.45.9 1.45 2.2l-.1 4.6-.75 9.2-.1 1.6h-1l-.1-1.6-.75-9.2-.1-4.6C10.55 3.8 10.95 2.9 12 2.9z"/>
-      <rect x="0.6" y="6.4" width="22.8" height="2.8" rx="0.9"/>
-      <path d="M8.2 18.6c0-.5.3-.8.8-.8h6c.5 0 .8.3.8.8v.5c0 .3-.2.5-.5.5H8.7c-.3 0-.5-.2-.5-.5z"/>
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <g fill="currentColor">
+      <path d="M2.6 11.1 11 10.1h4.2l2.2 1.3 2.9.4c.9.1 1.3.7 1.3 1.1s-.4 1-1.3 1.1l-3.4.6H10.2L3.6 12.6z"/>
+      <path d="M2.6 11.1 1.9 6.9c0-.3.2-.5.5-.5h1c.2 0 .4.1.5.3l2.8 4.2z"/>
+      <rect x="1.6" y="11.3" width="4.6" height="0.9" rx="0.45"/>
+      <rect x="8.4" y="8.7" width="8.2" height="1.4" rx="0.7"/>
+      <rect x="21.4" y="9.6" width="0.7" height="6.2" rx="0.35"/>
+      <circle cx="12.4" cy="17" r="1.15"/>
+      <circle cx="19" cy="17" r="0.95"/>
+      </g>
+      <g stroke="currentColor" strokeWidth="0.6" strokeLinecap="round">
+      <line x1="11.6" y1="10" x2="13.4" y2="14"/>
+      <line x1="12.2" y1="14.4" x2="12.4" y2="16.2"/>
+      <line x1="18.6" y1="14.3" x2="19" y2="16.3"/>
       </g>
     </svg>
   );
@@ -40,7 +47,7 @@ export function Logo({ light = false, compact = false }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-on-brand">
-        <CessnaIcon className="h-6 w-6" />
+        <CessnaIcon className="h-7 w-7" />
       </div>
       {!compact && (
         <span className={`whitespace-nowrap text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>

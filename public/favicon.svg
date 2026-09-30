@@ -1,11 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Avero Aviation: a Cessna seen from above, white on a black rounded square -->
-  <rect width="32" height="32" rx="7" fill="#111111"/>
-  <g transform="translate(4 5.15)" fill="#ffffff">
-    <rect x="9" y="1.6" width="6" height="0.9" rx="0.45"/>
-    <circle cx="12" cy="2.6" r="0.9"/>
-    <path d="M12 2.9c1.05 0 1.45.9 1.45 2.2l-.1 4.6-.75 9.2-.1 1.6h-1l-.1-1.6-.75-9.2-.1-4.6C10.55 3.8 10.95 2.9 12 2.9z"/>
-    <rect x="0.6" y="6.4" width="22.8" height="2.8" rx="0.9"/>
-    <path d="M8.2 18.6c0-.5.3-.8.8-.8h6c.5 0 .8.3.8.8v.5c0 .3-.2.5-.5.5H8.7c-.3 0-.5-.2-.5-.5z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Avero Aviation: a Cessna from the side (high wing, strut, tail fin, wheels), white on black -->
+  <rect width="24" height="24" rx="5" fill="#111"/>
+  <g fill="#fff">
+    <!-- fuselage: tail cone, cabin, cowling, rounded nose -->
+    <path d="M2.6 11.1 11 10.1h4.2l2.2 1.3 2.9.4c.9.1 1.3.7 1.3 1.1s-.4 1-1.3 1.1l-3.4.6H10.2L3.6 12.6z"/>
+    <!-- swept tail fin -->
+    <path d="M2.6 11.1 1.9 6.9c0-.3.2-.5.5-.5h1c.2 0 .4.1.5.3l2.8 4.2z"/>
+    <!-- horizontal tail -->
+    <rect x="1.6" y="11.3" width="4.6" height="0.9" rx="0.45"/>
+    <!-- high wing on top of the cabin -->
+    <rect x="8.4" y="8.7" width="8.2" height="1.4" rx="0.7"/>
+    <!-- propeller -->
+    <rect x="21.4" y="9.6" width="0.7" height="6.2" rx="0.35"/>
+    <!-- wheels -->
+    <circle cx="12.4" cy="17" r="1.15"/>
+    <circle cx="19" cy="17" r="0.95"/>
+  </g>
+  <g stroke="#fff" stroke-width="0.6" stroke-linecap="round">
+    <!-- wing strut and landing gear legs -->
+    <line x1="11.6" y1="10" x2="13.4" y2="14"/>
+    <line x1="12.2" y1="14.4" x2="12.4" y2="16.2"/>
+    <line x1="18.6" y1="14.3" x2="19" y2="16.3"/>
   </g>
 </svg>
