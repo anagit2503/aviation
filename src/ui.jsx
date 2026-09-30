@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plane, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 export const btnPrimary =
   'inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3 font-semibold text-on-brand shadow-[0_6px_20px_-6px_rgba(0,0,0,0.55)] transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60';
@@ -19,11 +19,28 @@ export const SLOT_TIMES = [
   '17:00', '18:15', '19:30', '20:45', '22:00',
 ];
 
+// A Cessna seen from above (propeller, high straight wing, tail), nose up.
+// Same drawing as public/favicon.svg. Takes the text colour, so it follows the theme.
+export function CessnaIcon({ className = 'h-6 w-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      {/* The drawing spans y 1.6–20.1; shifting it down 1.15 centres it in the square. */}
+      <g transform="translate(0 1.15)">
+      <rect x="9" y="1.6" width="6" height="0.9" rx="0.45"/>
+      <circle cx="12" cy="2.6" r="0.9"/>
+      <path d="M12 2.9c1.05 0 1.45.9 1.45 2.2l-.1 4.6-.75 9.2-.1 1.6h-1l-.1-1.6-.75-9.2-.1-4.6C10.55 3.8 10.95 2.9 12 2.9z"/>
+      <rect x="0.6" y="6.4" width="22.8" height="2.8" rx="0.9"/>
+      <path d="M8.2 18.6c0-.5.3-.8.8-.8h6c.5 0 .8.3.8.8v.5c0 .3-.2.5-.5.5H8.7c-.3 0-.5-.2-.5-.5z"/>
+      </g>
+    </svg>
+  );
+}
+
 export function Logo({ light = false, compact = false }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-on-brand">
-        <Plane className="h-5 w-5 -rotate-45" />
+        <CessnaIcon className="h-6 w-6" />
       </div>
       {!compact && (
         <span className={`whitespace-nowrap text-lg font-extrabold tracking-tight ${light ? 'text-white' : 'text-ink'}`}>
