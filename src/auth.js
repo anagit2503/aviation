@@ -11,13 +11,14 @@ const env = import.meta.env;
 // Phone browsers (iPhone Safari especially) block sign-in when Google's step
 // runs on another address (firebaseapp.com). vercel.json passes /__/auth
 // through this site, so sign-in can run on the site's own address instead.
-// Turn on only after https://aviation-psi.vercel.app/__/auth/handler is added
-// to the OAuth client's "Authorized redirect URIs" in Google Cloud Console;
+// Turn on only after https://<each site address>/__/auth/handler is added to
+// the OAuth client's "Authorized redirect URIs" in Google Cloud Console;
 // before that, Google would refuse the sign-in everywhere.
 const SIGN_IN_ON_OWN_ADDRESS = false;
 // Only phones and tablets use it; computers keep signing in exactly as before.
 const onPhone = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
-const ownAddress = typeof window !== 'undefined' && onPhone && window.location.hostname === 'aviation-psi.vercel.app'
+// Works on whichever public address the site is opened from.
+const ownAddress = typeof window !== 'undefined' && onPhone && !/^(localhost|127\.)/.test(window.location.hostname)
   ? window.location.host : null;
 
 const config = {
