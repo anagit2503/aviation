@@ -8,7 +8,7 @@ import {
 import { SUBJECT_PRICES, UPI } from './_pricing.js';
 
 const DAYS_AHEAD = 3;
-const SITE = 'https://aviation-psi.vercel.app';
+const SITE = 'https://www.averoaviation.com';
 
 function parseHash(flat) {
   const out = {};
