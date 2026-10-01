@@ -16,6 +16,15 @@
       try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; }
       catch { document.documentElement.dataset.theme = 'dark'; }
     </script>
+    <!-- Google Analytics (GA4). Page changes inside the app are counted by GA's
+         enhanced measurement ("page changes based on browser history events"). -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T76GC3FJBQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-T76GC3FJBQ');
+    </script>
   </head>
   <body>
     <div id="root"></div>
