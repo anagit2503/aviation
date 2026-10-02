@@ -3485,7 +3485,7 @@ function AdminPortal({ user, onLogout, onHome }) {
           </div>
 
           <div className={`${card} p-6`}>
-            <h2 className="mb-1 font-bold text-ink">Who needs access</h2>
+            <h2 className="mb-1 font-bold text-ink">Who needs access ({waiting})</h2>
             <p className="mb-4 text-sm text-muted">
               Everyone starts with no access. Give course access once you have confirmed their payment.
             </p>
@@ -3493,7 +3493,7 @@ function AdminPortal({ user, onLogout, onHome }) {
             {!loading && waiting === 0 && <p className="text-muted">Nobody is waiting right now.</p>}
             {!loading && waiting > 0 && (
               <div className="divide-y divide-line">
-                {students.filter((s) => !s.access?.plan || s.access.plan === 'none').slice(0, 5).map((s) => (
+                {students.filter((s) => !s.access?.plan || s.access.plan === 'none').map((s) => (
                   <div key={s.email} className="flex items-center justify-between gap-4 py-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-ink">{s.name || s.email}</p>
