@@ -21,7 +21,7 @@ const SUBJECT_NAMES = [
   'Air Navigation', 'Aviation Meteorology', 'Air Regulations',
   'Technical General', 'Technical Specific', 'Radio Telephony (RTR)',
 ];
-const TYPES = ['notes', 'questions', 'pyq', 'test', 'mock'];
+const TYPES = ['overview', 'notes', 'questions', 'pyq', 'mock', 'test'];
 
 const ALLOWED_CONTENT_TYPES = [
   'application/pdf',

@@ -3,7 +3,7 @@ import {
   Menu, X, LogOut, Upload, Trash2, Eye, BookOpen, Users, FileText, Plane,
   PlayCircle, NotebookPen, ListChecks, ClipboardCheck, Check, ChevronDown, FileQuestion,
   LayoutDashboard, ArrowLeft, Star, Building2, Hourglass, Quote, CalendarClock, BarChart3, GraduationCap, Wallet, Compass, Clock, Infinity as InfinityIcon,
-  MessageCircle, Inbox, Send, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play, House, StarHalf,
+  MessageCircle, Inbox, Send, CloudSun, Settings, Wrench, Radio, ExternalLink, LoaderCircle, ChevronRight, ChevronLeft, Bookmark, Pause, Play, House, StarHalf,
 } from 'lucide-react';
 
 // ============= FIREBASE CONFIG =============
@@ -234,36 +234,42 @@ export default function AviationGroundSchool() {
 const SUBJECTS = [
   {
     name: 'Air Navigation',
+    icon: Compass,
     tab: 'Air Navigation',
     blurb: 'Map reading, flight planning and radio aids, worked out step by step.',
     topics: ['Maps & charts', 'Flight planning', 'Compass & magnetism', 'Radio navigation aids'],
   },
   {
     name: 'Aviation Meteorology',
+    icon: CloudSun,
     tab: 'Meteorology',
     blurb: 'Weather, clouds and pressure, plus lots of practice reading METARs and TAFs.',
     topics: ['Weather systems & fronts', 'Clouds & precipitation', 'Atmospheric pressure', 'METARs & TAFs'],
   },
   {
     name: 'Air Regulations',
+    icon: BookOpen,
     tab: 'Air Regulations',
     blurb: 'Air law, traffic rules and safety, in the exact words the exam uses.',
     topics: ['Rules of the air', 'Airspace & ATC services', 'Licensing & medicals', 'Safety procedures'],
   },
   {
     name: 'Technical General',
+    icon: Settings,
     tab: 'Technical General',
     blurb: 'Structures, principles of flight, engines and systems, explained simply.',
     topics: ['Principles of flight', 'Aircraft structures', 'Piston & turbine engines', 'Systems & instruments'],
   },
   {
     name: 'Technical Specific',
+    icon: Wrench,
     tab: 'Technical Specific',
     blurb: 'Everything about the aircraft you will fly: limits, systems and performance.',
     topics: ['Type limitations', 'Aircraft systems', 'Performance & loading', 'Emergency procedures'],
   },
   {
     name: 'Radio Telephony (RTR)',
+    icon: Radio,
     tab: 'RTR',
     blurb: 'How to talk to ATC, with practice for the oral exam.',
     topics: ['Standard phraseology', 'Radio procedures', 'Emergency calls', 'Practice exchanges'],
@@ -1072,7 +1078,7 @@ function AppShell({ title, subtitle, onLogout, onHome, tabs, activeTab, setActiv
             </button>
           </div>
         </div>
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        {tabs.length > 0 && <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <nav className="-mb-px flex gap-1 overflow-x-auto">
             {tabs.map(({ id, label, icon: Icon, badge }) => (
               <button
@@ -1089,7 +1095,7 @@ function AppShell({ title, subtitle, onLogout, onHome, tabs, activeTab, setActiv
               </button>
             ))}
           </nav>
-        </div>
+        </div>}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
     </div>
@@ -1125,11 +1131,12 @@ async function api(endpoint, body, fallbackToken) {
 
 // Keep in sync with TYPES in api/materials.js.
 const MATERIAL_TYPES = [
+  { id: 'overview', label: 'Overview' },
   { id: 'notes', label: 'Notes' },
   { id: 'questions', label: 'Question bank' },
+  { id: 'pyq', label: 'Previous year tests' },
+  { id: 'mock', label: 'Mock exams' },
   { id: 'test', label: 'Topic test' },
-  { id: 'mock', label: 'Mock exam' },
-  { id: 'pyq', label: 'Previous year paper' },
 ];
 const typeLabel = (id) => MATERIAL_TYPES.find((t) => t.id === id)?.label || 'File';
 
@@ -1579,7 +1586,8 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [materials, setMaterials] = useState([]);
   const [materialsLoading, setMaterialsLoading] = useState(true);
-  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [subjectFilter, setSubjectFilter] = useState('');
+  const [section, setSection] = useState(null);
   const [unread, setUnread] = useState(0);
   // What this person can open is decided by the instructor, saved on the server.
   // A paused subject (e.g. this month unpaid) stays listed but is locked.
@@ -1655,8 +1663,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
     () => allowed.map((s, i) => ({
       id: i + 1,
       name: s.name,
-      blurb: s.blurb,
-      files: materials.filter((m) => m.subject === s.name && (m.type === 'notes' || m.type === 'questions')).length,
+      icon: s.icon,
     })),
     [accessKey, materials],
   );
@@ -1664,7 +1671,9 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   // Notes (PDFs and images) open in the protected viewer; nothing is downloaded.
   const [viewing, setViewing] = useState(null);
   const open = (material) => (isViewable(material) ? setViewing(material) : openMaterial(material, user.idToken));
-  const openSubject = (name) => { setSubjectFilter(name); setActiveTab('resources'); window.scrollTo(0, 0); };
+  const openSubject = (name) => { setSubjectFilter(name); setSection(null); setActiveTab('subject'); window.scrollTo(0, 0); };
+  const openSection = (id) => { setSection(id); window.scrollTo(0, 0); };
+  const backToDeck = () => { setActiveTab('overview'); setSection(null); window.scrollTo(0, 0); };
   const enroll = () => onGoPublic('enroll');
 
   // Renewal reminder: subjects due within 3 days, or overdue and not paused.
@@ -1699,25 +1708,25 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
     </div>
   );
 
-  const doubtsTab = { id: 'doubts', label: 'Doubts', icon: MessageCircle, badge: unread };
-  // The doubts chat is part of the course, so it appears with course access.
-  const tabs = allowed.length === 0
-    ? [{ id: 'overview', label: 'Overview', icon: LayoutDashboard }]
-    : [
-      // Booking a consultation lives on the Overview page, not in the tabs.
-      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-      { id: 'resources', label: 'Notes', icon: FileText },
-      ...(access.questions || access.tests ? [{ id: 'pyq', label: 'Previous year tests', icon: ClipboardCheck }] : []),
-      ...(access.questions ? [{ id: 'quizzes', label: 'Practice questions', icon: ListChecks }] : []),
-      ...(access.tests ? [{ id: 'scores', label: 'Tests', icon: BarChart3 }] : []),
-      doubtsTab,
-    ];
+  // The dashboard has no tab bar: everything opens from the subject boxes on the Flight Deck.
+  const tabs = [];
 
   // Each tab shows its own kind of file.
-  const noteFiles = materials.filter((m) => m.type === 'notes' || m.type === 'questions');
-  const shownMaterials = noteFiles.filter((m) => subjectFilter === 'all' || m.subject === subjectFilter);
-  const tests = materials.filter((m) => m.type === 'test' || m.type === 'mock');
-  const pyqs = materials.filter((m) => m.type === 'pyq');
+  const inSubject = (type) => materials.filter((m) => m.subject === subjectFilter && m.type === type);
+  const tests = materials.filter((m) => m.subject === subjectFilter && (m.type === 'test' || m.type === 'mock'));
+  const sections = [
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'questions', label: 'Question bank', icon: ListChecks },
+    { id: 'pyq', label: 'Previous year tests', icon: ClipboardCheck },
+    { id: 'mock', label: 'Mock exams', icon: BarChart3 },
+  ].filter((x) => (x.id === 'questions' ? access.questions : x.id === 'mock' ? access.tests : x.id === 'pyq' ? access.questions || access.tests : true));
+  const subjectIcon = SUBJECTS.find((s) => s.name === subjectFilter)?.icon || BookOpen;
+  const backButton = (label, onClick) => (
+    <button onClick={onClick} className="mb-5 inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
+      <ArrowLeft className="h-4 w-4" /> {label}
+    </button>
+  );
 
   const emptyFiles = (text) => (
     <div className={`${card} p-10 text-center`}>
@@ -1798,31 +1807,17 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           {rejectedNote}
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-ink">Your subjects</h2>
-              <p className="text-sm text-muted">Open a subject to see its notes.</p>
+              <h1 className="text-2xl font-extrabold text-ink">Flight Deck</h1>
+              <p className="text-sm text-muted">Pick a subject to open its material.</p>
             </div>
             <button onClick={enroll} className={`${btnGhost} px-5 py-2 text-sm`}>+ Add subjects</button>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             {subjects.map((subject) => (
               <button key={subject.id} onClick={() => openSubject(subject.name)}
-                className={`${card} group flex flex-col p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky text-brand">
-                    <BookOpen className="h-5 w-5" />
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5 group-hover:text-brand" />
-                </div>
-                <p className="mt-4 font-bold text-ink">{subject.name}</p>
-                <p className="mt-1 flex-1 text-sm text-muted">{subject.blurb}</p>
-                {access.renewals?.[subject.name] && (
-                  <p className={`mt-3 text-xs font-semibold ${daysUntil(access.renewals[subject.name]) <= 3 ? 'text-amber-700 dark:text-amber-300' : 'text-muted'}`}>
-                    Renews on {niceDate(access.renewals[subject.name])}
-                  </p>
-                )}
-                <p className="mt-4 border-t border-line pt-4 text-sm font-semibold text-brand">
-                  {materialsLoading ? 'Open notes' : subject.files === 0 ? 'Notes coming soon' : `${subject.files} file${subject.files === 1 ? '' : 's'} · Open`}
-                </p>
+                className={`${card} group flex flex-col gap-4 p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
+                <subject.icon className="h-7 w-7 text-ink" />
+                <p className="text-lg font-bold text-ink">{subject.name}</p>
               </button>
             ))}
             {pausedSubjects.map((s) => (
@@ -1849,7 +1844,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
               <button key={tab} onClick={() => setActiveTab(tab)} className={`${card} flex items-start gap-3 p-5 text-left transition hover:border-brand`}>
                 <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
                 <span>
-                  <span className="block font-semibold text-ink">{label}</span>
+                  <span className="block font-semibold text-ink">{label}{tab === 'doubts' && unread > 0 && <span className="ml-2 rounded-full bg-red-500 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white">{unread}</span>}</span>
                   <span className="block text-sm text-muted">{text}</span>
                 </span>
               </button>
@@ -1858,43 +1853,58 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         </div>
       )}
 
-      {activeTab === 'resources' && (
-        <div className="space-y-3">
-          <h2 className="mb-1 text-lg font-bold text-ink">Notes and question banks</h2>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {['all', ...allowed.map((s) => s.name)].map((name) => (
-              <button key={name} onClick={() => setSubjectFilter(name)}
-                className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
-                  subjectFilter === name ? 'border-brand bg-brand text-on-brand' : 'border-line bg-surface text-ink hover:border-brand'
-                }`}>
-                {name === 'all' ? 'All subjects' : name}
-              </button>
-            ))}
+      {activeTab === 'subject' && (() => {
+        const Icon = subjectIcon;
+        const FileList = ({ type, empty }) => (
+          <div className="space-y-3">
+            {materialsLoading && <div className={`${card} p-10 text-center text-muted`}>Loading files…</div>}
+            {!materialsLoading && inSubject(type).length === 0 && emptyFiles(empty)}
+            {!materialsLoading && inSubject(type).map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
           </div>
-          {materialsLoading && <div className={`${card} p-10 text-center text-muted`}>Loading files…</div>}
-          {!materialsLoading && shownMaterials.length === 0 && emptyFiles(
-            subjectFilter === 'all'
-              ? 'Your instructor is uploading material now. It will appear here.'
-              : `Nothing uploaded for ${subjectFilter} yet. It will appear here as soon as it is.`,
-          )}
-          {!materialsLoading && shownMaterials.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
+        );
+        const current = sections.find((x) => x.id === section);
+        return (
+          <div>
+            {section
+              ? backButton(subjectFilter, () => setSection(null))
+              : backButton('Flight Deck', backToDeck)}
+            <div className="mb-6 flex items-center gap-3">
+              <Icon className="h-7 w-7 text-ink" />
+              <h1 className="text-2xl font-extrabold text-ink">{current ? `${subjectFilter} · ${current.label}` : subjectFilter}</h1>
+            </div>
+            {!section && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sections.map(({ id, label, icon: SIcon }) => (
+                  <button key={id} onClick={() => openSection(id)}
+                    className={`${card} group flex flex-col gap-4 p-6 text-left transition hover:border-brand`}>
+                    <SIcon className="h-6 w-6 text-ink" />
+                    <p className="text-lg font-bold text-ink">{label}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+            {section === 'overview' && <FileList type="overview" empty={`The overview for ${subjectFilter} appears here once your instructor uploads it.`} />}
+            {section === 'notes' && <FileList type="notes" empty={`Nothing uploaded for ${subjectFilter} yet. It will appear here as soon as it is.`} />}
+            {section === 'questions' && (
+              <div className="space-y-6">
+                <PracticeQuestions user={user} subjects={allowed.filter((s) => s.name === subjectFilter)} />
+                {inSubject('questions').length > 0 && <FileList type="questions" empty="" />}
+              </div>
+            )}
+            {section === 'pyq' && <FileList type="pyq" empty="Previous year papers appear here once your instructor uploads them." />}
+            {section === 'mock' && (
+              <TimedTests user={user} files={tests} subject={subjectFilter}
+                renderFile={(m) => <MaterialRow key={m.id} material={m} onOpen={open} />} />
+            )}
+          </div>
+        );
+      })()}
+
+      {activeTab === 'quizzes' && (
+        <div>
+          {backButton('Flight Deck', backToDeck)}
+          <PracticeQuestions user={user} subjects={allowed} />
         </div>
-      )}
-
-      {activeTab === 'quizzes' && <PracticeQuestions user={user} subjects={allowed} />}
-
-      {activeTab === 'pyq' && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-ink">Previous year tests</h2>
-          <p className="mb-2 text-sm text-muted">Past DGCA papers for your subjects. They open in the viewer.</p>
-          {!materialsLoading && pyqs.length === 0 && emptyFiles('Previous year papers appear here once your instructor uploads them.')}
-          {pyqs.map((m) => <MaterialRow key={m.id} material={m} onOpen={open} />)}
-        </div>
-      )}
-
-      {activeTab === 'scores' && (
-        <TimedTests user={user} files={tests}
-          renderFile={(m) => <MaterialRow key={m.id} material={m} onOpen={open} />} />
       )}
 
       {activeTab === 'book' && (
@@ -1905,7 +1915,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           onBooked={onRefreshAccess}
           account={{ name: user.name, email: user.email }}
           getIdToken={async () => (await currentIdToken()) || user.idToken}
-          goHome={() => setActiveTab('overview')}
+          goHome={backToDeck}
         />
       )}
 
@@ -1921,7 +1931,12 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
         />
       )}
 
-      {activeTab === 'doubts' && <StudentDoubts user={user} onRead={() => setUnread(0)} />}
+      {activeTab === 'doubts' && (
+        <div>
+          {backButton('Flight Deck', backToDeck)}
+          <StudentDoubts user={user} onRead={() => setUnread(0)} />
+        </div>
+      )}
 
       {viewing && (
         <NotesViewer material={viewing} onClose={() => setViewing(null)}

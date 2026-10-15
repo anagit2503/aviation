@@ -34,7 +34,7 @@ async function call(body, fallbackToken) {
   return data;
 }
 
-export default function TimedTests({ user, files = [], renderFile }) {
+export default function TimedTests({ user, files = [], renderFile, subject = '' }) {
   const [tests, setTests] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,15 +88,17 @@ export default function TimedTests({ user, files = [], renderFile }) {
       onRetake={() => setStage({ name: 'setup', test: tests.find((t) => t.id === stage.test.id) || { ...stage.test, count: stage.test.questions.length } })} />;
   }
 
+  const visible = subject ? tests.filter((t) => t.subject === subject) : tests;
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-bold text-ink">Tests</h2>
+        <h2 className="text-lg font-bold text-ink">{subject ? 'Mock exams' : 'Tests'}</h2>
         <p className="text-sm text-muted">Timed topic tests and mock exams. You can set your own time before you start.</p>
       </div>
       {error && <p className="rounded-xl bg-red-50 p-3 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
       {loading && <div className={`${card} p-10 text-center text-muted`}>Loading tests…</div>}
-      {!loading && tests.length === 0 && !error && (
+      {!loading && visible.length === 0 && !error && (
         <div className={`${card} p-10 text-center`}>
           <ClipboardCheck className="mx-auto h-10 w-10 text-brand" />
           <p className="mt-4 font-bold text-ink">No tests yet</p>
@@ -104,7 +106,7 @@ export default function TimedTests({ user, files = [], renderFile }) {
         </div>
       )}
       <div className="grid gap-3 md:grid-cols-2">
-        {tests.map((t) => {
+        {visible.map((t) => {
           const b = best(t.id);
           return (
             <div key={t.id} className={`${card} flex flex-col p-5`}>
