@@ -75,8 +75,8 @@ export default function NotesViewer({ material, getToken, onClose }) {
       try {
         const size = Number(material.size) || 0;
         if (isPdf(material)) {
-          const pdfjs = await import('pdfjs-dist');
-          const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+          const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+          const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
           pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
           const first = await fetchRange(0, Math.min(size, 512 * 1024));
           // Only the parts of the file that pages need are fetched, as they are needed.

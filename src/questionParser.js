@@ -133,8 +133,8 @@ export function questionWarnings(q) {
 
 // PDF → plain text with one line per printed line. Loaded only when needed.
 export async function pdfToText(file) {
-  const pdfjs = await import('pdfjs-dist');
-  const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const worker = await import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url');
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
 
   const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
