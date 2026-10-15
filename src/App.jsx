@@ -3035,6 +3035,8 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
 
   const savedTopics = topicSuggestions(filter.subject, saved, 'topic');
   const savedSubtopics = topicSuggestions(filter.subject, saved, 'subtopic', filter.topic);
+  // Chapterwise questions already saved, per chapter, so the instructor sees what is still missing.
+  const chapterCount = (name) => saved.filter((q) => q.subject === subject && q.mode !== 'shuffled' && q.topic === name).length;
   const needAnswer = draft.filter((q) => q.answer === null || q.answer === undefined).length;
   const needTopic = draft.filter((q) => !q.topic?.trim()).length;
 
@@ -3075,7 +3077,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
                     <option value="">Select a chapter</option>
                     {CHAPTER_GROUPS[subject].map((g) => (
                       <optgroup key={g.title || 'all'} label={g.title || subject}>
-                        {g.chapters.map((c, i) => <option key={c} value={c}>{i + 1}. {c}</option>)}
+                        {g.chapters.map((c, i) => <option key={c} value={c}>{i + 1}. {c}{chapterCount(c) ? '' : '  (no questions yet)'}</option>)}
                       </optgroup>
                     ))}
                   </select>
@@ -3118,6 +3120,37 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
             <button onClick={() => (!subject ? setError('Pick the subject first.') : bankMode === 'chapter' && !chapter ? setError('Pick the chapter first.') : split(pasted, source))} disabled={!pasted.trim()}
               className={`${btnPrimary} mt-3 px-6 py-2.5 text-sm`}>Split into questions</button>
           </details>
+          {bankMode === 'chapter' && CHAPTER_GROUPS[subject] && (
+            <div>
+              <p className="mb-1 text-sm font-semibold text-ink">
+                Chapters in {subject}
+                <span className="ml-2 font-normal text-muted">
+                  {CHAPTER_GROUPS[subject].flatMap((g) => g.chapters).filter((c) => chapterCount(c) > 0).length} of {chaptersOf(subject).length} have questions
+                </span>
+              </p>
+              <p className="mb-3 text-xs text-muted">Click a chapter to select it for this upload.</p>
+              {CHAPTER_GROUPS[subject].map((g) => (
+                <div key={g.title || 'all'} className="mb-3">
+                  {g.title && <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-muted">{g.title}</p>}
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {g.chapters.map((c, i) => {
+                      const n = chapterCount(c);
+                      return (
+                        <button key={c} type="button" onClick={() => setChapter(c)}
+                          className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition hover:border-brand ${chapter === c ? 'border-brand bg-sky' : 'border-line bg-surface'}`}>
+                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${n ? 'bg-go text-white' : 'border-2 border-dashed border-line'}`}>
+                            {n > 0 && <Check className="h-3 w-3" strokeWidth={3} />}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-ink">{i + 1}. {c}</span>
+                          <span className={`shrink-0 text-xs font-semibold ${n ? 'text-go' : 'text-muted'}`}>{n ? `${n} Qs` : 'To upload'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

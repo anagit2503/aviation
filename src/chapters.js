@@ -4,8 +4,11 @@
 export const CHAPTER_GROUPS = {
   'Aviation Meteorology': [
     { title: '', chapters: [
-      'Atmosphere', 'Pressure', 'Density', 'Pressure Systems', 'Temperature', 'Humidity', 'Stability', 'Turbulence',
-      'Winds', 'Precipitation', 'Thunderstorms', 'Icing', 'Air Masses', 'Occlusions', 'Climatology', 'METAR, TAF, SIGMET',
+      'Atmosphere', 'Atmospheric Pressure', 'Temperature', 'Air Density', 'Humidity', 'Winds', 'Visibility and Fog',
+      'Vertical Motion and Clouds', 'Stability and Instability of Atmosphere', 'Optical Phenomena', 'Precipitation',
+      'Ice Accretion', 'Thunderstorm', 'Air Masses, Fronts and Western Disturbances', 'Jet Streams',
+      'Clear Air Turbulence (CAT)', 'Mountain Waves', 'Tropical Systems', 'Climatology', 'General Circulation',
+      'Meteorological Services for Aviation', 'METAR and SPECI',
     ] },
   ],
   'Air Navigation': [
