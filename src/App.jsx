@@ -1688,6 +1688,26 @@ function QuestionBank({ user, subject }) {
     <QuestionItem key={q.id} q={q} n={q.number || i + 1} result={results[q.id]} progress={progress[q.id]} busy={busy} onPick={answer} />
   ));
 
+  // A chapter opens on a page of its own, with every question in it.
+  if (openChapter) {
+    const qs = forChapter(openChapter);
+    return (
+      <div className="space-y-5">
+        <button onClick={() => { setOpenChapter(null); window.scrollTo(0, 0); }}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> All chapters
+        </button>
+        <div>
+          <h2 className="text-xl font-extrabold text-ink">{openChapter}</h2>
+          <p className="mt-1 text-sm text-muted">{doneCount(qs)} of {qs.length} questions tried</p>
+          <div className="mt-3"><ProgressBar value={percent(qs)} color="bg-go" height="h-2.5" /></div>
+        </div>
+        {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+        <div className="space-y-3">{list(qs)}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div className="inline-flex rounded-full bg-mist p-1">
@@ -1715,10 +1735,9 @@ function QuestionBank({ user, subject }) {
               {g.title && <h3 className="pt-2 text-sm font-bold uppercase tracking-wide text-muted">{g.title}</h3>}
               {g.chapters.map((name, idx) => {
                 const qs = forChapter(name);
-                const open = openChapter === name;
                 return (
                   <div key={name} className={`${card} overflow-hidden`}>
-                    <button onClick={() => { setOpenChapter(open ? null : name); setShown(30); }} disabled={qs.length === 0}
+                    <button onClick={() => { setOpenChapter(name); window.scrollTo(0, 0); }} disabled={qs.length === 0}
                       className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-mist disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist text-sm font-bold text-muted">{idx + 1}</span>
                       <span className="min-w-0 flex-1">
@@ -1728,16 +1747,8 @@ function QuestionBank({ user, subject }) {
                       <span className="shrink-0 text-right text-xs text-muted">
                         {qs.length === 0 ? 'No questions yet' : `${doneCount(qs)}/${qs.length}`}
                       </span>
-                      {qs.length > 0 && <ChevronDown className={`h-5 w-5 shrink-0 text-muted transition ${open ? 'rotate-180' : ''}`} />}
+                      {qs.length > 0 && <ChevronRight className="h-5 w-5 shrink-0 text-muted" />}
                     </button>
-                    {open && (
-                      <div className="space-y-3 border-t border-line bg-mist p-4">
-                        {list(qs.slice(0, shown))}
-                        {qs.length > shown && (
-                          <button onClick={() => setShown(shown + 30)} className={`${btnGhost} w-full py-2.5 text-sm`}>Show more ({qs.length - shown} left)</button>
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -2021,7 +2032,13 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             {subjects.map((subject, i) => {
               const look = DECK_LOOKS[i % DECK_LOOKS.length];
               const stats = summary[subject.name];
-              const pct = stats?.total ? Math.round((stats.done / stats.total) * 100) : 0;
+              // A chapter counts as completed once every question in it has been tried.
+              const listed = chaptersOf(subject.name);
+              const chapterStats = stats?.chapters || {};
+              const totalChapters = listed.length || Object.keys(chapterStats).length;
+              const completed = (listed.length ? listed : Object.keys(chapterStats))
+                .filter((c) => chapterStats[c]?.total > 0 && chapterStats[c].done >= chapterStats[c].total).length;
+              const pct = totalChapters ? Math.round((completed / totalChapters) * 100) : 0;
               return (
                 <div key={subject.id} className="group flex flex-col gap-3">
                   <button onClick={() => openSubject(subject.name)}
@@ -2039,10 +2056,10 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
                     <div className={`${card} px-5 py-4`}>
                       <div className="flex items-center gap-4">
                         <div className="flex-1"><ProgressBar value={pct} color={look.bar} /></div>
-                        <span className="w-10 text-right text-sm font-bold text-muted">{stats?.total ? `${pct}%` : '–'}</span>
+                        <span className="w-10 text-right text-sm font-bold text-muted">{totalChapters ? `${pct}%` : '–'}</span>
                       </div>
                       <p className="mt-1.5 text-xs text-muted">
-                        {stats?.total ? `${stats.done} of ${stats.total} chapterwise questions tried` : 'Questions coming soon'}
+                        {totalChapters ? `${completed} of ${totalChapters} chapters completed` : 'Chapters coming soon'}
                       </p>
                     </div>
                   )}

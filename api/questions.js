@@ -317,7 +317,7 @@ export default async function handler(req, res) {
     }
     const allowed = (q) => q && access.subjects.includes(q.subject) && !(access.paused || []).includes(q.subject);
 
-    // Per subject: how many chapterwise questions there are and how many this student has tried.
+    // Per subject: how many chapterwise questions there are and how many this student has tried, in total and per chapter.
     if (body.action === 'summary') {
       const [questions, progress] = await Promise.all([
         allQuestions(),
@@ -326,9 +326,11 @@ export default async function handler(req, res) {
       const subjects = {};
       for (const q of questions.filter(allowed)) {
         if (q.mode === 'shuffled') continue;
-        subjects[q.subject] ??= { total: 0, done: 0 };
-        subjects[q.subject].total += 1;
-        if (progress[q.id]?.attempts) subjects[q.subject].done += 1;
+        const entry = (subjects[q.subject] ??= { total: 0, done: 0, chapters: {} });
+        const chapter = (entry.chapters[q.topic || 'Other'] ??= { total: 0, done: 0 });
+        entry.total += 1;
+        chapter.total += 1;
+        if (progress[q.id]?.attempts) { entry.done += 1; chapter.done += 1; }
       }
       res.status(200).json({ subjects });
       return;
