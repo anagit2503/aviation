@@ -60,6 +60,8 @@ function cleanQuestion(input, by) {
     subject: input.subject,
     topic: clip(input.topic, 80),
     subtopic: clip(input.subtopic, 80),
+    // 'chapter' = chapterwise bank (the default, also for older questions); 'shuffled' = the mixed bank.
+    mode: input.mode === 'shuffled' ? 'shuffled' : 'chapter',
     text: clip(input.text, 2000),
     options,
     answer,
@@ -304,7 +306,7 @@ export default async function handler(req, res) {
     }
 
     // ---------- Student side ----------
-    if (!['list', 'answer', 'bookmark'].includes(body.action)) {
+    if (!['list', 'answer', 'bookmark', 'summary'].includes(body.action)) {
       res.status(403).json({ error: 'Only instructors can change questions.' });
       return;
     }
@@ -314,6 +316,23 @@ export default async function handler(req, res) {
       return;
     }
     const allowed = (q) => q && access.subjects.includes(q.subject) && !(access.paused || []).includes(q.subject);
+
+    // Per subject: how many chapterwise questions there are and how many this student has tried.
+    if (body.action === 'summary') {
+      const [questions, progress] = await Promise.all([
+        allQuestions(),
+        redis(['HGETALL', progressKey(person.email)]).then(parseHash),
+      ]);
+      const subjects = {};
+      for (const q of questions.filter(allowed)) {
+        if (q.mode === 'shuffled') continue;
+        subjects[q.subject] ??= { total: 0, done: 0 };
+        subjects[q.subject].total += 1;
+        if (progress[q.id]?.attempts) subjects[q.subject].done += 1;
+      }
+      res.status(200).json({ subjects });
+      return;
+    }
 
     if (body.action === 'list') {
       const [questions, progress] = await Promise.all([

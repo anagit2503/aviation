@@ -23,6 +23,7 @@ import EnrollPage, { rememberSubjectPick } from './EnrollPage.jsx';
 import { SUBJECT_PRICES, BUNDLE, CONSULTATION, lowestPrice, rupees } from '../api/_pricing.js';
 import NotesViewer, { isViewable } from './NotesViewer.jsx';
 import TimedTests from './TimedTests.jsx';
+import { CHAPTER_GROUPS, chaptersOf } from './chapters.js';
 import { parseQuestions, parseAnswerKey, applyAnswerKey, questionWarnings, pdfToText } from './questionParser.js';
 import { googleReady, signInWithGoogle, watchGoogleUser, signOutGoogle, currentIdToken, prepareGoogle, inAppBrowser } from './auth.js';
 
@@ -1133,12 +1134,13 @@ async function api(endpoint, body, fallbackToken) {
 const MATERIAL_TYPES = [
   { id: 'overview', label: 'Overview' },
   { id: 'notes', label: 'Notes' },
-  { id: 'questions', label: 'Question bank' },
+  { id: 'chapterwise', label: 'Chapterwise questions' },
+  { id: 'shuffled', label: 'Shuffled questions' },
   { id: 'pyq', label: 'Previous year tests' },
   { id: 'mock', label: 'Mock exams' },
   { id: 'test', label: 'Topic test' },
 ];
-const typeLabel = (id) => MATERIAL_TYPES.find((t) => t.id === id)?.label || 'File';
+const typeLabel = (id) => MATERIAL_TYPES.find((t) => t.id === id)?.label || (id === 'questions' ? 'Question bank' : 'File');
 
 function fileSize(bytes) {
   if (!bytes) return '';
@@ -1581,6 +1583,200 @@ function PracticeQuestions({ user, subjects }) {
   );
 }
 
+
+// ============= QUESTION BANK (student, one subject) =============
+// Two sides, switched with a toggle: the chapterwise questions, listed chapter by
+// chapter in the order the instructor uploaded them, and the shuffled questions.
+const shuffleOf = (list) => {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+};
+
+function QuestionItem({ q, n, result, progress, busy, onPick }) {
+  const tried = progress?.attempts > 0;
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="whitespace-pre-wrap font-semibold leading-relaxed text-ink"><span className="mr-1.5 text-muted">{n}.</span>{q.text}</p>
+        {tried && !result && (
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${progress.lastCorrect ? 'bg-go/10 text-go' : 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300'}`}>
+            {progress.lastCorrect ? 'Got right' : 'Got wrong'}
+          </span>
+        )}
+      </div>
+      <div className="mt-3 space-y-2">
+        {q.options.map((option, i) => {
+          const isAnswer = result && i === result.answer;
+          const isWrongPick = result && i === result.choice && !result.correct;
+          return (
+            <button key={i} onClick={() => onPick(q, i)} disabled={Boolean(result) || busy}
+              className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition ${
+                isAnswer ? 'border-go bg-go/10' : isWrongPick ? 'border-red-400 bg-red-50 dark:bg-red-950/40'
+                  : result ? 'border-line opacity-60' : 'border-line hover:border-brand hover:bg-sky'
+              }`}>
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
+                isAnswer ? 'border-go bg-go text-white' : isWrongPick ? 'border-red-500 bg-red-500 text-white' : 'border-line text-muted'
+              }`}>
+                {isAnswer ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : isWrongPick ? <X className="h-3.5 w-3.5" strokeWidth={3} /> : letter(i)}
+              </span>
+              <span className="text-ink">{option}</span>
+            </button>
+          );
+        })}
+      </div>
+      {result && (
+        <p className={`mt-3 text-sm font-semibold ${result.correct ? 'text-go' : 'text-red-600'}`}>
+          {result.correct ? 'Correct!' : `Not quite. The answer is ${letter(result.answer)}.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function QuestionBank({ user, subject }) {
+  const [questions, setQuestions] = useState([]);
+  const [progress, setProgress] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [side, setSide] = useState('chapters');
+  const [openChapter, setOpenChapter] = useState(null);
+  const [shown, setShown] = useState(30);
+  const [results, setResults] = useState({});
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api('/api/questions', { action: 'list' }, user.idToken)
+      .then((data) => { setQuestions(data.questions || []); setProgress(data.progress || {}); })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const mine = questions.filter((q) => q.subject === subject);
+  const chapterQs = mine.filter((q) => q.mode !== 'shuffled');
+  const shuffledQs = React.useMemo(() => shuffleOf(mine.filter((q) => q.mode === 'shuffled')), [questions, subject]);
+
+  const answer = async (q, choice) => {
+    if (results[q.id] || busy) return;
+    setBusy(true);
+    try {
+      const data = await api('/api/questions', { action: 'answer', id: q.id, choice }, user.idToken);
+      setResults((r) => ({ ...r, [q.id]: { choice, answer: data.answer, correct: data.correct } }));
+      setProgress((p) => ({ ...p, [q.id]: data.progress }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return <div className={`${card} p-10 text-center text-muted`}>Loading questions…</div>;
+
+  // Chapters in syllabus order, then any chapter name that is not on the list.
+  const listed = CHAPTER_GROUPS[subject] || [];
+  const known = new Set(chaptersOf(subject));
+  const extra = [...new Set(chapterQs.map((q) => q.topic || 'Other').filter((t) => !known.has(t)))].sort();
+  const groups = [...listed, ...(extra.length ? [{ title: listed.length ? 'More chapters' : '', chapters: extra }] : [])];
+  const forChapter = (name) => chapterQs.filter((q) => (q.topic || 'Other') === name);
+  const doneCount = (list) => list.filter((q) => progress[q.id]?.attempts).length;
+  const percent = (list) => (list.length ? Math.round((doneCount(list) / list.length) * 100) : 0);
+
+  const list = (items) => items.map((q, i) => (
+    <QuestionItem key={q.id} q={q} n={q.number || i + 1} result={results[q.id]} progress={progress[q.id]} busy={busy} onPick={answer} />
+  ));
+
+  return (
+    <div className="space-y-5">
+      <div className="inline-flex rounded-full bg-mist p-1">
+        {[['chapters', 'Chapterwise questions'], ['shuffled', 'Shuffled questions']].map(([id, label]) => (
+          <button key={id} onClick={() => setSide(id)} aria-pressed={side === id}
+            className={`rounded-full px-5 py-2 text-sm font-semibold transition ${side === id ? 'bg-brand text-on-brand shadow' : 'text-muted hover:text-ink'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+
+      {side === 'chapters' && (
+        <div className="space-y-5">
+          <div className={`${card} p-5`}>
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-semibold text-ink">Your progress</span>
+              <span className="font-bold text-ink">{percent(chapterQs)}%</span>
+            </div>
+            <ProgressBar value={percent(chapterQs)} color="bg-go" height="h-2.5" />
+            <p className="mt-2 text-xs text-muted">{doneCount(chapterQs)} of {chapterQs.length} chapterwise questions tried</p>
+          </div>
+          {groups.map((g) => (
+            <div key={g.title || 'all'} className="space-y-2">
+              {g.title && <h3 className="pt-2 text-sm font-bold uppercase tracking-wide text-muted">{g.title}</h3>}
+              {g.chapters.map((name, idx) => {
+                const qs = forChapter(name);
+                const open = openChapter === name;
+                return (
+                  <div key={name} className={`${card} overflow-hidden`}>
+                    <button onClick={() => { setOpenChapter(open ? null : name); setShown(30); }} disabled={qs.length === 0}
+                      className="flex w-full items-center gap-4 p-4 text-left transition hover:bg-mist disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist text-sm font-bold text-muted">{idx + 1}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold text-ink">{name}</span>
+                        <span className="mt-1 block max-w-xs"><ProgressBar value={percent(qs)} color="bg-go" height="h-1.5" /></span>
+                      </span>
+                      <span className="shrink-0 text-right text-xs text-muted">
+                        {qs.length === 0 ? 'No questions yet' : `${doneCount(qs)}/${qs.length}`}
+                      </span>
+                      {qs.length > 0 && <ChevronDown className={`h-5 w-5 shrink-0 text-muted transition ${open ? 'rotate-180' : ''}`} />}
+                    </button>
+                    {open && (
+                      <div className="space-y-3 border-t border-line bg-mist p-4">
+                        {list(qs.slice(0, shown))}
+                        {qs.length > shown && (
+                          <button onClick={() => setShown(shown + 30)} className={`${btnGhost} w-full py-2.5 text-sm`}>Show more ({qs.length - shown} left)</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {side === 'shuffled' && (
+        shuffledQs.length === 0 ? (
+          <div className={`${card} p-10 text-center`}>
+            <ListChecks className="mx-auto h-10 w-10 text-brand" />
+            <p className="mt-4 font-bold text-ink">No shuffled questions yet</p>
+            <p className="mt-1 text-muted">They appear here once your instructor uploads them.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted">{shuffledQs.length} questions in a mixed-up order.</p>
+            {list(shuffledQs.slice(0, shown))}
+            {shuffledQs.length > shown && (
+              <button onClick={() => setShown(shown + 30)} className={`${btnGhost} w-full py-2.5 text-sm`}>Show more ({shuffledQs.length - shown} left)</button>
+            )}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// Banner and progress colours for the Flight Deck subject cards.
+const DECK_LOOKS = [
+  { banner: 'from-sky-500 to-indigo-600', bar: 'bg-blue-500' },
+  { banner: 'from-orange-400 to-rose-500', bar: 'bg-orange-400' },
+  { banner: 'from-emerald-400 to-teal-600', bar: 'bg-green-500' },
+  { banner: 'from-violet-500 to-fuchsia-600', bar: 'bg-violet-500' },
+  { banner: 'from-amber-400 to-orange-600', bar: 'bg-amber-500' },
+  { banner: 'from-cyan-400 to-blue-600', bar: 'bg-cyan-500' },
+];
+
 // ============= STUDENT DASHBOARD =============
 function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -1616,6 +1812,15 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
       .finally(() => { if (live) setMaterialsLoading(false); });
     return () => { live = false; };
   }, [accessKey]);
+
+  // How far through each subject's chapterwise questions this student is.
+  const [summary, setSummary] = useState({});
+  useEffect(() => {
+    if (allowed.length === 0 || !access.questions) return;
+    api('/api/questions', { action: 'summary' }, user.idToken)
+      .then((data) => setSummary(data.subjects || {}))
+      .catch(() => {});
+  }, [accessKey, activeTab]);
 
   // Payments waiting for the instructor to confirm.
   useEffect(() => {
@@ -1808,18 +2013,42 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="text-2xl font-extrabold text-ink">Flight Deck</h1>
-              <p className="text-sm text-muted">Pick a subject to open its material.</p>
+              <p className="text-sm text-muted">Welcome aboard! Let's get you closer to the cockpit.</p>
             </div>
             <button onClick={enroll} className={`${btnGhost} px-5 py-2 text-sm`}>+ Add subjects</button>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {subjects.map((subject) => (
-              <button key={subject.id} onClick={() => openSubject(subject.name)}
-                className={`${card} group flex flex-col gap-4 p-6 text-left transition hover:border-brand hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,0.5)]`}>
-                <subject.icon className="h-7 w-7 text-ink" />
-                <p className="text-lg font-bold text-ink">{subject.name}</p>
-              </button>
-            ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {subjects.map((subject, i) => {
+              const look = DECK_LOOKS[i % DECK_LOOKS.length];
+              const stats = summary[subject.name];
+              const pct = stats?.total ? Math.round((stats.done / stats.total) * 100) : 0;
+              return (
+                <div key={subject.id} className="group flex flex-col gap-3">
+                  <button onClick={() => openSubject(subject.name)}
+                    className={`${card} overflow-hidden text-left shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45)]`}>
+                    <div className={`relative flex h-36 items-center justify-center overflow-hidden bg-gradient-to-br ${look.banner}`}>
+                      <subject.icon className="absolute -right-4 -top-4 h-32 w-32 rotate-12 text-white/15 transition duration-300 group-hover:rotate-0 group-hover:scale-110" />
+                      <subject.icon className="relative h-14 w-14 text-white drop-shadow transition duration-300 group-hover:scale-110" />
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-5">
+                      <p className="text-lg font-bold text-ink">{subject.name}</p>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-muted transition group-hover:translate-x-1 group-hover:text-brand" />
+                    </div>
+                  </button>
+                  {access.questions && (
+                    <div className={`${card} px-5 py-4`}>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1"><ProgressBar value={pct} color={look.bar} /></div>
+                        <span className="w-10 text-right text-sm font-bold text-muted">{stats?.total ? `${pct}%` : '–'}</span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted">
+                        {stats?.total ? `${stats.done} of ${stats.total} chapterwise questions tried` : 'Questions coming soon'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {pausedSubjects.map((s) => (
               <button key={s.name} onClick={enroll}
                 className={`${card} flex flex-col border-dashed p-6 text-left opacity-80 transition hover:border-brand hover:opacity-100`}>
@@ -1887,7 +2116,7 @@ function StudentDashboard({ user, onLogout, onGoPublic, onRefreshAccess }) {
             {section === 'notes' && <FileList type="notes" empty={`Nothing uploaded for ${subjectFilter} yet. It will appear here as soon as it is.`} />}
             {section === 'questions' && (
               <div className="space-y-6">
-                <PracticeQuestions user={user} subjects={allowed.filter((s) => s.name === subjectFilter)} />
+                <QuestionBank user={user} subject={subjectFilter} />
                 {inSubject('questions').length > 0 && <FileList type="questions" empty="" />}
               </div>
             )}
@@ -2188,19 +2417,24 @@ function UploadMaterial({ user }) {
     );
   }
 
-  if (type === 'questions') {
+  if (type === 'chapterwise' || type === 'shuffled') {
     return (
       <div className="space-y-5">
         <div className={`${card} p-6 sm:p-8`}>
-          <h2 className="mb-1 text-lg font-bold text-ink">Upload a question bank</h2>
+          <h2 className="mb-1 text-lg font-bold text-ink">
+            {type === 'chapterwise' ? 'Upload chapterwise questions' : 'Upload shuffled questions'}
+          </h2>
           <p className="mb-6 text-sm text-muted">
+            {type === 'chapterwise'
+              ? 'Pick the chapter first: every question you upload is filed under it, in the order of your paper. '
+              : 'These show on the Shuffled questions side of the student question bank, mixed up for each student. '}
             Your paper is split into separate questions: every numbered line (<b>1.</b>, <b>2.</b>) is a question and every
             lettered line (<b>a)</b>, <b>b)</b>) is an option. You mark answers and add topics before saving.
           </p>
           {pickers}
         </div>
         {subject
-          ? <QuestionBankAdmin key={subject} user={user} fixedSubject={subject} addOnly />
+          ? <QuestionBankAdmin key={`${subject}-${type}`} user={user} fixedSubject={subject} addOnly bankMode={type === 'chapterwise' ? 'chapter' : 'shuffled'} />
           : <div className={`${card} p-8 text-center text-muted`}>Pick the subject to continue.</div>}
       </div>
     );
@@ -2561,8 +2795,8 @@ function TestsAdminList({ tests, setTests, user, onError }) {
 }
 
 // `testType` ('test' | 'mock'): the same splitter, saved as a timed test.
-function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType = null }) {
-  const storeKey = testType ? `${DRAFT_STORE}-test` : DRAFT_STORE;
+function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType = null, bankMode = null }) {
+  const storeKey = testType ? `${DRAFT_STORE}-test` : bankMode === 'shuffled' ? `${DRAFT_STORE}-shuffled` : DRAFT_STORE;
   const stored = React.useMemo(() => {
     const d = readDraft(storeKey);
     return d && (!fixedSubject || d.subject === fixedSubject) ? d : null;
@@ -2579,6 +2813,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
   const [pickedSubject, setSubject] = useState(stored?.subject || '');
   const subject = fixedSubject || pickedSubject;
   const [source, setSource] = useState(stored?.source || '');
+  const [chapter, setChapter] = useState(stored?.chapter || '');
   const [pasted, setPasted] = useState('');
   const [minutes, setMinutes] = useState(stored?.minutes || '');
   const [tests, setTests] = useState([]);
@@ -2599,8 +2834,8 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
   const firstRun = React.useRef(true);
   useEffect(() => {
     if (firstRun.current) { firstRun.current = false; return; }
-    writeDraft({ subject, source, draft, minutes }, storeKey);
-  }, [draft, subject, source, minutes]);
+    writeDraft({ subject, source, draft, minutes, chapter }, storeKey);
+  }, [draft, subject, source, minutes, chapter]);
 
   // Warn before closing the page with unsaved work.
   const unsaved = draft.length > 0 || edits.size > 0 || removed.size > 0;
@@ -2651,7 +2886,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
       setError('No questions found. Each question should start with a number like "12." and each option with a letter like "a)".');
       return;
     }
-    setDraft(found.map((q) => withKey({ ...q, subject, source: source || name || '', topic: '', subtopic: '' })));
+    setDraft(found.map((q) => withKey({ ...q, subject, source: source || name || '', topic: bankMode === 'chapter' ? chapter : '', subtopic: '' })));
     setKeyResult('');
     const answered = found.filter((q) => q.answer !== null).length;
     setNotice(answered ? `Found ${found.length} questions. The answer key in the file filled in ${answered}.` : '');
@@ -2662,6 +2897,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
   const readFile = async (file) => {
     if (!file) return;
     if (!subject) { setError('Pick the subject first.'); return; }
+    if (bankMode === 'chapter' && !chapter) { setError('Pick the chapter first.'); return; }
     setBusy(true);
     setError('');
     try {
@@ -2710,7 +2946,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
       setError(`${bad.length} question${bad.length === 1 ? ' needs' : 's need'} attention first (Q${bad.slice(0, 8).map((q) => q.number || '?').join(', Q')}${bad.length > 8 ? '…' : ''}). Click "Needs attention" to see them.`);
       return false;
     }
-    const payload = items.map(({ key, dirty, ...q }) => ({ ...q, subject: q.subject || subject }));
+    const payload = items.map(({ key, dirty, ...q }) => ({ ...q, subject: q.subject || subject, mode: bankMode || q.mode }));
     const data = await api('/api/questions', { action: 'save', questions: payload }, user.idToken);
     const byId = new Map(data.questions.map((q) => [q.id, q]));
     setSaved((list) => [...list.filter((q) => !byId.has(q.id)), ...data.questions.map(withKey)]);
@@ -2756,9 +2992,10 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
         setDraft([]);
         setPasted('');
         setSource('');
+        setChapter('');
         setKeyText('');
         setKeyResult('');
-        setNotice(`${count} question${count === 1 ? '' : 's'} saved. Students with ${subject} can practise them now.`);
+        setNotice(`${count} question${count === 1 ? '' : 's'} saved${bankMode ? ` as ${bankMode === 'chapter' ? 'chapterwise' : 'shuffled'} questions` : ''}. Students with ${subject} can practise them now.`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (err) {
@@ -2830,6 +3067,23 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
                 </select>
               </div>
             )}
+            {bankMode === 'chapter' && (
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-ink">Chapter</label>
+                {CHAPTER_GROUPS[subject] ? (
+                  <select className={input} value={chapter} onChange={(e) => setChapter(e.target.value)}>
+                    <option value="">Select a chapter</option>
+                    {CHAPTER_GROUPS[subject].map((g) => (
+                      <optgroup key={g.title || 'all'} label={g.title || subject}>
+                        {g.chapters.map((c, i) => <option key={c} value={c}>{i + 1}. {c}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                ) : (
+                  <input className={input} value={chapter} onChange={(e) => setChapter(e.target.value)} placeholder="Chapter name" />
+                )}
+              </div>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-semibold text-ink">
                 {testType ? 'Test name' : <>Paper name <span className="font-normal text-muted">(optional)</span></>}
@@ -2861,7 +3115,7 @@ function QuestionBankAdmin({ user, fixedSubject = '', addOnly = false, testType 
             <summary className="cursor-pointer text-sm font-semibold text-brand">Or paste the questions as text</summary>
             <textarea rows={8} value={pasted} onChange={(e) => setPasted(e.target.value)} className={`${input} mt-3 font-mono text-sm`}
               placeholder={'1. Coriolis force is strongest at\na) Equator\nb) Poles\nc) Mid latitudes'} />
-            <button onClick={() => (subject ? split(pasted, source) : setError('Pick the subject first.'))} disabled={!pasted.trim()}
+            <button onClick={() => (!subject ? setError('Pick the subject first.') : bankMode === 'chapter' && !chapter ? setError('Pick the chapter first.') : split(pasted, source))} disabled={!pasted.trim()}
               className={`${btnPrimary} mt-3 px-6 py-2.5 text-sm`}>Split into questions</button>
           </details>
         </div>
